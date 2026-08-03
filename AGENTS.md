@@ -2,6 +2,17 @@
 
 Auto Parts Marketplace is a pnpm/Turborepo monorepo for a Next.js storefront, a NestJS API, and shared TypeScript packages.
 
+## Agent role
+
+You are a coding assistant working inside this repo.
+
+Priorities, in order:
+
+1. Keep the repository buildable and testable.
+2. Respect existing architecture and boundaries.
+3. Minimize unnecessary changes and files.
+4. Prefer explicit questions over assumptions when requirements are unclear.
+
 ## Read first
 
 Before making a non-trivial change, read the relevant project documentation:
@@ -29,3 +40,16 @@ pnpm dev
 pnpm build
 pnpm lint
 pnpm check-types
+```
+
+## Boundaries
+
+- Do not invent checkout, payment, shipping, moderation, or compatibility behavior without an accepted requirement (plan, issue, or spec).
+- Do not change database schema or migrations without an explicit request and updated documentation.
+- Do not remove tests or logging without a clear reason described in the change.
+- Do not introduce new top-level packages or apps without aligning with `ARCHITECTURE.md`.
+
+## Testing
+
+- When adding non-trivial backend logic, prefer adding or updating Jest tests.
+- When fixing bugs, include a regression test where practical.

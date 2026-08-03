@@ -4,6 +4,8 @@ Use an execution plan for work that is complex, ambiguous, risky, spans multiple
 
 Small, well-scoped changes do not need a formal plan.
 
+AI coding assistants must use or update an execution plan for work that meets these criteria, rather than implementing directly from a chat.
+
 ## Plan requirements
 
 An execution plan must be:

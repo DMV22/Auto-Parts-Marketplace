@@ -1,4 +1,3 @@
-
 # CONTEXT.md
 
 ## Product
@@ -51,3 +50,16 @@ pnpm-workspace.yaml     Workspace globs
 turbo.json              Task graph and caching
 pnpm-lock.yaml          Dependency lockfile
 ```
+
+## Domain baseline
+
+Domain concepts (names may evolve):
+
+- Part: an individual automotive part (e.g. brake pad).
+- Vehicle: a car or other vehicle with make, model, year.
+- Fitment: relationship between a part and compatible vehicles.
+- Listing: a sellable offer for a part.
+- Order: a customer's purchase, composed of one or more listings.
+
+When domain language changes (e.g. renaming entities or workflows), update this section so that it remains the source of truth for naming.
+When adding a new stack-level capability (e.g. Prisma, CI, auth), update the baseline in this document in the same change.

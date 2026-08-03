@@ -1,4 +1,3 @@
-
 # ARCHITECTURE.md
 
 ## Purpose
@@ -32,6 +31,13 @@ Not implemented yet:
 - media storage;
 - payment, shipping, or order workflows;
 - production deployment architecture.
+
+## Boundaries
+
+- `apps/web` contains UI, routing, and browser-facing concerns. Do not put business logic or persistence here.
+- `apps/api` owns HTTP endpoints, validation, business services, and persistence orchestration.
+- `packages/ui` is for reusable presentational components. Do not add data fetching or business logic there.
+- Shared configuration packages (`eslint-config`, `typescript-config`) should not depend on application code.
 
 ## Target system context
 
