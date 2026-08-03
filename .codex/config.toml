@@ -1,0 +1,24 @@
+# Repository-specific Codex defaults.
+# This file is applied only when the repository is trusted.
+
+# Ask before operations that require access beyond the configured sandbox.
+approval_policy = "on-request"
+
+# Allow normal edits inside the repository, but not unrestricted system access.
+sandbox_mode = "workspace-write"
+
+# Balanced default for day-to-day monorepo work.
+# Override with high/xhigh for architecture, migrations, or difficult debugging.
+model_reasoning_effort = "medium"
+
+# Prefer cached/indexed documentation by default.
+# Use a one-off live search when current release information is required.
+web_search = "cached"
+
+# Make local file references open in VS Code.
+file_opener = "vscode"
+
+[sandbox_workspace_write]
+# Dependency installation, external downloads, and remote calls should require
+# an explicit permission decision instead of being silently available to shell commands.
+network_access = false
