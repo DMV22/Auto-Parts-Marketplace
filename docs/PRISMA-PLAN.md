@@ -63,8 +63,9 @@
 - Уже застосовані migration-файли не редагувати; наступні зміни робити новими міграціями.
 - Для production-like середовищ використовувати non-interactive migration deployment (`prisma migrate deploy`), а `prisma migrate dev` залишити для локальної розробки.
 - Не commit-ити реальні credentials або локальний `.env`; example-файл повинен містити лише placeholder/local-safe value.
-- Prisma CLI і Prisma Client мають бути зафіксовані на однаковій exact version у межах Prisma 6.x. Для Prisma 6 локальний і CI runtime має бути Node.js `>=18.18.0`; перехід на Prisma 7 відкладається до окремого оновлення Node.js engine щонайменше до `20.19.0` та оцінки ESM-змін.
-- Локальний database baseline — PostgreSQL 16 у repo-managed Docker Compose. Development і test використовують різні бази (`auto_parts_dev` та `auto_parts_test`) на одному локальному server; production credentials або production topology не описуються цим планом.
+- Цільова ORM version — Prisma 7.x. Prisma CLI, Prisma Client і PostgreSQL driver adapter мають бути зафіксовані на однаковій exact version `7.9.0`; version ranges (`^`/`~`) для цих пакетів не використовувати.
+- Мінімальний Node.js engine для локального середовища та CI — `>=22.12.0 <23`; рекомендований локальний runtime — актуальний patch-реліз Node.js 22 LTS. Root `package.json` має бути оновлений з `>=18` до цього діапазону до встановлення Prisma 7. Перехід на Prisma 7 також має врахувати його ESM configuration і обов'язковий PostgreSQL driver adapter, не змінюючи версії Next.js, NestJS чи інших технологій стеку.
+- Основний dev/test database baseline — локальний PostgreSQL 16 у repo-managed Docker Compose. Development і test використовують різні бази (`auto_parts_dev` та `auto_parts_test`) на одному локальному server і окремі `DATABASE_URL`. Supabase або інший managed PostgreSQL можна оцінити пізніше для deployment, але не використовувати як baseline для development чи tests.
 - Integration tests повинні працювати лише з `auto_parts_test`, перевіряти суфікс `_test` перед cleanup/reset і не очищати development або production database.
 - Destructive reset/drop дозволений лише для явно перевіреної test/local database, ніколи для довільного `DATABASE_URL`.
 - Старт API при недоступній базі має завершуватися передбачуваною помилкою без витоку connection string.
@@ -132,10 +133,10 @@ API request
 
 ### Milestone 0 — погодити database і schema decisions
 
-- [ ] Зафіксувати відповіді на open questions 1–8 у цьому документі.
-- [ ] Вибрати Prisma version після перевірки сумісності з NestJS 11, TypeScript і підтримуваним Node.js runtime.
-- [ ] Зафіксувати остаточні поля, nullability, identifiers, indexes і referential actions для трьох моделей.
-- [ ] Узгодити спосіб запуску isolated PostgreSQL для integration/e2e tests.
+- [x] Зафіксувати відповіді на open questions 1–8 у цьому документі.
+- [x] Зафіксувати Prisma `7.9.0` і Node.js engine `>=22.12.0 <23`, сумісні з поточними NestJS 11 і TypeScript.
+- [x] Зафіксувати остаточні поля, nullability, identifiers, indexes і referential actions для трьох моделей.
+- [x] Узгодити repo-managed Docker Compose з окремою `auto_parts_test` для integration/e2e tests.
 
 Validation:
 
