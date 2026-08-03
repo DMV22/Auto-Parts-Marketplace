@@ -157,3 +157,14 @@ Learn more about the power of Turborepo:
 - [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
 - [Configuration Options](https://turborepo.dev/docs/reference/configuration)
 - [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+
+## Про проєкт
+
+Auto Parts Marketplace — монорепозиторій маркетплейсу автозапчастин, що об'єднує вебвітрину, API та спільні TypeScript-пакети.
+
+### Стек
+
+- Next.js — вебвітрина
+- NestJS — API
+- TypeScript — основна мова розробки
+- pnpm і Turborepo — керування монорепозиторієм та запуск завдань
