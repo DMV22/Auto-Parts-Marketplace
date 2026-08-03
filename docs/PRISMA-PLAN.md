@@ -63,55 +63,61 @@
 - Уже застосовані migration-файли не редагувати; наступні зміни робити новими міграціями.
 - Для production-like середовищ використовувати non-interactive migration deployment (`prisma migrate deploy`), а `prisma migrate dev` залишити для локальної розробки.
 - Не commit-ити реальні credentials або локальний `.env`; example-файл повинен містити лише placeholder/local-safe value.
-- Версії Prisma CLI і client мають збігатися та підтримувати фактичний Node.js engine репозиторію. Якщо обрана Prisma version вимагає новіший Node.js, спочатку окремо погодити оновлення engine/runtime.
-- Integration tests повинні працювати на ізольованій test database і не очищати development або production database.
+- Prisma CLI і Prisma Client мають бути зафіксовані на однаковій exact version у межах Prisma 6.x. Для Prisma 6 локальний і CI runtime має бути Node.js `>=18.18.0`; перехід на Prisma 7 відкладається до окремого оновлення Node.js engine щонайменше до `20.19.0` та оцінки ESM-змін.
+- Локальний database baseline — PostgreSQL 16 у repo-managed Docker Compose. Development і test використовують різні бази (`auto_parts_dev` та `auto_parts_test`) на одному локальному server; production credentials або production topology не описуються цим планом.
+- Integration tests повинні працювати лише з `auto_parts_test`, перевіряти суфікс `_test` перед cleanup/reset і не очищати development або production database.
 - Destructive reset/drop дозволений лише для явно перевіреної test/local database, ніколи для довільного `DATABASE_URL`.
 - Старт API при недоступній базі має завершуватися передбачуваною помилкою без витоку connection string.
 
 ## Open questions
 
-Ці рішення мають бути прийняті й записані в цьому плані до створення першої міграції:
+None. Для Milestone 0 прийняті такі рішення:
 
-1. Який PostgreSQL baseline використовуємо для локальної розробки й тестів: repo-managed Compose чи зовнішню/вже наявну instance? Від цього залежать operational files і команди перевірки.
-2. Яка підтримувана major version PostgreSQL для development, tests і deployment?
-3. Яка стратегія ідентифікаторів для `Part` і `Vehicle`: UUID, CUID чи database-generated integer?
-4. Які мінімальні обов'язкові поля `Part`, окрім ідентифікатора та назви? Зокрема, чи потрібен `partNumber`, хто його задає і чи може він бути глобально унікальним?
-5. Чи `Vehicle(make, model, year)` має бути унікальним, чи потрібні додаткові поля (наприклад, trim/engine) до введення такого constraint?
-6. Що означає `year`: один модельний рік на `Vehicle` чи діапазон років для fitment?
-7. Яка delete policy для пов'язаних записів: `Restrict` чи cascade-видалення `Fitment` при видаленні `Part`/`Vehicle`?
-8. Чи потрібні public CRUD endpoints у цій же реалізації? Базовий план вважає їх non-goal і перевіряє persistence через service/integration tests.
+1. **Локальний PostgreSQL:** використовувати repo-managed Docker Compose, щоб development і integration/e2e tests відтворювалися однаково на локальній машині. Один PostgreSQL server містить окремі бази `auto_parts_dev` і `auto_parts_test`; для них використовуються різні `DATABASE_URL`. Зовнішня PostgreSQL instance може бути підключена вручну, але не є baseline і не змінює committed migrations.
+2. **PostgreSQL version:** підтримуваний baseline — PostgreSQL 16 для development, tests і першого deployment. Compose image фіксується на major tag `postgres:16`; перехід на іншу major version потребує окремої перевірки migrations та integration tests.
+3. **Identifiers:** `Part.id` і `Vehicle.id` — application-generated UUID v4, які Prisma зберігає в native PostgreSQL `uuid` (`String @id @default(uuid()) @db.Uuid`). `Fitment` не має окремого surrogate id: composite primary key складається з `(partId, vehicleId)`.
+4. **Мінімальні поля Part:** обов'язкові `name`, `manufacturer` і `manufacturerPartNumber`, а також `createdAt`/`updatedAt`. Номер задається виробником і не вважається глобально унікальним; database constraint — `unique(manufacturer, manufacturerPartNumber)`. Перед записом application layer обрізає зовнішні пробіли та приводить `manufacturerPartNumber` до uppercase, щоб уникати очевидних дублікатів.
+5. **Vehicle uniqueness:** у базовій моделі обов'язкові лише `make`, `model`, `year` та timestamps; `trim`/`engine` не додаються в цьому milestone. `unique(make, model, year)` визначає одну канонічну модель для конкретного модельного року. Application layer обрізає зовнішні пробіли й використовує узгоджене написання `make`/`model` перед записом.
+6. **Значення year:** `year` — один модельний рік як integer на одному `Vehicle`. Діапазон років не зберігається; сумісність у кількох роках представлена окремими `Vehicle` та `Fitment` records.
+7. **Delete policy:** foreign keys `Fitment.partId` і `Fitment.vehicleId` використовують `onDelete: Cascade` та `onUpdate: Cascade`, бо `Fitment` не має самостійного життєвого циклу. Видалення `Part` або `Vehicle` видаляє лише залежні join rows, не іншу сторону зв'язку.
+8. **Public API:** CRUD endpoints не входять у цю реалізацію. Persistence boundary перевіряється через injected NestJS service/Prisma provider та integration tests; public controllers і DTO додаються окремим планом після погодження API contract.
 
 ## Proposed approach
 
 Розмістити Prisma schema, migrations і generated-client configuration у `apps/api`, оскільки NestJS API володіє persistence orchestration. Додати глобальний або явно імпортований `PrismaModule` з одним `PrismaService`, який розширює/обгортає `PrismaClient` та інтегрується з NestJS lifecycle. Domain services надалі отримуватимуть цей provider через dependency injection; контролери не повинні звертатися до Prisma напряму.
 
-Базова запропонована модель після вирішення open questions:
+Погоджена базова модель:
 
 ```text
 Part 1 ----- * Fitment * ----- 1 Vehicle
 
 Part
-  id
-  <погоджені описові поля>
-  createdAt
-  updatedAt
+  id: UUID primary key
+  name: required
+  manufacturer: required
+  manufacturerPartNumber: required
+  createdAt: required
+  updatedAt: required
+  unique(manufacturer, manufacturerPartNumber)
 
 Vehicle
-  id
-  make
-  model
-  year
-  createdAt
-  updatedAt
+  id: UUID primary key
+  make: required
+  model: required
+  year: required integer model year
+  createdAt: required
+  updatedAt: required
+  unique(make, model, year)
 
 Fitment
-  partId      -> Part.id
-  vehicleId   -> Vehicle.id
-  createdAt
-  unique(partId, vehicleId)
+  partId: UUID -> Part.id, onDelete/onUpdate Cascade
+  vehicleId: UUID -> Vehicle.id, onDelete/onUpdate Cascade
+  createdAt: required
+  primaryKey(partId, vehicleId)
+  index(vehicleId)
 ```
 
-`Fitment` має бути explicit join model, а не implicit many-to-many relation: це робить constraint видимим, дає місце для timestamps і дозволяє пізніше додати погоджені fitment metadata окремою міграцією. Не додавати metadata наперед.
+`Fitment` має бути explicit join model, а не implicit many-to-many relation: composite primary key забороняє дублікати, окремий index на `vehicleId` підтримує пошук деталей за транспортним засобом, а `createdAt` залишає audit baseline. Узгоджені fitment metadata можна додати пізніше окремою міграцією; не додавати їх наперед.
 
 Очікуваний runtime flow для майбутніх domain operations:
 
@@ -228,4 +234,3 @@ Validation:
 - **Занадто широке persistence API.** Prisma залишається в `apps/api`; web/shared UI не залежать від generated client.
 - **Нестабільні tests через shared state.** Ізольована database/schema на suite або worker, deterministic setup і cleanup.
 - **Витік credentials.** Commit лише example configuration; реальні `.env*` залишаються ignored і не виводяться в logs/errors.
-
