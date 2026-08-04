@@ -173,10 +173,10 @@ Validation:
 
 ### Milestone 3 — інтегрувати Prisma з NestJS lifecycle
 
-- [ ] Додати `PrismaModule`/`PrismaService` у межах `apps/api/src` і підключити його до `AppModule`.
-- [ ] Забезпечити єдиний injectable client і коректне завершення connection pool під час shutdown.
-- [ ] Не додавати public domain endpoints; за потреби створити мінімальний internal service тільки для перевірки dependency injection і persistence boundary.
-- [ ] Додати unit tests для lifecycle/provider behavior там, де вони дають стабільну перевірку без реальної бази.
+- [x] Додати `PrismaModule`/`PrismaService` у межах `apps/api/src` і підключити його до `AppModule`.
+- [x] Забезпечити єдиний injectable client і коректне завершення connection pool під час shutdown.
+- [x] Не додавати public domain endpoints; persistence boundary доступний лише через injected `PrismaService`.
+- [x] Integration tests для provider lifecycle і persistence behavior проходять на локальній `auto_parts_test` із застосованими migrations.
 
 Validation:
 
