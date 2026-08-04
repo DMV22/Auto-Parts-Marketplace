@@ -187,11 +187,11 @@ Validation:
 
 ### Milestone 4 — додати database integration tests
 
-- [ ] Налаштувати окремий test `DATABASE_URL` з явним guard проти production/development database.
-- [ ] Перед test suite застосовувати committed migrations до ізольованої бази; cleanup виконувати транзакційно або в межах перевіреної test schema/database.
-- [ ] Додати integration test для створення й читання Part, Vehicle та Fitment через injected Prisma boundary/service.
-- [ ] Додати regression checks для duplicate fitment, foreign keys і погодженої delete policy.
-- [ ] Зберегти наявний Supertest e2e test або адаптувати bootstrap так, щоб database lifecycle не робив його flaky.
+- [x] Налаштувати окремий test `DATABASE_URL` з явним guard проти production/development database.
+- [x] Перед test suite застосовувати committed migrations до ізольованої бази; cleanup виконувати транзакційно або в межах перевіреної test schema/database.
+- [x] Додати integration test для створення й читання Part, Vehicle та Fitment через injected Prisma boundary/service.
+- [x] Додати regression checks для duplicate fitment, foreign keys і погодженої delete policy.
+- [x] Зберегти наявний Supertest e2e test або адаптувати bootstrap так, щоб database lifecycle не робив його flaky.
 
 Validation:
 
@@ -199,6 +199,23 @@ Validation:
 - `pnpm --filter api test:e2e` проходить із ізольованою PostgreSQL test database.
 - Повторний запуск suite дає той самий результат і не залежить від залишкових записів.
 - Тести не можуть підключитися до database, що не має явного test marker/name, визначеного в Milestone 0.
+
+Implementation log:
+
+- Додано спільний Jest `globalSetup`, який проходить test database guard і застосовує committed migrations до `auto_parts_test` через `prisma migrate deploy` перед integration/e2e suites.
+- Cleanup виконується через injected `PrismaService` лише після перевірки локального `TEST_DATABASE_URL`; reset/drop не використовуються.
+- Integration suite перевіряє create/read relations, duplicate fitment, обидва foreign keys і cascade delete з обох сторін Fitment.
+- Supertest e2e application закривається після кожного тесту, тому Prisma lifecycle не залишає відкритий connection pool.
+- Integration suite успішно пройшла двічі поспіль: 4/4 tests у кожному запуску; Supertest e2e — 1/1.
+
+Verification steps:
+
+```bash
+pnpm --filter api test
+pnpm --filter api test:int
+pnpm --filter api test:e2e
+pnpm --filter api build
+```
 
 ### Milestone 5 — документація та повна перевірка
 
