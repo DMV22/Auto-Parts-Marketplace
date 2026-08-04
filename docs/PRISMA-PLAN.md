@@ -219,11 +219,11 @@ pnpm --filter api build
 
 ### Milestone 5 — документація та повна перевірка
 
-- [ ] Оновити `docs/CONTEXT.md`: позначити фактичні Prisma/PostgreSQL versions, model baseline, migration/test commands і прибрати застаріле `not configured`.
-- [ ] Оновити `docs/ARCHITECTURE.md`: описати реалізований persistence boundary, не видаючи non-goals за готові можливості.
-- [ ] Оновити релевантний API/root README короткими setup і migration commands.
-- [ ] Перевірити, що реальні credentials, local database data та generated artifacts не потрапили до Git.
-- [ ] Оновити статуси цього execution plan лише після фактичної перевірки кожного milestone.
+- [x] Оновити `docs/CONTEXT.md`: позначити фактичні Prisma/PostgreSQL versions, model baseline, migration/test commands і прибрати застаріле `not configured`.
+- [x] Оновити `docs/ARCHITECTURE.md`: описати реалізований persistence boundary, не видаючи non-goals за готові можливості.
+- [x] Оновити релевантний API/root README короткими setup і migration commands.
+- [x] Перевірити, що реальні credentials, local database data та generated artifacts не потрапили до Git.
+- [x] Виконати повний validation workflow нижче та лише після успішного результату вважати Milestone 5 повністю завершеним.
 
 Validation:
 
@@ -233,6 +233,25 @@ Validation:
 - Backend unit, integration та e2e tests проходять із чистою test database.
 - `git diff --check` не показує whitespace errors.
 - Документація та manifests узгоджені з фактичними версіями, paths і scripts.
+
+Implementation log:
+
+- `docs/CONTEXT.md` узгоджено з Prisma `7.9.0`, PostgreSQL 16, Node.js `>=22.12.0 <23`, реалізованою моделлю та test database guard.
+- `docs/ARCHITECTURE.md` документує ownership persistence у `apps/api`, єдиний `PrismaModule`/`PrismaService` і Nest-managed database lifecycle.
+- `apps/api/README.md` доповнено фактичними setup, migration, local API та unit/integration/e2e test commands.
+- Підтверджено, що Git відстежує лише безпечний `apps/api/.env.example`; generated Prisma Client і локальні database data не відстежуються, а production deployment та нереалізовані домени явно залишені поза baseline.
+
+Verification steps:
+
+```bash
+pnpm lint
+pnpm check-types
+pnpm build
+pnpm --filter api test
+pnpm --filter api test:int
+pnpm --filter api test:e2e
+git diff --check
+```
 
 ### Migration and rollback strategy
 
