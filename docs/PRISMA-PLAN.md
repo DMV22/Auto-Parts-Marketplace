@@ -145,11 +145,11 @@ Validation:
 
 ### Milestone 1 — підготувати PostgreSQL і Prisma toolchain
 
-- [ ] Додати Prisma CLI як dev dependency та Prisma Client як runtime dependency до `apps/api` через pnpm.
-- [ ] Додати Prisma schema з PostgreSQL datasource і client generator у `apps/api/prisma/schema.prisma` (або зафіксувати інший шлях у package configuration).
-- [ ] Додати API scripts для generate, migration development, migration deployment і schema validation; root aliases додавати лише якщо вони справді потрібні monorepo workflow.
-- [ ] Додати безпечний environment example із форматом `DATABASE_URL` та короткі інструкції запуску обраного PostgreSQL baseline.
-- [ ] Якщо погоджено repo-managed Compose, додати мінімальний PostgreSQL service з named volume і healthcheck без production credentials.
+- [x] Додати Prisma CLI як dev dependency та Prisma Client як runtime dependency до `apps/api` через pnpm.
+- [x] Додати Prisma schema з PostgreSQL datasource і client generator у `apps/api/prisma/schema.prisma` (або зафіксувати інший шлях у package configuration).
+- [x] Додати API scripts для generate, migration development, migration deployment і schema validation; root aliases додавати лише якщо вони справді потрібні monorepo workflow.
+- [x] Додати безпечний environment example із форматом `DATABASE_URL` та короткі інструкції запуску обраного PostgreSQL baseline.
+- [x] Якщо погоджено repo-managed Compose, додати мінімальний PostgreSQL service з named volume і healthcheck без production credentials.
 
 Validation:
 
@@ -159,10 +159,10 @@ Validation:
 
 ### Milestone 2 — створити модель і початкову міграцію
 
-- [ ] Описати погоджені `Part`, `Vehicle`, `Fitment`, relations, indexes та referential actions у Prisma schema.
-- [ ] Створити і переглянути initial migration SQL; переконатися, що вона не містить випадкових destructive operations.
-- [ ] Застосувати committed migrations до чистої development/test database.
-- [ ] Перевірити, що повторний `migrate deploy` є idempotent і не створює schema drift.
+- [x] Описати погоджені `Part`, `Vehicle`, `Fitment`, relations, indexes та referential actions у Prisma schema.
+- [x] Створити і переглянути initial migration SQL; переконатися, що вона не містить випадкових destructive operations.
+- [x] Застосувати committed migrations до чистої development/test database.
+- [x] Перевірити, що повторний `migrate deploy` є idempotent і не створює schema drift.
 
 Validation:
 
