@@ -109,10 +109,10 @@ Recommended domain split:
 
 ### Tasks
 
-- [ ] Закрити Open questions 1–3 і зафіксувати канонічні визначення Product, ProductVariant, vehicle taxonomy та FitmentRule у domain documentation.
-- [ ] Спроєктувати `Category`, `Brand`, `Product`, `ProductVariant`, `VehicleMake`, `VehicleModel`, `VehicleGeneration`, `EngineType` і `FitmentRule` з nullability, unique constraints, indexes та referential actions.
-- [ ] Визначити data-mapping для existing `Part`, `Vehicle`, `Fitment`; для неоднозначних records обрати явний backfill/caution path, а не вигадувати generation або engine.
-- [ ] Створити нову reviewed migration; якщо потрібне перейменування або видалення старих tables, розділити expand/backfill/contract на безпечні кроки.
+- [x] Закрити Open questions 1–3 і зафіксувати канонічні визначення Product, ProductVariant, vehicle taxonomy та FitmentRule у domain documentation.
+- [x] Спроєктувати `Category`, `Brand`, `Product`, `ProductVariant`, `VehicleMake`, `VehicleModel`, `VehicleGeneration`, `EngineType` і `FitmentRule` з nullability, unique constraints, indexes та referential actions.
+- [x] Визначити data-mapping для existing `Part`, `Vehicle`, `Fitment`; для неоднозначних records обрати явний backfill/caution path, а не вигадувати generation або engine.
+- [x] Створити нову reviewed migration; якщо потрібне перейменування або видалення старих tables, розділити expand/backfill/contract на безпечні кроки.
 - [ ] Оновити integration tests на нову модель, включно з duplicate fitment rule, invalid foreign keys і delete policy.
 - [ ] Переконатися, що generated client і Nest `PrismaService` продовжують збиратися без паралельного `PrismaClient`.
 

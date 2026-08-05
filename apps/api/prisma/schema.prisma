@@ -8,37 +8,119 @@ datasource db {
   provider = "postgresql"
 }
 
-model Part {
-  id                     String    @id @default(uuid()) @db.Uuid
-  name                   String
-  manufacturer           String
-  manufacturerPartNumber String
-  createdAt              DateTime  @default(now())
-  updatedAt              DateTime  @updatedAt
-  fitments               Fitment[]
-
-  @@unique([manufacturer, manufacturerPartNumber])
-}
-
-model Vehicle {
+model Category {
   id        String    @id @default(uuid()) @db.Uuid
-  make      String
-  model     String
-  year      Int
+  name      String    @unique
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
-  fitments  Fitment[]
-
-  @@unique([make, model, year])
+  products  Product[]
 }
 
-model Fitment {
-  partId    String   @db.Uuid
-  vehicleId String   @db.Uuid
-  createdAt DateTime @default(now())
-  part      Part     @relation(fields: [partId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  vehicle   Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+model Brand {
+  id        String    @id @default(uuid()) @db.Uuid
+  name      String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  products  Product[]
+}
 
-  @@id([partId, vehicleId])
-  @@index([vehicleId])
+model Product {
+  id          String           @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  categoryId  String?          @db.Uuid
+  brandId     String           @db.Uuid
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  category    Category?        @relation(fields: [categoryId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  brand       Brand            @relation(fields: [brandId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  variants    ProductVariant[]
+
+  @@index([categoryId])
+  @@index([brandId])
+}
+
+model ProductVariant {
+  id                     String        @id @default(uuid()) @db.Uuid
+  productId              String        @db.Uuid
+  sku                    String        @unique
+  manufacturerPartNumber String
+  oemNumber              String?
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+  product                Product       @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  fitmentRules           FitmentRule[]
+
+  @@unique([productId, manufacturerPartNumber])
+  @@index([productId])
+}
+
+model VehicleMake {
+  id        String         @id @default(uuid()) @db.Uuid
+  name      String         @unique
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  models    VehicleModel[]
+}
+
+model VehicleModel {
+  id            String              @id @default(uuid()) @db.Uuid
+  vehicleMakeId String              @db.Uuid
+  name          String
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  vehicleMake   VehicleMake         @relation(fields: [vehicleMakeId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  generations   VehicleGeneration[]
+
+  @@unique([vehicleMakeId, name])
+  @@index([vehicleMakeId])
+}
+
+model VehicleGeneration {
+  id             String        @id @default(uuid()) @db.Uuid
+  vehicleModelId String        @db.Uuid
+  code           String
+  name           String?
+  yearFrom       Int
+  yearTo         Int
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  vehicleModel   VehicleModel  @relation(fields: [vehicleModelId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  engineTypes    EngineType[]
+  fitmentRules   FitmentRule[]
+
+  @@unique([vehicleModelId, code])
+  @@index([vehicleModelId])
+  @@index([yearFrom, yearTo])
+}
+
+model EngineType {
+  id                  String            @id @default(uuid()) @db.Uuid
+  vehicleGenerationId String            @db.Uuid
+  code                String
+  name                String
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  vehicleGeneration   VehicleGeneration @relation(fields: [vehicleGenerationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  fitmentRules        FitmentRule[]
+
+  @@unique([id, vehicleGenerationId])
+  @@unique([vehicleGenerationId, code])
+  @@index([vehicleGenerationId])
+}
+
+model FitmentRule {
+  id                  String            @id @default(uuid()) @db.Uuid
+  productVariantId    String            @db.Uuid
+  vehicleGenerationId String            @db.Uuid
+  engineTypeId        String?           @db.Uuid
+  createdAt           DateTime          @default(now())
+  productVariant      ProductVariant    @relation(fields: [productVariantId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  vehicleGeneration   VehicleGeneration @relation(fields: [vehicleGenerationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  engineType          EngineType?       @relation(fields: [engineTypeId, vehicleGenerationId], references: [id, vehicleGenerationId], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([productVariantId, vehicleGenerationId, engineTypeId])
+  @@index([productVariantId])
+  @@index([vehicleGenerationId])
+  @@index([engineTypeId])
 }
