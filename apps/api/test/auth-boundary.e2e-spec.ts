@@ -1,14 +1,14 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
+import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { AppModule } from './../src/app.module';
+import { AppModule } from '../src/app.module';
 import { configureAuthHttp } from '../src/auth/configure-auth-http';
 
-describe('AppController (e2e)', () => {
+describe('Better Auth boundary (e2e)', () => {
   let app: INestApplication<App>;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
@@ -18,14 +18,14 @@ describe('AppController (e2e)', () => {
     await app.init();
   });
 
-  afterEach(async () => {
+  afterAll(async () => {
     await app?.close();
   });
 
-  it('/ (GET)', () => {
-    return request(app.getHttpServer())
-      .get('/')
+  it('exposes the Better Auth session endpoint', async () => {
+    await request(app.getHttpServer())
+      .get('/api/auth/get-session')
       .expect(200)
-      .expect('Hello World!');
+      .expect(null);
   });
 });

@@ -27,14 +27,16 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:int": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --config ./test/jest-int.json --runInBand",
-    "test:e2e": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --config ./test/jest-e2e.json"
+    "test:e2e": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --config ./test/jest-e2e.json --runInBand"
   },
   "dependencies": {
+    "@better-auth/prisma-adapter": "1.6.26",
     "@nestjs/common": "^11.0.1",
     "@nestjs/core": "^11.0.1",
     "@nestjs/platform-express": "^11.0.1",
     "@prisma/adapter-pg": "7.9.0",
     "@prisma/client": "7.9.0",
+    "better-auth": "1.6.26",
     "dotenv": "^17.2.3",
     "pg": "^8.16.3",
     "reflect-metadata": "^0.2.2",
