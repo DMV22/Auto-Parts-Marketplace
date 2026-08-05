@@ -74,8 +74,8 @@
 1. **Part mapping:** чи є поточний `Part` майбутнім `Product`, чи `ProductVariant`? Рекомендований baseline — `Part` ближчий до `ProductVariant`, бо вже містить manufacturer part number; `Product` групує один або кілька variants.
 2. **Vehicle mapping:** як перенести `Vehicle(make, model, year)` у taxonomy `VehicleMake/VehicleModel/VehicleGeneration/EngineType`, якщо current records не містять generation та engine?
 3. **Fitment granularity:** `FitmentRule` посилається на точну vehicle configuration чи підтримує year range й optional engine? До рішення не додавати compatibility confidence/scoring.
-4. **Auth mechanism:** який session-compatible auth package або власний Nest adapter прийнятий для API? ТЗ допускає Better Auth або Auth.js-style sessions, але repository ще не фіксує provider.
-5. **Role storage:** enum, role table або join model? Для MVP рекомендовано persisted role enum плюс окремий `SupplierUser` membership, який зв’язує `User` із `Supplier`.
+4. **Auth mechanism — resolved for Milestone 6.2:** Better Auth із Prisma adapter через єдиний Nest `AuthModule` і наявний `PrismaService`. Підтримуються email/password та OAuth 2.0 лише через Google; сесії persisted у PostgreSQL.
+5. **Role storage — resolved for Milestone 6.2:** один persisted role enum на `User` (`Customer`, `SupplierUser`, `SupportManager`, `Admin`) плюс окремий supplier membership. `Guest` не є persisted role; один `SupplierUser` належить рівно одному Supplier у межах цього milestone.
 6. **Status vocabulary:** остаточні enum values і дозволені transitions для Listing, Order, Payment і ReturnRequest мають бути погоджені до Milestone 6.3.
 
 ## Proposed approach
@@ -141,21 +141,32 @@ pnpm --filter api build
 
 Додати session-based authentication, persisted users/sessions і role-aware Nest authorization з окремою supplier ownership relation.
 
+### Decisions
+
+- Better Auth із Prisma adapter є єдиним auth boundary у `apps/api` та інтегрується через один Nest `AuthModule`, повторно використовуючи наявний `PrismaService`.
+- Доступні способи входу: email/password та OAuth 2.0 лише через Google.
+- `Session` зберігається в PostgreSQL. Клієнт отримує session cookie з `HttpOnly`, `SameSite=Lax` і `Secure` у production; строк дії — 7 днів, активна сесія оновлюється не частіше ніж раз на 24 години.
+- Sign-out видаляє поточну сесію; зміна пароля або блокування User анулює всі його сесії. Redis і cookie-based session cache не входять у Milestone 6.2.
+- `User` має рівно одну persisted роль: `Customer`, `SupplierUser`, `SupportManager` або `Admin`; `Guest` означає неавтентифікований request і не зберігається в БД.
+- Один `Supplier` може мати багато memberships, але один `SupplierUser` належить рівно одному Supplier. Membership має стан `Active` або `Disabled`; invitations і supplier-specific підролі поза scope.
+- Supplier ownership перевіряється окремо від RBAC за active membership і збігом `supplierId`. `Admin` має глобальний доступ; `SupportManager` не отримує supplier write-access автоматично.
+
 ### Tasks
 
-- [ ] Закрити Open questions 4–5 і задокументувати auth/session lifecycle, persisted roles та `SupplierUser` membership semantics.
-- [ ] Додати Prisma models для `User`, `Session`, `CustomerProfile`, `SavedVehicle`, `Address`, `Supplier` і supplier membership із потрібними unique constraints та indexes.
-- [ ] Реалізувати sign-up/sign-in/sign-out і session validation через один auth boundary у `apps/api`.
+- [x] Закрити Open questions 4–5 і задокументувати auth/session lifecycle, persisted roles та `SupplierUser` membership semantics.
+- [ ] Додати Prisma models для `User`, `Session`, `Account`, `Verification`, `CustomerProfile`, `SavedVehicle`, `Address`, `Supplier` і supplier membership із потрібними unique constraints та indexes; auth-managed models узгодити з вимогами Better Auth Prisma adapter.
+- [ ] Реалізувати email/password sign-up/sign-in, Google OAuth, sign-out і session validation через один Better Auth boundary у `apps/api`.
 - [ ] Додати Nest guards/decorators або permission helpers для `Customer`, `SupplierUser`, `SupportManager`, `Admin`; `Guest` не зберігати як DB role.
-- [ ] Реалізувати resource ownership check: SupplierUser працює лише з Supplier, з яким має активний membership.
-- [ ] Додати unit/integration tests для auth lifecycle, expired/invalid session, role denial і cross-supplier denial.
+- [ ] Реалізувати resource ownership check: SupplierUser працює лише з Supplier, з яким має active membership; disabled і cross-supplier memberships не дають доступу.
+- [ ] Додати unit/integration tests для cookie/session lifecycle, expired/invalid session, sign-out і password-change revocation, role denial, disabled membership та cross-supplier denial.
 
 ### Definition of Done
 
-- [ ] Auth provider/mechanism зафіксований, а session secret береться лише з environment configuration.
-- [ ] Sign-up/sign-in/sign-out і protected Nest route працюють у integration/e2e environment.
+- [ ] Better Auth із Prisma adapter налаштований через один Nest auth boundary, а session secret і Google OAuth credentials беруться лише з environment configuration.
+- [ ] Email/password sign-up/sign-in, Google OAuth, sign-out і protected Nest route працюють у integration/e2e environment.
+- [ ] Session cookie має погоджені security attributes, а expiration, refresh і revocation перевірені тестами.
 - [ ] RBAC matrix має позитивні та негативні тести для всіх persisted roles.
-- [ ] Supplier ownership перевіряється окремо від ролі й відхиляє cross-supplier access.
+- [ ] Supplier ownership перевіряється окремо від ролі й відхиляє disabled membership та cross-supplier access; `SupportManager` не отримує supplier write-access без окремого дозволу.
 - [ ] У logs, fixtures, README та committed `.env.example` немає реальних credentials або session secrets.
 
 ### Validation
@@ -165,6 +176,8 @@ pnpm --filter api prisma:validate
 pnpm --filter api prisma:generate
 pnpm --filter api prisma:migrate:deploy
 pnpm --filter api exec prisma migrate status
+pnpm --filter api lint
+pnpm check-types
 pnpm --filter api test
 pnpm --filter api test:int
 pnpm --filter api test:e2e
