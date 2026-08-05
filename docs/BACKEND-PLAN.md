@@ -113,16 +113,16 @@ Recommended domain split:
 - [x] Спроєктувати `Category`, `Brand`, `Product`, `ProductVariant`, `VehicleMake`, `VehicleModel`, `VehicleGeneration`, `EngineType` і `FitmentRule` з nullability, unique constraints, indexes та referential actions.
 - [x] Визначити data-mapping для existing `Part`, `Vehicle`, `Fitment`; для неоднозначних records обрати явний backfill/caution path, а не вигадувати generation або engine.
 - [x] Створити нову reviewed migration; якщо потрібне перейменування або видалення старих tables, розділити expand/backfill/contract на безпечні кроки.
-- [ ] Оновити integration tests на нову модель, включно з duplicate fitment rule, invalid foreign keys і delete policy.
-- [ ] Переконатися, що generated client і Nest `PrismaService` продовжують збиратися без паралельного `PrismaClient`.
+- [x] Оновити integration tests на нову модель, включно з duplicate fitment rule, invalid foreign keys і delete policy.
+- [x] Переконатися, що generated client і Nest `PrismaService` продовжують збиратися без паралельного `PrismaClient`.
 
 ### Definition of Done
 
-- [ ] Committed migration SQL не редагує попередні migrations і не містить неперевіреної втрати даних.
-- [ ] Чиста `auto_parts_dev`/`auto_parts_test` відтворюється з migration history.
-- [ ] Product → ProductVariant та taxonomy/fitment relations мають погоджені constraints й indexes.
-- [ ] Відсутній FitmentRule не інтерпретується як підтверджена сумісність.
-- [ ] Нові integration tests проходять, а старий Part/Vehicle/Fitment baseline або мігрований, або видалений лише після перевіреного backfill.
+- [x] Committed migration SQL не редагує попередні migrations і не містить неперевіреної втрати даних.
+- [x] Чиста `auto_parts_dev`/`auto_parts_test` відтворюється з migration history.
+- [x] Product → ProductVariant та taxonomy/fitment relations мають погоджені constraints й indexes.
+- [x] Відсутній FitmentRule не інтерпретується як підтверджена сумісність.
+- [x] Нові integration tests проходять, а старий Part/Vehicle/Fitment baseline або мігрований, або видалений лише після перевіреного backfill.
 
 ### Validation
 
