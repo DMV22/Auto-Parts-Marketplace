@@ -88,35 +88,71 @@ describe('Identity and supplier persistence contract', () => {
 
   it('enforces identity uniqueness and supplier ownership relations', async () => {
     const constraints = await prisma.$queryRaw<DatabaseConstraint[]>`
-      SELECT
-        table_definition.relname AS "tableName",
-        constraint_definition.contype AS "constraintType",
-        array_agg(column_definition.attname ORDER BY key_column.ordinality) AS columns
-      FROM pg_constraint AS constraint_definition
-      JOIN pg_class AS table_definition
-        ON table_definition.oid = constraint_definition.conrelid
-      JOIN pg_namespace AS namespace
-        ON namespace.oid = table_definition.relnamespace
-      CROSS JOIN LATERAL unnest(constraint_definition.conkey)
-        WITH ORDINALITY AS key_column(attnum, ordinality)
-      JOIN pg_attribute AS column_definition
-        ON column_definition.attrelid = table_definition.oid
-       AND column_definition.attnum = key_column.attnum
-      WHERE namespace.nspname = current_schema()
-        AND table_definition.relname IN (
-          'User',
-          'Session',
-          'Account',
-          'CustomerProfile',
-          'SavedVehicle',
-          'Supplier',
-          'SupplierUser'
-        )
-        AND constraint_definition.contype IN ('f', 'u')
-      GROUP BY
-        table_definition.relname,
-        constraint_definition.oid,
-        constraint_definition.contype
+      WITH foreign_keys AS (
+        SELECT
+          table_definition.relname AS "tableName",
+          constraint_definition.contype::TEXT AS "constraintType",
+          array_agg(column_definition.attname ORDER BY key_column.ordinality)::TEXT[] AS columns
+        FROM pg_constraint AS constraint_definition
+        JOIN pg_class AS table_definition
+          ON table_definition.oid = constraint_definition.conrelid
+        JOIN pg_namespace AS namespace
+          ON namespace.oid = table_definition.relnamespace
+        CROSS JOIN LATERAL unnest(constraint_definition.conkey)
+          WITH ORDINALITY AS key_column(attnum, ordinality)
+        JOIN pg_attribute AS column_definition
+          ON column_definition.attrelid = table_definition.oid
+         AND column_definition.attnum = key_column.attnum
+        WHERE namespace.nspname = current_schema()
+          AND constraint_definition.contype = 'f'
+        GROUP BY
+          table_definition.relname,
+          constraint_definition.oid,
+          constraint_definition.contype
+      ),
+      unique_indexes AS (
+        SELECT
+          table_definition.relname AS "tableName",
+          'u'::TEXT AS "constraintType",
+          array_agg(column_definition.attname ORDER BY key_column.ordinality)::TEXT[] AS columns
+        FROM pg_index AS index_definition
+        JOIN pg_class AS table_definition
+          ON table_definition.oid = index_definition.indrelid
+        JOIN pg_namespace AS namespace
+          ON namespace.oid = table_definition.relnamespace
+        CROSS JOIN LATERAL unnest(index_definition.indkey::SMALLINT[])
+          WITH ORDINALITY AS key_column(attnum, ordinality)
+        JOIN pg_attribute AS column_definition
+          ON column_definition.attrelid = table_definition.oid
+         AND column_definition.attnum = key_column.attnum
+        WHERE namespace.nspname = current_schema()
+          AND index_definition.indisunique
+          AND NOT index_definition.indisprimary
+        GROUP BY table_definition.relname, index_definition.indexrelid
+      )
+      SELECT *
+      FROM foreign_keys
+      WHERE "tableName" IN (
+        'User',
+        'Session',
+        'Account',
+        'CustomerProfile',
+        'SavedVehicle',
+        'Supplier',
+        'SupplierUser'
+      )
+      UNION ALL
+      SELECT *
+      FROM unique_indexes
+      WHERE "tableName" IN (
+        'User',
+        'Session',
+        'Account',
+        'CustomerProfile',
+        'SavedVehicle',
+        'Supplier',
+        'SupplierUser'
+      )
     `;
 
     expect(constraints).toEqual(

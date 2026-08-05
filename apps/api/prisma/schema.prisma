@@ -8,6 +8,18 @@ datasource db {
   provider = "postgresql"
 }
 
+enum UserRole {
+  CUSTOMER
+  SUPPLIER_USER
+  SUPPORT_MANAGER
+  ADMIN
+}
+
+enum SupplierUserStatus {
+  ACTIVE
+  DISABLED
+}
+
 model Category {
   id        String    @id @default(uuid()) @db.Uuid
   name      String    @unique
@@ -88,6 +100,7 @@ model VehicleGeneration {
   vehicleModel   VehicleModel  @relation(fields: [vehicleModelId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   engineTypes    EngineType[]
   fitmentRules   FitmentRule[]
+  savedVehicles  SavedVehicle[]
 
   @@unique([vehicleModelId, code])
   @@index([vehicleModelId])
@@ -103,6 +116,7 @@ model EngineType {
   updatedAt           DateTime          @updatedAt
   vehicleGeneration   VehicleGeneration @relation(fields: [vehicleGenerationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   fitmentRules        FitmentRule[]
+  savedVehicles       SavedVehicle[]
 
   @@unique([id, vehicleGenerationId])
   @@unique([vehicleGenerationId, code])
@@ -123,4 +137,136 @@ model FitmentRule {
   @@index([productVariantId])
   @@index([vehicleGenerationId])
   @@index([engineTypeId])
+}
+
+model User {
+  id              String           @id @default(uuid()) @db.Uuid
+  name            String
+  email           String           @unique
+  emailVerified   Boolean          @default(false)
+  image           String?
+  role            UserRole         @default(CUSTOMER)
+  isActive        Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  sessions        Session[]
+  accounts        Account[]
+  customerProfile CustomerProfile?
+  savedVehicles   SavedVehicle[]
+  addresses       Address[]
+  supplierUser    SupplierUser?
+}
+
+model Session {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Account {
+  id                    String    @id @default(uuid()) @db.Uuid
+  userId                String    @db.Uuid
+  accountId             String
+  providerId            String
+  accessToken           String?   @db.Text
+  refreshToken          String?   @db.Text
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  idToken               String?   @db.Text
+  password              String?   @db.Text
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id @default(uuid()) @db.Uuid
+  identifier String
+  value      String   @db.Text
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+}
+
+model CustomerProfile {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @unique @db.Uuid
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+}
+
+model SavedVehicle {
+  id                  String            @id @default(uuid()) @db.Uuid
+  userId              String            @db.Uuid
+  vehicleGenerationId String            @db.Uuid
+  engineTypeId        String?           @db.Uuid
+  label               String?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  user                User              @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  vehicleGeneration   VehicleGeneration @relation(fields: [vehicleGenerationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  engineType          EngineType?       @relation(fields: [engineTypeId, vehicleGenerationId], references: [id, vehicleGenerationId], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId])
+  @@index([vehicleGenerationId])
+  @@index([engineTypeId])
+}
+
+model Address {
+  id            String   @id @default(uuid()) @db.Uuid
+  userId        String   @db.Uuid
+  label         String?
+  recipientName String
+  line1         String
+  line2         String?
+  city          String
+  region        String?
+  postalCode    String
+  countryCode   String   @db.Char(2)
+  phone         String?
+  isDefault     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId])
+}
+
+model Supplier {
+  id        String         @id @default(uuid()) @db.Uuid
+  name      String
+  slug      String         @unique
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  users     SupplierUser[]
+}
+
+model SupplierUser {
+  id         String             @id @default(uuid()) @db.Uuid
+  userId     String             @unique @db.Uuid
+  supplierId String             @db.Uuid
+  status     SupplierUserStatus @default(ACTIVE)
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  supplier   Supplier           @relation(fields: [supplierId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([supplierId, status])
 }
