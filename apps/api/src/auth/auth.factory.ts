@@ -31,6 +31,7 @@ export async function createBetterAuth(
   new URL(baseURL);
 
   const { betterAuth } = await import('better-auth');
+  const { APIError, createAuthMiddleware } = await import('better-auth/api');
   const { prismaAdapter } = await import('@better-auth/prisma-adapter');
 
   return betterAuth({
@@ -43,6 +44,35 @@ export async function createBetterAuth(
     }),
     emailAndPassword: {
       enabled: true,
+    },
+    hooks: {
+      before: createAuthMiddleware((context) => {
+        if (context.path === '/change-password' && context.body) {
+          context.body.revokeOtherSessions = true;
+        }
+
+        return Promise.resolve();
+      }),
+    },
+    databaseHooks: {
+      session: {
+        create: {
+          before: async (session) => {
+            const user = await prisma.user.findUnique({
+              where: { id: session.userId },
+              select: { isActive: true },
+            });
+
+            if (user && !user.isActive) {
+              throw new APIError('FORBIDDEN', {
+                message: 'User account is inactive',
+              });
+            }
+
+            return { data: session };
+          },
+        },
+      },
     },
     socialProviders: {
       google: {
