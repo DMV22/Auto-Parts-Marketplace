@@ -154,20 +154,20 @@ pnpm --filter api build
 ### Tasks
 
 - [x] Закрити Open questions 4–5 і задокументувати auth/session lifecycle, persisted roles та `SupplierUser` membership semantics.
-- [ ] Додати Prisma models для `User`, `Session`, `Account`, `Verification`, `CustomerProfile`, `SavedVehicle`, `Address`, `Supplier` і supplier membership із потрібними unique constraints та indexes; auth-managed models узгодити з вимогами Better Auth Prisma adapter.
-- [ ] Реалізувати email/password sign-up/sign-in, Google OAuth, sign-out і session validation через один Better Auth boundary у `apps/api`.
-- [ ] Додати Nest guards/decorators або permission helpers для `Customer`, `SupplierUser`, `SupportManager`, `Admin`; `Guest` не зберігати як DB role.
-- [ ] Реалізувати resource ownership check: SupplierUser працює лише з Supplier, з яким має active membership; disabled і cross-supplier memberships не дають доступу.
-- [ ] Додати unit/integration tests для cookie/session lifecycle, expired/invalid session, sign-out і password-change revocation, role denial, disabled membership та cross-supplier denial.
+- [x] Додати Prisma models для `User`, `Session`, `Account`, `Verification`, `CustomerProfile`, `SavedVehicle`, `Address`, `Supplier` і supplier membership із потрібними unique constraints та indexes; auth-managed models узгодити з вимогами Better Auth Prisma adapter.
+- [x] Реалізувати email/password sign-up/sign-in, Google OAuth, sign-out і session validation через один Better Auth boundary у `apps/api`.
+- [x] Додати Nest guards/decorators або permission helpers для `Customer`, `SupplierUser`, `SupportManager`, `Admin`; `Guest` не зберігати як DB role.
+- [x] Реалізувати resource ownership check: SupplierUser працює лише з Supplier, з яким має active membership; disabled і cross-supplier memberships не дають доступу.
+- [x] Додати unit/integration tests для cookie/session lifecycle, expired/invalid session, sign-out і password-change revocation, role denial, disabled membership та cross-supplier denial.
 
 ### Definition of Done
 
-- [ ] Better Auth із Prisma adapter налаштований через один Nest auth boundary, а session secret і Google OAuth credentials беруться лише з environment configuration.
-- [ ] Email/password sign-up/sign-in, Google OAuth, sign-out і protected Nest route працюють у integration/e2e environment.
-- [ ] Session cookie має погоджені security attributes, а expiration, refresh і revocation перевірені тестами.
-- [ ] RBAC matrix має позитивні та негативні тести для всіх persisted roles.
-- [ ] Supplier ownership перевіряється окремо від ролі й відхиляє disabled membership та cross-supplier access; `SupportManager` не отримує supplier write-access без окремого дозволу.
-- [ ] У logs, fixtures, README та committed `.env.example` немає реальних credentials або session secrets.
+- [x] Better Auth із Prisma adapter налаштований через один Nest auth boundary, а session secret і Google OAuth credentials беруться лише з environment configuration.
+- [x] Email/password sign-up/sign-in, Google OAuth initiation, sign-out і protected Nest route працюють у integration/e2e environment; зовнішній Google callback залишається provider boundary і не викликається тестами.
+- [x] Session cookie має погоджені security attributes, а expiration, refresh і revocation перевірені тестами.
+- [x] RBAC matrix має позитивні та негативні тести для всіх persisted roles.
+- [x] Supplier ownership перевіряється окремо від ролі й відхиляє disabled membership та cross-supplier access; `SupportManager` не отримує supplier write-access без окремого дозволу.
+- [x] У logs, fixtures, README та committed `.env.example` немає реальних credentials або session secrets.
 
 ### Validation
 
@@ -182,6 +182,37 @@ pnpm --filter api test
 pnpm --filter api test:int
 pnpm --filter api test:e2e
 pnpm --filter api build
+```
+
+Validation result:
+
+- Prisma `7.9.0` schema validation і client generation проходять; усі 3 committed migrations застосовані до `auto_parts_dev`, pending migrations немає.
+- API lint, workspace `check-types`, API build і unit suite проходять.
+- Integration suite проходить 9/9 тестів на ізольованій `auto_parts_test`; e2e suite проходить 11/11 тестів.
+- Tracked configuration містить лише placeholder values у `apps/api/.env.example` та synthetic test credentials у Jest setup.
+
+Implementation log:
+
+- Додано Better Auth boundary для email/password і Google OAuth, PostgreSQL sessions із 7-денним TTL, 24-годинним refresh threshold та без cookie session cache.
+- Session lifecycle regression перевіряє cookie attributes, sign-in/sign-out, invalid/expired session, refresh, password-change rotation і відкликання сесій заблокованого User.
+- `SessionAuthGuard` і `RolesGuard` реалізують authenticated request та RBAC для `Customer`, `SupplierUser`, `SupportManager`, `Admin`; `Guest` залишається неавтентифікованим станом.
+- `SupplierOwnershipGuard` окремо перевіряє active membership і збіг `supplierId`; e2e regression покриває matching, disabled, cross-supplier, SupportManager denial та Admin bypass.
+- Google OAuth regression перевіряє формування authorization URL і callback через публічний Better Auth endpoint без зовнішнього запиту до Google.
+
+Verification steps:
+
+```bash
+pnpm --filter api prisma:validate
+pnpm --filter api prisma:generate
+pnpm --filter api prisma:migrate:deploy
+pnpm --filter api exec prisma migrate status
+pnpm --filter api lint
+pnpm check-types
+pnpm --filter api test
+pnpm --filter api test:int
+pnpm --filter api test:e2e
+pnpm --filter api build
+git diff --check
 ```
 
 ## Milestone 6.3 — Seed + status baseline

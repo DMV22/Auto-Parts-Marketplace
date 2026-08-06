@@ -28,4 +28,21 @@ describe('Better Auth boundary (e2e)', () => {
       .expect(200)
       .expect(null);
   });
+
+  it('starts Google OAuth through the Better Auth boundary', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/api/auth/sign-in/social')
+      .send({ provider: 'google', callbackURL: '/' })
+      .expect(200);
+
+    expect(response.body.redirect).toBe(true);
+    const authorizationUrl = new URL(response.body.url as string);
+    expect(authorizationUrl.origin).toBe('https://accounts.google.com');
+    expect(authorizationUrl.searchParams.get('client_id')).toBe(
+      'test-google-client-id',
+    );
+    expect(authorizationUrl.searchParams.get('redirect_uri')).toBe(
+      'http://localhost:3001/api/auth/callback/google',
+    );
+  });
 });
