@@ -5,11 +5,17 @@ import { BETTER_AUTH, BETTER_AUTH_NODE_HANDLER } from './auth.constants';
 import { createBetterAuth } from './auth.factory';
 import { AuthSessionService } from './auth-session.service';
 import { BetterAuthInstance, BetterAuthNodeHandler } from './auth.types';
+import { RolesGuard } from './guards/roles.guard';
+import { SessionAuthGuard } from './guards/session-auth.guard';
+import { SupplierOwnershipGuard } from './guards/supplier-ownership.guard';
 
 @Module({
   imports: [PrismaModule],
   providers: [
     AuthSessionService,
+    SessionAuthGuard,
+    RolesGuard,
+    SupplierOwnershipGuard,
     {
       provide: BETTER_AUTH,
       inject: [PrismaService],
@@ -27,6 +33,13 @@ import { BetterAuthInstance, BetterAuthNodeHandler } from './auth.types';
       },
     },
   ],
-  exports: [AuthSessionService, BETTER_AUTH, BETTER_AUTH_NODE_HANDLER],
+  exports: [
+    AuthSessionService,
+    SessionAuthGuard,
+    RolesGuard,
+    SupplierOwnershipGuard,
+    BETTER_AUTH,
+    BETTER_AUTH_NODE_HANDLER,
+  ],
 })
 export class AuthModule {}
