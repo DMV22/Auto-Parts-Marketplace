@@ -76,7 +76,7 @@
 3. **Fitment granularity:** `FitmentRule` посилається на точну vehicle configuration чи підтримує year range й optional engine? До рішення не додавати compatibility confidence/scoring.
 4. **Auth mechanism — resolved for Milestone 6.2:** Better Auth із Prisma adapter через єдиний Nest `AuthModule` і наявний `PrismaService`. Підтримуються email/password та OAuth 2.0 лише через Google; сесії persisted у PostgreSQL.
 5. **Role storage — resolved for Milestone 6.2:** один persisted role enum на `User` (`Customer`, `SupplierUser`, `SupportManager`, `Admin`) плюс окремий supplier membership. `Guest` не є persisted role; один `SupplierUser` належить рівно одному Supplier у межах цього milestone.
-6. **Status vocabulary:** остаточні enum values і дозволені transitions для Listing, Order, Payment і ReturnRequest мають бути погоджені до Milestone 6.3.
+6. **Status vocabulary — resolved for Milestone 6.3:** погоджені enum values, defaults, terminal states, allowed transitions і responsibility для `Listing`, `Order`, append-only `PaymentEvent` та `ReturnRequest`; authoritative matrices зафіксовані в Milestone 6.3.
 
 ## Proposed approach
 
@@ -219,23 +219,65 @@ git diff --check
 
 ### Goal
 
-Зафіксувати status vocabulary для майбутніх Listing/Order/Payment/Return workflows і додати безпечний idempotent seed для локальної розробки та демонстраційних сценаріїв.
+Зафіксувати status vocabulary для майбутніх Listing/Order/PaymentEvent/ReturnRequest workflows і додати безпечний idempotent seed для локальної розробки та демонстраційних сценаріїв.
+
+### Decisions
+
+- Milestone 6.3 додає лише persistence baseline: status enums, relations, constraints, committed migration і demo seed. Controllers, Stripe/webhook processing, fulfillment, refunds, moderation services та автоматичне виконання transitions залишаються Milestones 8–10.
+- `ListingStatus` має values `DRAFT`, `PENDING_APPROVAL`, `ACTIVE`, `PAUSED`, `REJECTED`, `ARCHIVED`; default — `DRAFT`, terminal state — `ARCHIVED`.
+- `OrderStatus` має values `PENDING_PAYMENT`, `PAID`, `PROCESSING`, `SHIPPED`, `DELIVERED`, `CANCELLED`; default — `PENDING_PAYMENT`, terminal states — `DELIVERED` і `CANCELLED`.
+- `PaymentEventProcessingStatus` має values `RECEIVED`, `PROCESSED`, `FAILED`; default — `RECEIVED`, terminal states — `PROCESSED` і `FAILED`. `PaymentEvent` є append-only записом зовнішньої події, а не mutable payment lifecycle.
+- `ReturnRequestStatus` має values `REQUESTED`, `APPROVED`, `REJECTED`, `RECEIVED`, `COMPLETED`, `CANCELLED`; default — `REQUESTED`, terminal states — `REJECTED`, `COMPLETED` і `CANCELLED`.
+
+#### Allowed transitions and responsibility
+
+| Record | From | To | Future actor/responsibility |
+| --- | --- | --- | --- |
+| Listing | `DRAFT` | `PENDING_APPROVAL`, `ARCHIVED` | SupplierUser із matching active Supplier membership |
+| Listing | `PENDING_APPROVAL` | `ACTIVE`, `REJECTED` | SupportManager або Admin |
+| Listing | `ACTIVE` | `PAUSED`, `ARCHIVED` | SupplierUser-власник |
+| Listing | `PAUSED` | `ACTIVE`, `ARCHIVED` | SupplierUser-власник |
+| Listing | `REJECTED` | `DRAFT`, `ARCHIVED` | SupplierUser-власник після виправлення або відмови від Listing |
+| Order | `PENDING_PAYMENT` | `PAID` | Майбутній payment webhook/system process |
+| Order | `PENDING_PAYMENT` | `CANCELLED` | Customer або timeout job |
+| Order | `PAID` | `PROCESSING` | SupplierUser-власник |
+| Order | `PROCESSING` | `SHIPPED` | SupplierUser-власник |
+| Order | `SHIPPED` | `DELIVERED` | SupportManager, Admin або майбутня delivery integration |
+| PaymentEvent | `RECEIVED` | `PROCESSED`, `FAILED` | Майбутній webhook-processing service |
+| ReturnRequest | `REQUESTED` | `APPROVED`, `REJECTED` | SupportManager або Admin |
+| ReturnRequest | `REQUESTED` | `CANCELLED` | Customer-власник request |
+| ReturnRequest | `APPROVED` | `RECEIVED` | SupportManager або Admin |
+| ReturnRequest | `RECEIVED` | `COMPLETED` | SupportManager або Admin |
+
+Прямий Listing transition `DRAFT` → `ACTIVE`, Order cancellation після `PAID`, автоматичні cross-record transitions, refund/replacement outcome і payment/shipping side effects не входять у Milestone 6.3.
+
+#### Demo seed boundary and scope
+
+- `prisma db seed` має hard guard і дозволяється лише для PostgreSQL на `localhost`/`127.0.0.1`/`[::1]` з database name `auto_parts_dev`; `auto_parts_test`, remote hosts і невідомі database names відхиляються.
+- Demo seed використовує `upsert` із stable natural keys (`email`, Supplier `slug`, SKU, `externalEventId`) та deterministic IDs для scenario records без natural key.
+- Seed створює 2 Suppliers і 5 domain-only Users: Customer, по одному SupplierUser на Supplier, SupportManager та Admin. Він не створює `Account.password`, `Session` або `Verification` records і не містить login credentials.
+- Catalog/taxonomy scope: 2 Categories, 2 Brands, 3 Products, 4 ProductVariants, невелика vehicle taxonomy та 4–6 explicit FitmentRules.
+- Scenario scope: Listings для основних status states, Orders у `PENDING_PAYMENT` і `DELIVERED`, PaymentEvents у `PROCESSED` і `FAILED`, ReturnRequests у `REQUESTED` і `COMPLETED`.
+- Integration/e2e setup застосовує лише committed migrations; кожен test suite створює та очищає власні fixtures, не імпортує demo seed і не залежить від seeded IDs або row counts.
 
 ### Tasks
 
-- [ ] Закрити Open question 6 таблицею allowed transitions і responsibility: хто та якою майбутньою дією може змінювати кожний status.
+- [x] Закрити Open question 6 таблицею allowed transitions і responsibility: хто та якою майбутньою дією може змінювати кожний status.
 - [ ] Додати status enums і мінімально повні relations для `Listing`, `Order`, `OrderItem`, `PaymentEvent` та `ReturnRequest`, не реалізуючи їхні controllers/services.
-- [ ] Зафіксувати `PaymentEvent.externalEventId` як idempotency key і relation ReturnRequest → конкретний OrderItem; runtime webhook/return behavior залишити Milestones 8/10.
+- [ ] Зафіксувати `PaymentEvent.externalEventId` як unique idempotency key, append-only event semantics і relation ReturnRequest → конкретний OrderItem; runtime webhook/return behavior залишити Milestones 8/10.
 - [ ] Налаштувати Prisma 7 seed command у `prisma.config.ts` і додати workspace script лише якщо він спрощує фактичний pnpm workflow.
-- [ ] Створити idempotent seed для ролей, fake local users, suppliers, vehicle taxonomy, catalog, fitment rules і кількох listings/status scenarios.
-- [ ] Розділити demo seed та test setup: integration tests не повинні залежати від випадково залишених seed records.
+- [ ] Створити idempotent seed для synthetic Users, що покривають усі persisted roles, двох Suppliers, vehicle taxonomy, catalog, fitment rules і погоджених Listing/Order/PaymentEvent/ReturnRequest scenarios.
+- [ ] Додати hard guard лише для локальної `auto_parts_dev`; demo Users залишити domain-only без password Accounts, Sessions або Verification records.
+- [ ] Розділити demo seed та test setup: integration/e2e tests не запускають і не імпортують demo seed та не залежать від випадково залишених seed records.
+- [ ] Додати integration regression для enum defaults, database constraints, подвійного seed зі стабільними row counts і відхилення небезпечного seed target.
 
 ### Definition of Done
 
-- [ ] Status enums і defaults узгоджені з майбутніми Milestones 8–10 та не реалізують непогоджених payment/shipping rules.
-- [ ] `prisma db seed` можна виконати двічі без duplicate-key errors або дублювання fixtures.
+- [ ] Status enums, defaults, terminal states і allowed transitions відповідають matrices вище та не реалізують непогоджених payment/shipping/refund rules.
+- [ ] `prisma db seed` можна виконати двічі без duplicate-key errors, дублювання fixtures або зміни counts для seed-owned records.
 - [ ] Seed використовує лише synthetic local data й не містить production secrets або персональних даних.
-- [ ] PaymentEvent має database-level idempotency constraint, а ReturnRequest прив’язаний до одного OrderItem.
+- [ ] PaymentEvent має database-level unique idempotency constraint і append-only baseline, а ReturnRequest прив’язаний до одного OrderItem.
+- [ ] Seed відхиляє `auto_parts_test` і remote/unknown targets; integration/e2e suites залишаються зеленими без demo seed.
 - [ ] Чиста database після `migrate deploy` + `db seed` містить достатній baseline для наступного Catalog API milestone.
 
 ### Validation
@@ -247,9 +289,16 @@ pnpm --filter api prisma:migrate:deploy
 pnpm --filter api exec prisma migrate status
 pnpm --filter api exec prisma db seed
 pnpm --filter api exec prisma db seed
+pnpm --filter api lint
+pnpm check-types
+pnpm --filter api test
 pnpm --filter api test:int
+pnpm --filter api test:e2e
 pnpm --filter api build
+git diff --check
 ```
+
+Validation двічі запускає seed проти guarded local `auto_parts_dev`; integration regression має підтвердити стабільні row counts після другого запуску та незалежність test fixtures від demo seed.
 
 ## Milestone 6.4 — Foundation readiness gate
 
