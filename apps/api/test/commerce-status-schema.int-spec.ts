@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { randomUUID } from 'node:crypto';
 import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaModule } from '../src/prisma/prisma.module';
 import { PrismaService } from '../src/prisma/prisma.service';
@@ -174,5 +175,201 @@ describe('Commerce status persistence contract', () => {
         },
       ]),
     );
+  });
+
+  it('enforces defaults, relations, foreign keys, and payment idempotency', async () => {
+    const suffix = randomUUID();
+    const createdIds: {
+      brandId?: string;
+      listingId?: string;
+      orderId?: string;
+      orderItemId?: string;
+      paymentEventId?: string;
+      productId?: string;
+      productVariantId?: string;
+      returnRequestId?: string;
+      supplierId?: string;
+      userId?: string;
+    } = {};
+
+    try {
+      const user = await prisma.user.create({
+        data: {
+          name: 'Commerce persistence test customer',
+          email: `commerce-${suffix}@example.test`,
+        },
+      });
+      createdIds.userId = user.id;
+
+      const supplier = await prisma.supplier.create({
+        data: {
+          name: 'Commerce persistence test supplier',
+          slug: `commerce-${suffix}`,
+        },
+      });
+      createdIds.supplierId = supplier.id;
+
+      const brand = await prisma.brand.create({
+        data: { name: `Commerce brand ${suffix}` },
+      });
+      createdIds.brandId = brand.id;
+
+      const product = await prisma.product.create({
+        data: {
+          name: 'Commerce persistence test product',
+          brandId: brand.id,
+        },
+      });
+      createdIds.productId = product.id;
+
+      const productVariant = await prisma.productVariant.create({
+        data: {
+          productId: product.id,
+          sku: `COMMERCE-${suffix}`,
+          manufacturerPartNumber: `MPN-${suffix}`,
+        },
+      });
+      createdIds.productVariantId = productVariant.id;
+
+      const listing = await prisma.listing.create({
+        data: {
+          supplierId: supplier.id,
+          productVariantId: productVariant.id,
+          price: 100,
+          currency: 'UAH',
+        },
+      });
+      createdIds.listingId = listing.id;
+
+      const order = await prisma.order.create({
+        data: {
+          customerId: user.id,
+          currency: 'UAH',
+          totalAmount: 100,
+        },
+      });
+      createdIds.orderId = order.id;
+
+      const orderItem = await prisma.orderItem.create({
+        data: {
+          orderId: order.id,
+          listingId: listing.id,
+          quantity: 1,
+          unitPrice: 100,
+        },
+      });
+      createdIds.orderItemId = orderItem.id;
+
+      const paymentEvent = await prisma.paymentEvent.create({
+        data: {
+          orderId: order.id,
+          externalEventId: `commerce-event-${suffix}`,
+          provider: 'test',
+          eventType: 'payment.received',
+          payload: { synthetic: true },
+        },
+      });
+      createdIds.paymentEventId = paymentEvent.id;
+
+      const returnRequest = await prisma.returnRequest.create({
+        data: {
+          orderItemId: orderItem.id,
+          reason: 'Synthetic integration-test return.',
+        },
+        include: { orderItem: true },
+      });
+      createdIds.returnRequestId = returnRequest.id;
+
+      expect({
+        listing: listing.status,
+        order: order.status,
+        paymentEvent: paymentEvent.status,
+        returnRequest: returnRequest.status,
+      }).toEqual({
+        listing: 'DRAFT',
+        order: 'PENDING_PAYMENT',
+        paymentEvent: 'RECEIVED',
+        returnRequest: 'REQUESTED',
+      });
+      expect(returnRequest.orderItem.id).toBe(orderItem.id);
+
+      await expect(
+        prisma.paymentEvent.create({
+          data: {
+            orderId: order.id,
+            externalEventId: paymentEvent.externalEventId,
+            provider: 'test',
+            eventType: 'payment.received',
+            payload: { synthetic: true },
+          },
+        }),
+      ).rejects.toMatchObject({ code: 'P2002' });
+
+      await expect(
+        prisma.returnRequest.create({
+          data: {
+            orderItemId: randomUUID(),
+            reason: 'Synthetic invalid relation.',
+          },
+        }),
+      ).rejects.toMatchObject({ code: 'P2003' });
+    } finally {
+      if (createdIds.returnRequestId) {
+        await prisma.returnRequest.delete({
+          where: { id: createdIds.returnRequestId },
+        });
+      }
+      if (createdIds.paymentEventId) {
+        await prisma.paymentEvent.delete({
+          where: { id: createdIds.paymentEventId },
+        });
+      }
+      if (createdIds.orderItemId) {
+        await prisma.orderItem.delete({
+          where: { id: createdIds.orderItemId },
+        });
+      }
+      if (createdIds.orderId) {
+        await prisma.order.delete({ where: { id: createdIds.orderId } });
+      }
+      if (createdIds.listingId) {
+        await prisma.listing.delete({ where: { id: createdIds.listingId } });
+      }
+      if (createdIds.productVariantId) {
+        await prisma.productVariant.delete({
+          where: { id: createdIds.productVariantId },
+        });
+      }
+      if (createdIds.productId) {
+        await prisma.product.delete({ where: { id: createdIds.productId } });
+      }
+      if (createdIds.brandId) {
+        await prisma.brand.delete({ where: { id: createdIds.brandId } });
+      }
+      if (createdIds.supplierId) {
+        await prisma.supplier.delete({ where: { id: createdIds.supplierId } });
+      }
+      if (createdIds.userId) {
+        await prisma.user.delete({ where: { id: createdIds.userId } });
+      }
+    }
+  });
+
+  it('keeps integration fixtures independent from the demo seed', async () => {
+    const [users, suppliers, paymentEvents] = await Promise.all([
+      prisma.user.count({
+        where: { email: { endsWith: '@auto-parts.local' } },
+      }),
+      prisma.supplier.count({ where: { slug: { startsWith: 'demo-' } } }),
+      prisma.paymentEvent.count({
+        where: { externalEventId: { startsWith: 'demo-' } },
+      }),
+    ]);
+
+    expect({ users, suppliers, paymentEvents }).toEqual({
+      users: 0,
+      suppliers: 0,
+      paymentEvents: 0,
+    });
   });
 });

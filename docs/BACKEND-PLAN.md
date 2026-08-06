@@ -263,22 +263,22 @@ git diff --check
 ### Tasks
 
 - [x] Закрити Open question 6 таблицею allowed transitions і responsibility: хто та якою майбутньою дією може змінювати кожний status.
-- [ ] Додати status enums і мінімально повні relations для `Listing`, `Order`, `OrderItem`, `PaymentEvent` та `ReturnRequest`, не реалізуючи їхні controllers/services.
-- [ ] Зафіксувати `PaymentEvent.externalEventId` як unique idempotency key, append-only event semantics і relation ReturnRequest → конкретний OrderItem; runtime webhook/return behavior залишити Milestones 8/10.
-- [ ] Налаштувати Prisma 7 seed command у `prisma.config.ts` і додати workspace script лише якщо він спрощує фактичний pnpm workflow.
-- [ ] Створити idempotent seed для synthetic Users, що покривають усі persisted roles, двох Suppliers, vehicle taxonomy, catalog, fitment rules і погоджених Listing/Order/PaymentEvent/ReturnRequest scenarios.
-- [ ] Додати hard guard лише для локальної `auto_parts_dev`; demo Users залишити domain-only без password Accounts, Sessions або Verification records.
-- [ ] Розділити demo seed та test setup: integration/e2e tests не запускають і не імпортують demo seed та не залежать від випадково залишених seed records.
-- [ ] Додати integration regression для enum defaults, database constraints, подвійного seed зі стабільними row counts і відхилення небезпечного seed target.
+- [x] Додати status enums і мінімально повні relations для `Listing`, `Order`, `OrderItem`, `PaymentEvent` та `ReturnRequest`, не реалізуючи їхні controllers/services.
+- [x] Зафіксувати `PaymentEvent.externalEventId` як unique idempotency key, append-only event semantics і relation ReturnRequest → конкретний OrderItem; runtime webhook/return behavior залишити Milestones 8/10.
+- [x] Налаштувати Prisma 7 seed command у `prisma.config.ts` і додати workspace script лише якщо він спрощує фактичний pnpm workflow.
+- [x] Створити idempotent seed для synthetic Users, що покривають усі persisted roles, двох Suppliers, vehicle taxonomy, catalog, fitment rules і погоджених Listing/Order/PaymentEvent/ReturnRequest scenarios.
+- [x] Додати hard guard лише для локальної `auto_parts_dev`; demo Users залишити domain-only без password Accounts, Sessions або Verification records.
+- [x] Розділити demo seed та test setup: integration/e2e tests не запускають і не імпортують demo seed та не залежать від випадково залишених seed records.
+- [x] Додати integration regression для enum defaults, database constraints та test isolation; стабільні row counts після подвійного seed перевіряти guarded CLI validation, а unsafe targets — unit regression guard.
 
 ### Definition of Done
 
-- [ ] Status enums, defaults, terminal states і allowed transitions відповідають matrices вище та не реалізують непогоджених payment/shipping/refund rules.
-- [ ] `prisma db seed` можна виконати двічі без duplicate-key errors, дублювання fixtures або зміни counts для seed-owned records.
-- [ ] Seed використовує лише synthetic local data й не містить production secrets або персональних даних.
-- [ ] PaymentEvent має database-level unique idempotency constraint і append-only baseline, а ReturnRequest прив’язаний до одного OrderItem.
-- [ ] Seed відхиляє `auto_parts_test` і remote/unknown targets; integration/e2e suites залишаються зеленими без demo seed.
-- [ ] Чиста database після `migrate deploy` + `db seed` містить достатній baseline для наступного Catalog API milestone.
+- [x] Status enums, defaults, terminal states і allowed transitions відповідають matrices вище та не реалізують непогоджених payment/shipping/refund rules.
+- [x] `prisma db seed` можна виконати двічі без duplicate-key errors, дублювання fixtures або зміни counts для seed-owned records.
+- [x] Seed використовує лише synthetic local data й не містить production secrets або персональних даних.
+- [x] PaymentEvent має database-level unique idempotency constraint і append-only baseline, а ReturnRequest прив’язаний до одного OrderItem.
+- [x] Seed відхиляє `auto_parts_test` і remote/unknown targets; integration/e2e suites залишаються зеленими без demo seed.
+- [x] Чиста database після `migrate deploy` + `db seed` містить достатній baseline для наступного Catalog API milestone.
 
 ### Validation
 
@@ -298,7 +298,28 @@ pnpm --filter api build
 git diff --check
 ```
 
-Validation двічі запускає seed проти guarded local `auto_parts_dev`; integration regression має підтвердити стабільні row counts після другого запуску та незалежність test fixtures від demo seed.
+Validation двічі запускає seed проти guarded local `auto_parts_dev`; однаковий CLI summary підтверджує стабільні row counts, а integration regression — незалежність test fixtures від demo seed.
+
+### Implementation log
+
+#### What changed
+
+- Додано status enums, мінімальні commerce relations і forward migration для `Listing`, `Order`, `OrderItem`, `PaymentEvent` та `ReturnRequest`.
+- Налаштовано Prisma 7 seed boundary із hard guard лише для локальної `auto_parts_dev`.
+- Додано synthetic idempotent demo seed із natural-key upserts, deterministic scenario IDs і summary seed-owned counts.
+- Додано unit regression для unsafe seed targets та integration regression для enum defaults, foreign keys, payment-event idempotency і незалежності `auto_parts_test` від demo seed.
+
+#### Why
+
+- Зафіксовано persistence/status baseline для майбутніх Catalog, checkout/payment та returns milestones без передчасної runtime workflow logic.
+- Чиста локальна database після committed migrations і demo seed містить відтворювані catalog, taxonomy та commerce scenarios.
+
+#### Verification results
+
+- Prisma schema/client/migration status — green; чотири committed migrations застосовані.
+- Два послідовні seed runs — green із однаковими counts; demo `Account`, `Session` і `Verification` counts дорівнюють нулю.
+- Unit — 2 suites / 10 tests; integration — 4 suites / 14 tests; e2e — 4 suites / 11 tests.
+- API lint, root type checks, API build і `git diff --check` — green.
 
 ## Milestone 6.4 — Foundation readiness gate
 
