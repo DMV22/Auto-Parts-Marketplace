@@ -167,7 +167,7 @@ model FitmentRule {
   vehicleGeneration   VehicleGeneration @relation(fields: [vehicleGenerationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   engineType          EngineType?       @relation(fields: [engineTypeId, vehicleGenerationId], references: [id, vehicleGenerationId], onDelete: Cascade, onUpdate: Cascade)
 
-  @@unique([productVariantId, vehicleGenerationId, engineTypeId])
+  @@unique([productVariantId, vehicleGenerationId, engineTypeId], map: "FitmentRule_productVariantId_vehicleGenerationId_engineTypeId_k")
   @@index([productVariantId])
   @@index([vehicleGenerationId])
   @@index([engineTypeId])
