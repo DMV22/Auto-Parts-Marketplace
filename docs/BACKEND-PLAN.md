@@ -329,20 +329,20 @@ Validation двічі запускає seed проти guarded local `auto_parts
 
 ### Tasks
 
-- [ ] Відтворити `auto_parts_dev` і `auto_parts_test` лише з committed migrations; окремо виконати idempotent seed для development database.
-- [ ] Запустити regression suites для catalog/fitment constraints, auth/session lifecycle, RBAC, supplier ownership і status defaults.
-- [ ] Перевірити, що test database guard усе ще відхиляє dev/prod/remote database і що cleanup не залежить від seed.
-- [ ] Оновити `docs/CONTEXT.md`, `docs/ARCHITECTURE.md` та `apps/api/README.md` відповідно до фактично реалізованої моделі й команд.
-- [ ] Перевірити repository diff на credentials, generated artifacts, edited historical migrations і незаплановані зміни поза `apps/api`/docs.
-- [ ] Оновити checklist та Implementation log цього плану лише після фактичної перевірки.
+- [x] Відтворити `auto_parts_dev` і `auto_parts_test` лише з committed migrations; окремо виконати idempotent seed для development database.
+- [x] Запустити regression suites для catalog/fitment constraints, auth/session lifecycle, RBAC, supplier ownership і status defaults.
+- [x] Перевірити, що test database guard усе ще відхиляє dev/prod/remote database і що cleanup не залежить від seed.
+- [x] Оновити `docs/CONTEXT.md`, `docs/ARCHITECTURE.md` та `apps/api/README.md` відповідно до фактично реалізованої моделі й команд.
+- [x] Перевірити repository diff на credentials, generated artifacts, edited historical migrations і незаплановані зміни поза `apps/api`/docs.
+- [x] Оновити checklist та Implementation log цього плану лише після фактичної перевірки.
 
 ### Definition of Done
 
-- [ ] Усі Milestones 6.1–6.3 мають `[x]` лише після проходження їх Validation.
-- [ ] Clean database rehearsal, seed rerun, unit, integration та e2e suites проходять повторювано.
-- [ ] Documentation і package scripts відповідають фактичним paths, versions і commands.
-- [ ] Немає pending migrations, schema drift, tracked secrets або generated Prisma Client artifacts.
-- [ ] Milestone 7 може початися без відкритих schema/auth/ownership питань, що змінюють його API design.
+- [x] Усі Milestones 6.1–6.3 мають `[x]` лише після проходження їх Validation.
+- [x] Clean database rehearsal, seed rerun, unit, integration та e2e suites проходять повторювано.
+- [x] Documentation і package scripts відповідають фактичним paths, versions і commands.
+- [x] Немає pending migrations, schema drift, tracked secrets або generated Prisma Client artifacts.
+- [x] Milestone 7 може початися без відкритих schema/auth/ownership питань, що змінюють його API design.
 
 ### Validation
 
@@ -354,12 +354,41 @@ pnpm --filter api prisma:validate
 pnpm --filter api prisma:generate
 pnpm --filter api prisma:migrate:deploy
 pnpm --filter api exec prisma migrate status
+pnpm --filter api exec prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code
+pnpm --filter api exec prisma db seed
 pnpm --filter api exec prisma db seed
 pnpm --filter api test
 pnpm --filter api test:int
 pnpm --filter api test:e2e
 git diff --check
 ```
+
+### Implementation log
+
+#### What changed
+
+- Відтворено Docker `auto_parts_dev` і `auto_parts_test` з чотирьох committed migrations; dev seed виконано двічі зі стабільними counts.
+- Docker PostgreSQL 16 перенесено на host port `5433`, оскільки port `5432` на development machine належав окремому Windows PostgreSQL 17 instance.
+- Додано прямий unit regression для test database guard і виправлено Turborepo API build output на `dist/**`.
+- Оновлено context, architecture та API setup документацію відповідно до фактичної моделі й команд.
+
+#### Why
+
+- Clean rehearsal підтвердив, що foundation відтворюється без `db push`, manual SQL або demo seed у test database.
+- Milestone 7 отримує стабільні schema, auth/RBAC та supplier ownership contracts без невирішених design blockers.
+
+#### Verification results
+
+- PostgreSQL 16.14 Docker baseline: dev/test migration status up to date; schema drift — `No difference detected`.
+- Seed rerun: однакові counts; demo Accounts, Sessions і Verifications — `0`.
+- Root lint, type checks і build — green; unit — 3 suites / 17 tests; integration — 4 / 14; e2e — 4 / 11.
+- Historical migrations, tracked secrets і generated Prisma artifacts не знайдені; `git diff --check` — green.
+
+#### Milestone 7 handoff
+
+- Catalog, taxonomy, fitment, identity, session, RBAC, supplier ownership і commerce status persistence є canonical foundation.
+- Наступний milestone може додавати catalog/PDP/fitment API без зміни погоджених schema/auth/ownership contracts.
+- Checkout, payment processing, shipping, stock reservation і returns workflow залишаються поза поточним scope.
 
 ## Migration and rollback strategy
 
