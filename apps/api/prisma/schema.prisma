@@ -29,6 +29,12 @@ enum ListingStatus {
   ARCHIVED
 }
 
+enum ListingCondition {
+  NEW
+  USED
+  REMANUFACTURED
+}
+
 enum OrderStatus {
   PENDING_PAYMENT
   PAID
@@ -317,6 +323,7 @@ model Listing {
   supplierId       String         @db.Uuid
   productVariantId String         @db.Uuid
   status           ListingStatus  @default(DRAFT)
+  condition        ListingCondition
   price            Decimal        @db.Decimal(12, 2)
   currency         String         @db.Char(3)
   stockQuantity    Int            @default(0)
@@ -328,6 +335,7 @@ model Listing {
 
   @@index([supplierId, status])
   @@index([productVariantId, status])
+  @@index([status, condition, currency, price])
 }
 
 model Order {

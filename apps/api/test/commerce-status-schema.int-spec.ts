@@ -37,6 +37,7 @@ describe('Commerce status persistence contract', () => {
       JOIN pg_namespace AS namespace ON namespace.oid = type.typnamespace
       WHERE namespace.nspname = current_schema()
         AND type.typname IN (
+          'ListingCondition',
           'ListingStatus',
           'OrderStatus',
           'PaymentEventProcessingStatus',
@@ -57,6 +58,11 @@ describe('Commerce status persistence contract', () => {
       'PAUSED',
       'REJECTED',
       'ARCHIVED',
+    ]);
+    expect(enumValues('ListingCondition')).toEqual([
+      'NEW',
+      'USED',
+      'REMANUFACTURED',
     ]);
     expect(enumValues('OrderStatus')).toEqual([
       'PENDING_PAYMENT',
@@ -79,6 +85,33 @@ describe('Commerce status persistence contract', () => {
       'COMPLETED',
       'CANCELLED',
     ]);
+  });
+
+  it('requires listing condition and indexes the public catalog filter path', async () => {
+    const [column] = await prisma.$queryRaw<
+      Array<{ isNullable: string; columnDefault: string | null }>
+    >`
+      SELECT
+        is_nullable AS "isNullable",
+        column_default AS "columnDefault"
+      FROM information_schema.columns
+      WHERE table_schema = current_schema()
+        AND table_name = 'Listing'
+        AND column_name = 'condition'
+    `;
+    const indexes = await prisma.$queryRaw<Array<{ indexDefinition: string }>>`
+      SELECT indexdef AS "indexDefinition"
+      FROM pg_indexes
+      WHERE schemaname = current_schema()
+        AND tablename = 'Listing'
+    `;
+
+    expect(column).toEqual({ isNullable: 'NO', columnDefault: null });
+    expect(
+      indexes.map(({ indexDefinition }) => indexDefinition),
+    ).toContainEqual(
+      expect.stringContaining('(status, condition, currency, price)'),
+    );
   });
 
   it('uses the agreed database defaults for new workflow records', async () => {
@@ -235,6 +268,7 @@ describe('Commerce status persistence contract', () => {
         data: {
           supplierId: supplier.id,
           productVariantId: productVariant.id,
+          condition: 'NEW',
           price: 100,
           currency: 'UAH',
         },
