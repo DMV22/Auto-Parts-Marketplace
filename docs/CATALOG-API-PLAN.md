@@ -79,8 +79,8 @@ Milestone 6 надає persistence і security foundation, але не public ca
 
 1. **API route/version contract - resolved for Milestone 7.1:** product API використовує versioned prefix `/api/v1`; vehicle taxonomy доступна через `/api/v1/vehicles/*`, успішні collection responses мають envelope `{ data: [...] }`, а помилки використовують standard Nest `{ statusCode, message, error }`. Existing `/api/auth/*` provider boundary не змінюється.
 2. **SavedVehicle exactness and active selection - resolved for Milestone 7.2:** exact `year` зберігається в `SavedVehicle`; nullable unique `User.activeSavedVehicleId` є єдиним active pointer і має FK `ON DELETE SET NULL`. Service перевіряє generation year range та належність optional engine до generation. Повторний create однакового year/generation/engine повертає `409`, repeated select-active є idempotent, а repeated delete повертає `404`; видалення active vehicle очищає pointer.
-3. **Listing condition vocabulary:** які values підтримує condition filter і чи condition належить Listing або ProductVariant? Поточна schema не має поля. До погодження enum та semantics не створювати migration і не імітувати condition через інші поля.
-4. **Catalog result unit:** один result представляє Product, ProductVariant чи Listing? Це визначає price sorting, duplicate handling і pagination. Рекомендація - product-centric result із variants та лише public active Listings, але потрібно погодити правило representative/minimum price.
+3. **Listing condition vocabulary - resolved for Milestone 7.3:** condition належить конкретному `Listing`, а не `ProductVariant`, і використовує required enum `NEW | USED | REMANUFACTURED`. Forward migration явно backfill-ить synthetic baseline listings як `NEW`, після чого встановлює `NOT NULL` та catalog filter index; historical migrations не змінюються.
+4. **Catalog result unit - resolved for Milestone 7.3:** один result і одна pagination unit представляють унікальний `Product`; response містить лише variants і `ACTIVE` listings, що відповідають усім commercial/vehicle filters. `minimumPrice` обчислюється серед matching listings у явно вибраній currency; price filters та `price_asc`/`price_desc` без currency відхиляються. Sort allowlist: `newest`, `name_asc`, `name_desc`, `price_asc`, `price_desc`, кожен із stable `Product.id` tie-breaker.
 5. **Fitment truth table:** який database evidence дозволяє відрізнити `incompatible` від `unknown`, і коли partial selection дає `caution`? Positive-only FitmentRule недостатньо для негативного твердження без completeness/exclusion contract. Truth table треба затвердити до 7.4; за потреби schema розширюється лише новою migration.
 6. **Public commercial fields:** чи показує PDP точний `stockQuantity`, чи лише `inStock`, і які Supplier fields є public? Рекомендація - не повертати exact stock або internal Supplier data без явної product requirement.
 
@@ -231,23 +231,23 @@ git diff --check
 
 ### Tasks
 
-- [ ] Закрити Open questions 3-4 і зафіксувати Listing condition enum, catalog result unit, price aggregation та allowed sort keys.
-- [ ] Якщо condition потребує schema field/index, створити окрему reviewed forward migration і оновити synthetic fixtures без змішування з runtime workflows.
-- [ ] Реалізувати `CatalogModule` list endpoint із search за Product text, Brand, SKU, manufacturer part number та OEM number.
-- [ ] Додати filters category, brand, price range, stock availability, condition і vehicle compatibility; non-`ACTIVE` Listings завжди виключати.
-- [ ] Підтримати explicit taxonomy VehicleContext і owned `savedVehicleId`; conflicting contexts відхиляти, а чужий savedVehicleId не розкривати.
-- [ ] Реалізувати page/pageSize metadata, maximum page size 50 і explicit sort allowlist зі stable unique tie-breaker.
-- [ ] Уникнути duplicate catalog items через joins; total count і page items повинні використовувати однаковий normalized filter.
-- [ ] Додати unit tests для query normalization і integration/e2e matrix для search, combined filters, ownership, empty pages, invalid ranges, stable pagination та exclusion non-active Listings.
+- [x] Закрити Open questions 3-4 і зафіксувати Listing condition enum, catalog result unit, price aggregation та allowed sort keys.
+- [x] Якщо condition потребує schema field/index, створити окрему reviewed forward migration і оновити synthetic fixtures без змішування з runtime workflows.
+- [x] Реалізувати `CatalogModule` list endpoint із search за Product text, Brand, SKU, manufacturer part number та OEM number.
+- [x] Додати filters category, brand, price range, stock availability, condition і vehicle compatibility; non-`ACTIVE` Listings завжди виключати.
+- [x] Підтримати explicit taxonomy VehicleContext і owned `savedVehicleId`; conflicting contexts відхиляти, а чужий savedVehicleId не розкривати.
+- [x] Реалізувати page/pageSize metadata, maximum page size 50 і explicit sort allowlist зі stable unique tie-breaker.
+- [x] Уникнути duplicate catalog items через joins; total count і page items повинні використовувати однаковий normalized filter.
+- [x] Додати unit tests для query normalization і integration/e2e matrix для search, combined filters, ownership, empty pages, invalid ranges, stable pagination та exclusion non-active Listings.
 
 ### Definition of Done
 
-- [ ] Catalog повертає передбачуваний paginated result для однакового dataset, filter і sort.
-- [ ] Keyword/SKU та category/brand/price/stock/condition filters працюють окремо й у погоджених комбінаціях.
-- [ ] Vehicle filter включає result як compatible лише за matching FitmentRule; unknown coverage не проходить compatible filter.
-- [ ] Active SavedVehicle впливає на catalog лише для owner session; explicit taxonomy selection залишається доступним Guest.
-- [ ] Non-active Listings не потрапляють у response, а joins не створюють duplicates або inconsistent total count.
-- [ ] Query validation, filter matrix і pagination regression проходять на isolated test fixtures.
+- [x] Catalog повертає передбачуваний paginated result для однакового dataset, filter і sort.
+- [x] Keyword/SKU та category/brand/price/stock/condition filters працюють окремо й у погоджених комбінаціях.
+- [x] Vehicle filter включає result як compatible лише за matching FitmentRule; unknown coverage не проходить compatible filter.
+- [x] Active SavedVehicle впливає на catalog лише для owner session; explicit taxonomy selection залишається доступним Guest.
+- [x] Non-active Listings не потрапляють у response, а joins не створюють duplicates або inconsistent total count.
+- [x] Query validation, filter matrix і pagination regression проходять на isolated test fixtures.
 
 ### Validation
 
@@ -264,6 +264,23 @@ pnpm --filter api test:e2e
 pnpm --filter api build
 git diff --check
 ```
+
+### Implementation log
+
+#### What changed
+
+- `ListingCondition` (`NEW`, `USED`, `REMANUFACTURED`) додано reviewed data-preserving forward migration із required column та catalog filter index; synthetic seed залишився idempotent.
+- Public `GET /api/v1/catalog/products` реалізовано через `CatalogModule`, thin controller, whitelist query pipe та injected `PrismaService`.
+- Product-centric query виконує search і commercial/vehicle filters у PostgreSQL, повертає лише matching variants/`ACTIVE` listings та рахує consistent product-level `total`.
+- Pagination має default `20`, maximum `50`; name/newest/price sorts мають stable Product ID tie-breaker, а minimum price не змішує currencies.
+- Explicit VehicleContext залишається public; `savedVehicleId` вимагає valid Better Auth session і owner match, а cross-owner ID повертає той самий `404`, що й missing ID.
+
+#### Verification results
+
+- Persistence gate: Prisma validate/generate/deploy/status — green; 6 committed migrations застосовані до dev/test без drift; demo seed двічі зберіг стабільні counts.
+- API lint, workspace type-check і API production build — green.
+- Unit suites: 6/6, 36 tests; integration suites: 7/7, 25 tests; e2e suites: 7/7, 28 tests.
+- Catalog-specific regression: 9 query validation tests, 5 integration scenarios і 3 HTTP e2e scenarios на guarded `auto_parts_test` без demo seed dependency.
 
 ## Milestone 7.4 - PDP and fitment answers
 
