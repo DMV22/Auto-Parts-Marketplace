@@ -22,7 +22,6 @@ Milestone розбито на підетапи 7.1-7.5. Кожен підета�
 
 ## Context inspected
 
-- `Milestones_6_10.pdf` - high-level Goal, Key Tasks і Definition of Done для Milestone 7.
 - `docs/BACKEND-PLAN.md` - завершений Milestone 6, plan structure, schema/auth/ownership decisions і handoff для Milestone 7.
 - `docs/PLANS.md` - execution-plan format і статуси `[ ]`, `[~]`, `[x]`, `[!]`.
 - `docs/CONTEXT.md` - фактичний backend stack, local workflow і test database boundary.
