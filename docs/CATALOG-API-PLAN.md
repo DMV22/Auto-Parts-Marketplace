@@ -1,0 +1,338 @@
+# Execution plan: Fitment-aware Catalog API
+
+## Summary
+
+Реалізувати Milestone 7 як стабільний read-oriented NestJS API поверх foundation, завершеної в Milestone 6. API має підтримувати послідовний vehicle selector `Year -> Make -> Model -> Generation -> Engine`, приватний customer garage, публічний catalog search із фільтрами та PDP із явною fitment-відповіддю.
+
+Milestone розбито на підетапи 7.1-7.5. Кожен підетап додає окремий API boundary і regression coverage; schema changes допускаються лише там, де фактична модель Milestone 6 не може виразити погоджений API contract.
+
+## Goal
+
+Після завершення плану `apps/api` надає передбачуваний і протестований API для vehicle taxonomy, garage, catalog search та product details. Клієнт може вибрати або зберегти конкретний vehicle context, отримати paginated catalog result і побачити `compatible`, `incompatible`, `unknown` або `caution` без припущення, що відсутній `FitmentRule` означає сумісність.
+
+## Non-goals
+
+- Frontend vehicle selector, garage UI, catalog pages або PDP components.
+- Створення чи редагування Product, ProductVariant, Listing, Supplier або vehicle taxonomy через публічний API.
+- Supplier cabinet, listing approval, inventory write operations або stock reservation.
+- Cart, checkout, Stripe, Order workflows, shipping, returns або moderation.
+- VIN decoding, ACES/PIES import, fuzzy vehicle matching або AI compatibility scoring.
+- Elasticsearch/OpenSearch, окремий search service, Redis cache або CDN strategy.
+- Production deployment, rate-limiting platform, analytics або observability rollout.
+
+## Context inspected
+
+- `Milestones_6_10.pdf` - high-level Goal, Key Tasks і Definition of Done для Milestone 7.
+- `docs/BACKEND-PLAN.md` - завершений Milestone 6, plan structure, schema/auth/ownership decisions і handoff для Milestone 7.
+- `docs/PLANS.md` - execution-plan format і статуси `[ ]`, `[~]`, `[x]`, `[!]`.
+- `docs/CONTEXT.md` - фактичний backend stack, local workflow і test database boundary.
+- `docs/ARCHITECTURE.md` - Nest/Prisma persistence boundary, auth/RBAC і current non-goals.
+- `apps/api/prisma/schema.prisma` - canonical catalog, taxonomy, SavedVehicle, FitmentRule і Listing fields/relations.
+- `apps/api/src/auth` - session, role та ownership guards/decorators, які мають захищати garage endpoints.
+- `apps/api/package.json` - Prisma, lint, type-check, unit, integration, e2e та build scripts.
+- `apps/api/test` - isolated `auto_parts_test` setup і поточний regression baseline.
+
+## Current behavior
+
+Milestone 6 надає persistence і security foundation, але не public catalog controllers/services. Prisma schema вже містить:
+
+- `VehicleMake -> VehicleModel -> VehicleGeneration -> EngineType` із year ranges на generation;
+- `User -> SavedVehicle`, де SavedVehicle посилається на generation та optional engine;
+- `Category -> Product -> ProductVariant`, Brand і supplier-owned Listing;
+- positive-only `FitmentRule` для ProductVariant, generation та optional engine;
+- session-based Better Auth, RBAC і supplier ownership boundary.
+
+Поточні schema gaps, важливі для Milestone 7:
+
+- SavedVehicle не зберігає конкретний selected year і не має persisted active-selection contract;
+- Listing не має condition field, хоча Milestone 7 вимагає condition filter;
+- FitmentRule підтверджує лише позитивну сумісність і не визначає самостійно доказ для `incompatible`;
+- API-wide DTO validation, pagination envelope і public error contract ще не зафіксовані.
+
+## Desired behavior
+
+- Public taxonomy endpoints повертають лише валідні наступні кроки selector flow і мають deterministic ordering.
+- Authenticated Customer керує лише власними SavedVehicle records і може вибрати не більше одного active vehicle.
+- Public catalog показує лише `ACTIVE` Listings, підтримує keyword/SKU та погоджені filters, pagination і explicit sorting allowlist.
+- Vehicle filter повертає variant/listing як compatible лише за явним matching FitmentRule.
+- PDP агрегує Product, variants, OEM/SKU, public Supplier data, Listing price/stock та fitment details без витоку internal records.
+- Fitment evaluator повертає один із чотирьох стабільних result values із machine-readable reason, а incomplete selection або coverage не маскується під гарантовану сумісність.
+- Unit, integration та e2e tests використовують лише local `auto_parts_test` і не залежать від demo seed.
+
+## Constraints
+
+- Реалізація належить лише `apps/api`; frontend і shared UI packages не змінювати.
+- Використовувати поточні Node.js `>=22.12.0 <23`, NestJS 11, Prisma `7.9.0`, PostgreSQL 16 і pnpm.
+- Зберегти один Nest `PrismaModule`/`PrismaService`; не створювати паралельні Prisma Client instances у controllers або services.
+- Не редагувати historical migrations. Будь-який schema gap закривати новою reviewed forward migration після рішення відповідного Open question.
+- Public taxonomy/catalog/PDP endpoints не потребують session. Garage і звернення через `savedVehicleId` потребують valid session та ownership check за `User.id`.
+- Public catalog ніколи не повертає non-`ACTIVE` Listing. `stockQuantity = 0` не приховувати неявно: availability контролюється explicit filter або response field.
+- Відсутній matching FitmentRule ніколи не означає `compatible`. `incompatible` дозволено повертати лише за погодженим доказом, а не через просту відсутність row.
+- Pagination має bounded page size: default `20`, maximum `50`; кожне сортування повинно мати stable unique tie-breaker.
+- Query parameters проходять whitelist validation; unknown, conflicting або malformed parameters повертають узгоджений `400` response.
+- API responses не повертають auth Account/Session, supplier memberships, internal status history або інші persistence-only поля.
+- Catalog filters повинні виконуватися в PostgreSQL через Prisma; in-memory filtering після завантаження повного catalog не допускається.
+- Integration/e2e tests працюють лише з guarded local `auto_parts_test`, створюють власні fixtures і не імпортують demo seed.
+
+## Open questions
+
+Ці рішення мають бути закриті в плані до реалізації підетапу, якого вони стосуються:
+
+1. **API route/version contract:** чи вводимо `/api/v1/vehicles`, `/api/v1/garage`, `/api/v1/catalog`, чи залишаємо unversioned `/api/...` поруч із Better Auth? Рекомендація - зафіксувати versioned product API, не змінюючи existing `/api/auth/*` provider boundary.
+2. **SavedVehicle exactness and active selection:** де зберігати selected year і як гарантувати рівно один active SavedVehicle на User? Рекомендація - додати exact `year` та database-enforced single-active invariant новою forward migration; service додатково перевіряє, що year входить у generation range, а engine належить generation.
+3. **Listing condition vocabulary:** які values підтримує condition filter і чи condition належить Listing або ProductVariant? Поточна schema не має поля. До погодження enum та semantics не створювати migration і не імітувати condition через інші поля.
+4. **Catalog result unit:** один result представляє Product, ProductVariant чи Listing? Це визначає price sorting, duplicate handling і pagination. Рекомендація - product-centric result із variants та лише public active Listings, але потрібно погодити правило representative/minimum price.
+5. **Fitment truth table:** який database evidence дозволяє відрізнити `incompatible` від `unknown`, і коли partial selection дає `caution`? Positive-only FitmentRule недостатньо для негативного твердження без completeness/exclusion contract. Truth table треба затвердити до 7.4; за потреби schema розширюється лише новою migration.
+6. **Public commercial fields:** чи показує PDP точний `stockQuantity`, чи лише `inStock`, і які Supplier fields є public? Рекомендація - не повертати exact stock або internal Supplier data без явної product requirement.
+
+## Proposed approach
+
+Роботу виконувати вертикальними Nest modules, з thin controllers, DTO/query validation, application services і Prisma-backed repositories/query services:
+
+```text
+HTTP request
+  -> Nest controller + validated DTO/query
+  -> optional SessionAuthGuard / owner resolution
+  -> taxonomy, garage, catalog або fitment application service
+  -> injected PrismaService
+  -> PostgreSQL 16
+  -> explicit response DTO + pagination/fitment metadata
+```
+
+Recommended module split:
+
+- `VehicleTaxonomyModule` - public read queries для Year/Make/Model/Generation/Engine cascade.
+- `GarageModule` - authenticated owner-only CRUD і active vehicle selection.
+- `CatalogModule` - public search/filter/sort/pagination та PDP orchestration.
+- `FitmentService` усередині catalog boundary - єдина pure/deterministic policy для compatibility answer; controllers не дублюють fitment logic.
+
+Common API rules:
+
+- IDs вхідних relations перевіряються разом із hierarchy, а не лише на існування окремого row.
+- Explicit taxonomy selection і owned `savedVehicleId` нормалізуються в один internal `VehicleContext`.
+- Catalog list і PDP використовують одну fitment policy, щоб однаковий vehicle/variant не отримував різні відповіді.
+- Search baseline використовує case-insensitive PostgreSQL matching для Product name/description, Brand, SKU, manufacturer part number та OEM number; окремий search engine додається лише після виміряної потреби.
+- Pagination response містить items і metadata; allowed sort keys документуються, а unique ID завжди є останнім tie-breaker.
+- Schema changes для garage, condition або fitment semantics групуються за підетапами й ніколи не змішуються з unrelated domains.
+
+## Milestone 7.1 - Vehicle taxonomy API
+
+### Goal
+
+Додати публічний read-only API для детермінованого flow `Year -> Make -> Model -> Generation -> Engine`, використовуючи canonical taxonomy Milestone 6.1 без schema changes.
+
+### Tasks
+
+- [ ] Закрити Open question 1 і зафіксувати route naming, response DTO та shared error envelope для Milestone 7.
+- [ ] Створити `VehicleTaxonomyModule` із controller/service boundary; PrismaService використовувати лише через DI.
+- [ ] Додати endpoints для supported years, makes by year, models by year/make, generations by year/model та engines by generation.
+- [ ] Derive supported years з `VehicleGeneration.yearFrom/yearTo`; повертати years descending, а names/codes - у deterministic order із ID tie-breaker.
+- [ ] Валідувати year range, UUIDs і parent-child hierarchy; порожній валідний result повертати окремо від malformed query або nonexistent parent.
+- [ ] Додати unit tests для query validation/service mapping та integration/e2e tests для повного selector flow, invalid hierarchy і stable ordering.
+- [ ] Перевірити query count і indexes для cascade endpoints; не завантажувати всю taxonomy для кожного step.
+
+### Definition of Done
+
+- [ ] Клієнт може пройти Year -> Make -> Model -> Generation -> Engine лише через API responses без hardcoded taxonomy.
+- [ ] Кожен endpoint повертає deterministic, duplicate-free result і не показує child rows поза вибраним parent/year.
+- [ ] Invalid year/UUID/hierarchy має стабільний `400` або `404` contract; валідний selector без matches повертає порожній list.
+- [ ] Public taxonomy routes не вимагають session і не повертають persistence-only fields.
+- [ ] Unit, integration та e2e regression проходять на `auto_parts_test` без demo seed dependency.
+
+### Validation
+
+```bash
+pnpm --filter api lint
+pnpm check-types
+pnpm --filter api test
+pnpm --filter api test:int
+pnpm --filter api test:e2e
+pnpm --filter api build
+git diff --check
+```
+
+## Milestone 7.2 - Customer Garage API
+
+### Goal
+
+Додати authenticated owner-only API для створення, читання, видалення SavedVehicle та вибору одного active vehicle, придатного для catalog/fitment context.
+
+### Tasks
+
+- [ ] Закрити Open question 2 і задокументувати exact year, single-active invariant та delete-active behavior.
+- [ ] Якщо потрібно, додати мінімальні SavedVehicle fields/constraints новою forward migration; historical migrations не редагувати.
+- [ ] Створити `GarageModule` і endpoints для list, create, delete та select-active; userId завжди брати з validated session, а не request body/query.
+- [ ] На create перевіряти generation year range та належність optional EngineType до selected VehicleGeneration.
+- [ ] Реалізувати active selection транзакційно та захистити invariant від concurrent requests на database level.
+- [ ] Визначити idempotency для repeated create/select/delete requests і стабільний response DTO з повною taxonomy summary.
+- [ ] Додати positive і negative unit/integration/e2e tests: unauthenticated, cross-user ID, invalid engine-generation, duplicate vehicle, concurrent/single-active і delete-active cases.
+
+### Definition of Done
+
+- [ ] Customer може створити, переглянути, видалити й активувати лише власний SavedVehicle.
+- [ ] SavedVehicle однозначно представляє year/generation/optional engine, а inconsistent hierarchy не записується.
+- [ ] Для одного User database і service layer не допускають більше одного active vehicle.
+- [ ] Guest отримує authentication denial, а authenticated cross-user request не розкриває чужі garage data.
+- [ ] Committed forward migration відтворюється в clean dev/test database, а garage regression проходить без demo seed.
+
+### Validation
+
+```bash
+pnpm --filter api prisma:validate
+pnpm --filter api prisma:generate
+pnpm --filter api prisma:migrate:deploy
+pnpm --filter api exec prisma migrate status
+pnpm --filter api lint
+pnpm check-types
+pnpm --filter api test
+pnpm --filter api test:int
+pnpm --filter api test:e2e
+pnpm --filter api build
+git diff --check
+```
+
+## Milestone 7.3 - Catalog search, filters and pagination
+
+### Goal
+
+Додати public catalog endpoint із keyword/SKU search, погодженими commercial і taxonomy filters, deterministic sorting та bounded pagination.
+
+### Tasks
+
+- [ ] Закрити Open questions 3-4 і зафіксувати Listing condition enum, catalog result unit, price aggregation та allowed sort keys.
+- [ ] Якщо condition потребує schema field/index, створити окрему reviewed forward migration і оновити synthetic fixtures без змішування з runtime workflows.
+- [ ] Реалізувати `CatalogModule` list endpoint із search за Product text, Brand, SKU, manufacturer part number та OEM number.
+- [ ] Додати filters category, brand, price range, stock availability, condition і vehicle compatibility; non-`ACTIVE` Listings завжди виключати.
+- [ ] Підтримати explicit taxonomy VehicleContext і owned `savedVehicleId`; conflicting contexts відхиляти, а чужий savedVehicleId не розкривати.
+- [ ] Реалізувати page/pageSize metadata, maximum page size 50 і explicit sort allowlist зі stable unique tie-breaker.
+- [ ] Уникнути duplicate catalog items через joins; total count і page items повинні використовувати однаковий normalized filter.
+- [ ] Додати unit tests для query normalization і integration/e2e matrix для search, combined filters, ownership, empty pages, invalid ranges, stable pagination та exclusion non-active Listings.
+
+### Definition of Done
+
+- [ ] Catalog повертає передбачуваний paginated result для однакового dataset, filter і sort.
+- [ ] Keyword/SKU та category/brand/price/stock/condition filters працюють окремо й у погоджених комбінаціях.
+- [ ] Vehicle filter включає result як compatible лише за matching FitmentRule; unknown coverage не проходить compatible filter.
+- [ ] Active SavedVehicle впливає на catalog лише для owner session; explicit taxonomy selection залишається доступним Guest.
+- [ ] Non-active Listings не потрапляють у response, а joins не створюють duplicates або inconsistent total count.
+- [ ] Query validation, filter matrix і pagination regression проходять на isolated test fixtures.
+
+### Validation
+
+```bash
+pnpm --filter api prisma:validate
+pnpm --filter api prisma:generate
+pnpm --filter api prisma:migrate:deploy
+pnpm --filter api exec prisma migrate status
+pnpm --filter api lint
+pnpm check-types
+pnpm --filter api test
+pnpm --filter api test:int
+pnpm --filter api test:e2e
+pnpm --filter api build
+git diff --check
+```
+
+## Milestone 7.4 - PDP and fitment answers
+
+### Goal
+
+Додати public Product Detail API та єдину fitment policy, яка пояснює compatibility для кожного relevant ProductVariant без false-positive claims.
+
+### Tasks
+
+- [ ] Закрити Open questions 5-6 і зафіксувати exhaustive truth table для `compatible`, `incompatible`, `unknown`, `caution`, включно з reason codes та partial vehicle selection.
+- [ ] Якщо `incompatible` потребує explicit negative/completeness data, створити мінімальну forward migration; не виводити negative answer із простої відсутності FitmentRule.
+- [ ] Реалізувати PDP endpoint для Product із Brand/Category, variants, SKU/OEM/manufacturer part number та public `ACTIVE` Listings із погодженими Supplier/availability fields.
+- [ ] Реалізувати один `FitmentService`, який приймає normalized VehicleContext і повертає result, reason code та matched rule details без controller-specific branching.
+- [ ] Підтримати PDP без vehicle context, з explicit taxonomy context і з owner-only savedVehicleId/active garage context.
+- [ ] Відрізняти product/variant not found, unavailable public listing, invalid vehicle hierarchy та unknown fitment coverage узгодженими HTTP/domain responses.
+- [ ] Додати unit truth-table tests і integration/e2e tests для exact engine rule, generation-wide rule, engine mismatch, missing rule, partial selection, cross-owner saved vehicle та hidden Listings.
+- [ ] Перевірити Prisma query shape на bounded query count і відсутність N+1 для variants/listings/fitment details.
+
+### Definition of Done
+
+- [ ] PDP повертає погоджений public Product/Variant/Listing projection без internal Supplier/auth fields.
+- [ ] Однаковий Variant і VehicleContext дають однаковий fitment result у catalog та PDP.
+- [ ] `compatible` завжди має matching FitmentRule; `incompatible`, `unknown` і `caution` відповідають затвердженій truth table.
+- [ ] Incomplete vehicle selection або fitment coverage не подається як гарантована compatibility.
+- [ ] PDP, reason codes, hidden listing behavior і повна fitment matrix покриті unit/integration/e2e tests.
+
+### Validation
+
+```bash
+pnpm --filter api prisma:validate
+pnpm --filter api prisma:generate
+pnpm --filter api prisma:migrate:deploy
+pnpm --filter api exec prisma migrate status
+pnpm --filter api lint
+pnpm check-types
+pnpm --filter api test
+pnpm --filter api test:int
+pnpm --filter api test:e2e
+pnpm --filter api build
+git diff --check
+```
+
+## Milestone 7.5 - Catalog API readiness gate
+
+### Goal
+
+Перевірити Milestone 7 як один стабільний API contract і підготувати handoff для Cart/Checkout/Orders без додавання commerce write behavior.
+
+### Tasks
+
+- [ ] Відтворити `auto_parts_dev` і `auto_parts_test` лише з committed migrations; demo seed застосувати тільки до guarded development database.
+- [ ] Запустити повний regression для taxonomy, garage ownership, catalog filters/pagination, PDP і fitment truth table.
+- [ ] Перевірити API examples/README проти фактичних routes, DTOs, pagination metadata, error responses і fitment reason codes.
+- [ ] Перевірити query plans для найбільш важких catalog/filter combinations і додати indexes лише через reviewed forward migration за виміряним evidence.
+- [ ] Провести repository audit: no edited historical migrations, tracked secrets, generated artifacts, frontend changes або Milestone 8 runtime behavior.
+- [ ] Оновити цей checklist та Implementation log лише після фактичної Validation.
+
+### Definition of Done
+
+- [ ] Усі 7.1-7.4 Tasks/DoD позначені `[x]` лише після відповідної Validation.
+- [ ] Clean migration rehearsal, unit, integration та e2e suites проходять повторювано.
+- [ ] API documentation відповідає фактичним routes, access rules, filters, pagination і fitment semantics.
+- [ ] Catalog/PDP query behavior є deterministic, не має відомого N+1 і використовує обґрунтовані indexes.
+- [ ] Немає schema drift, pending migrations, tracked secrets або змін поза погодженим backend/docs scope.
+- [ ] Milestone 8 може використовувати public Listing/price/stock projections без зміни taxonomy, garage або fitment contracts.
+
+### Validation
+
+```bash
+pnpm lint
+pnpm check-types
+pnpm build
+pnpm --filter api prisma:validate
+pnpm --filter api prisma:generate
+pnpm --filter api prisma:migrate:deploy
+pnpm --filter api exec prisma migrate status
+pnpm --filter api exec prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code
+pnpm --filter api test
+pnpm --filter api test:int
+pnpm --filter api test:e2e
+git diff --check
+```
+
+## Migration and rollback strategy
+
+- 7.1 не повинен змінювати schema: taxonomy вже є canonical foundation.
+- 7.2 може додати лише exact-year/active-selection fields та constraints після рішення Open question 2.
+- 7.3 може додати лише погоджений Listing condition/index baseline після рішення Open question 3.
+- 7.4 змінює schema лише якщо затверджена fitment truth table потребує explicit negative/completeness representation.
+- Кожна schema-bearing зміна отримує нову named forward migration; existing migration files залишаються immutable.
+- Migration SQL переглядати до apply; destructive operations, `db push` і `migrate reset` не використовувати як deployment/rollback strategy.
+- Rollback для середовища з даними - reviewed forward fix або database restore. Disposable local test database можна відтворювати лише після existing URL guard.
+
+## Risks and mitigations
+
+- **False compatibility claim.** Central FitmentService і exhaustive truth table; відсутність rule не перетворювати на compatible.
+- **False incompatibility claim.** Не вважати відсутність positive row доказом incompatibility без explicit coverage/exclusion semantics.
+- **Garage ownership leak.** User identity походить лише із session; cross-owner IDs мають negative e2e coverage і не розкривають existence чужого record.
+- **Inconsistent vehicle hierarchy.** Year, make/model/generation/engine relations перевіряти як один VehicleContext до catalog query.
+- **Pagination duplicates/drift.** Зафіксувати result unit, normalized filter і unique tie-breaker; перевіряти multi-page integration fixtures.
+- **Public data leakage.** Використовувати explicit response DTO/select projections замість серіалізації Prisma records.
+- **Slow catalog joins.** Bounded queries, no in-memory full scans, query-plan inspection та indexes лише за measured evidence.
+- **Schema creep.** Кожен gap вирішувати у власному підетапі; не додавати Cart, checkout, supplier writes або status transitions.
+- **Seed-coupled tests.** Integration/e2e suites створюють власні fixtures та не використовують demo seed як prerequisite.
