@@ -78,7 +78,7 @@ Milestone 6 надає persistence і security foundation, але не public ca
 Ці рішення мають бути закриті в плані до реалізації підетапу, якого вони стосуються:
 
 1. **API route/version contract - resolved for Milestone 7.1:** product API використовує versioned prefix `/api/v1`; vehicle taxonomy доступна через `/api/v1/vehicles/*`, успішні collection responses мають envelope `{ data: [...] }`, а помилки використовують standard Nest `{ statusCode, message, error }`. Existing `/api/auth/*` provider boundary не змінюється.
-2. **SavedVehicle exactness and active selection:** де зберігати selected year і як гарантувати рівно один active SavedVehicle на User? Рекомендація - додати exact `year` та database-enforced single-active invariant новою forward migration; service додатково перевіряє, що year входить у generation range, а engine належить generation.
+2. **SavedVehicle exactness and active selection - resolved for Milestone 7.2:** exact `year` зберігається в `SavedVehicle`; nullable unique `User.activeSavedVehicleId` є єдиним active pointer і має FK `ON DELETE SET NULL`. Service перевіряє generation year range та належність optional engine до generation. Повторний create однакового year/generation/engine повертає `409`, repeated select-active є idempotent, а repeated delete повертає `404`; видалення active vehicle очищає pointer.
 3. **Listing condition vocabulary:** які values підтримує condition filter і чи condition належить Listing або ProductVariant? Поточна schema не має поля. До погодження enum та semantics не створювати migration і не імітувати condition через інші поля.
 4. **Catalog result unit:** один result представляє Product, ProductVariant чи Listing? Це визначає price sorting, duplicate handling і pagination. Рекомендація - product-centric result із variants та лише public active Listings, але потрібно погодити правило representative/minimum price.
 5. **Fitment truth table:** який database evidence дозволяє відрізнити `incompatible` від `unknown`, і коли partial selection дає `caution`? Positive-only FitmentRule недостатньо для негативного твердження без completeness/exclusion contract. Truth table треба затвердити до 7.4; за потреби schema розширюється лише новою migration.
@@ -174,21 +174,21 @@ git diff --check
 
 ### Tasks
 
-- [ ] Закрити Open question 2 і задокументувати exact year, single-active invariant та delete-active behavior.
-- [ ] Якщо потрібно, додати мінімальні SavedVehicle fields/constraints новою forward migration; historical migrations не редагувати.
-- [ ] Створити `GarageModule` і endpoints для list, create, delete та select-active; userId завжди брати з validated session, а не request body/query.
-- [ ] На create перевіряти generation year range та належність optional EngineType до selected VehicleGeneration.
-- [ ] Реалізувати active selection транзакційно та захистити invariant від concurrent requests на database level.
-- [ ] Визначити idempotency для repeated create/select/delete requests і стабільний response DTO з повною taxonomy summary.
-- [ ] Додати positive і negative unit/integration/e2e tests: unauthenticated, cross-user ID, invalid engine-generation, duplicate vehicle, concurrent/single-active і delete-active cases.
+- [x] Закрити Open question 2 і задокументувати exact year, single-active invariant та delete-active behavior.
+- [x] Якщо потрібно, додати мінімальні SavedVehicle fields/constraints новою forward migration; historical migrations не редагувати.
+- [x] Створити `GarageModule` і endpoints для list, create, delete та select-active; userId завжди брати з validated session, а не request body/query.
+- [x] На create перевіряти generation year range та належність optional EngineType до selected VehicleGeneration.
+- [x] Реалізувати active selection транзакційно та захистити invariant від concurrent requests на database level.
+- [x] Визначити idempotency для repeated create/select/delete requests і стабільний response DTO з повною taxonomy summary.
+- [x] Додати positive і negative unit/integration/e2e tests: unauthenticated, cross-user ID, invalid engine-generation, duplicate vehicle, concurrent/single-active і delete-active cases.
 
 ### Definition of Done
 
-- [ ] Customer може створити, переглянути, видалити й активувати лише власний SavedVehicle.
-- [ ] SavedVehicle однозначно представляє year/generation/optional engine, а inconsistent hierarchy не записується.
-- [ ] Для одного User database і service layer не допускають більше одного active vehicle.
-- [ ] Guest отримує authentication denial, а authenticated cross-user request не розкриває чужі garage data.
-- [ ] Committed forward migration відтворюється в clean dev/test database, а garage regression проходить без demo seed.
+- [x] Customer може створити, переглянути, видалити й активувати лише власний SavedVehicle.
+- [x] SavedVehicle однозначно представляє year/generation/optional engine, а inconsistent hierarchy не записується.
+- [x] Для одного User database і service layer не допускають більше одного active vehicle.
+- [x] Guest отримує authentication denial, а authenticated cross-user request не розкриває чужі garage data.
+- [x] Committed forward migration відтворюється в clean dev/test database, а garage regression проходить без demo seed.
 
 ### Validation
 
@@ -205,6 +205,23 @@ pnpm --filter api test:e2e
 pnpm --filter api build
 git diff --check
 ```
+
+### Implementation log
+
+#### What changed
+
+- Forward migration додала exact `SavedVehicle.year` та nullable unique active pointer на `User` з `ON DELETE SET NULL`; historical migrations не змінювалися.
+- `GarageModule` надає authenticated owner-only list/create/delete/select-active endpoints під `/api/v1/garage/vehicles` через existing `PrismaService`.
+- Create boundary whitelist-валідує body, generation year range, optional engine hierarchy та повертає `409` для duplicate vehicle.
+- Explicit response DTO повертає exact selection і повну make/model/generation/engine summary без auth або persistence-only fields.
+- Unit, integration та e2e regression покривають session denial, ownership isolation, hierarchy, duplicates, single-active concurrency, idempotent activation і delete-active behavior.
+
+#### Verification results
+
+- Schema/client/migration gate з кроку 1: Prisma validate/generate/deploy/status — green; усі 5 committed migrations застосовані до dev/test без drift.
+- API lint, workspace type-check і API production build — green.
+- Unit suites: 5/5, 27 tests; integration suites: 6/6, 19 tests; e2e suites: 6/6, 25 tests.
+- Garage-specific regression: 5 unit validation tests, 3 service integration tests і 4 HTTP e2e tests; fixtures створюються без demo seed у guarded `auto_parts_test`.
 
 ## Milestone 7.3 - Catalog search, filters and pagination
 
