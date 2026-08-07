@@ -9,6 +9,12 @@ type DatabaseConstraint = {
   columns: string[];
 };
 
+type DatabaseColumn = {
+  tableName: string;
+  columnName: string;
+  isNullable: 'YES' | 'NO';
+};
+
 describe('Identity and supplier persistence contract', () => {
   let moduleRef: TestingModule;
   let prisma: PrismaService;
@@ -86,6 +92,35 @@ describe('Identity and supplier persistence contract', () => {
     );
   });
 
+  it('stores an exact vehicle year and one nullable active vehicle reference', async () => {
+    const columns = await prisma.$queryRaw<DatabaseColumn[]>`
+      SELECT
+        table_name AS "tableName",
+        column_name AS "columnName",
+        is_nullable AS "isNullable"
+      FROM information_schema.columns
+      WHERE table_schema = current_schema()
+        AND (
+          (table_name = 'SavedVehicle' AND column_name = 'year')
+          OR (table_name = 'User' AND column_name = 'activeSavedVehicleId')
+        )
+      ORDER BY table_name, column_name
+    `;
+
+    expect(columns).toEqual([
+      {
+        tableName: 'SavedVehicle',
+        columnName: 'year',
+        isNullable: 'NO',
+      },
+      {
+        tableName: 'User',
+        columnName: 'activeSavedVehicleId',
+        isNullable: 'YES',
+      },
+    ]);
+  });
+
   it('enforces identity uniqueness and supplier ownership relations', async () => {
     const constraints = await prisma.$queryRaw<DatabaseConstraint[]>`
       WITH foreign_keys AS (
@@ -158,6 +193,16 @@ describe('Identity and supplier persistence contract', () => {
     expect(constraints).toEqual(
       expect.arrayContaining([
         { tableName: 'User', constraintType: 'u', columns: ['email'] },
+        {
+          tableName: 'User',
+          constraintType: 'u',
+          columns: ['activeSavedVehicleId'],
+        },
+        {
+          tableName: 'User',
+          constraintType: 'f',
+          columns: ['activeSavedVehicleId'],
+        },
         { tableName: 'Session', constraintType: 'u', columns: ['token'] },
         {
           tableName: 'Account',

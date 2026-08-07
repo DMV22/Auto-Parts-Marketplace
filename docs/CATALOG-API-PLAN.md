@@ -77,7 +77,7 @@ Milestone 6 надає persistence і security foundation, але не public ca
 
 Ці рішення мають бути закриті в плані до реалізації підетапу, якого вони стосуються:
 
-1. **API route/version contract:** чи вводимо `/api/v1/vehicles`, `/api/v1/garage`, `/api/v1/catalog`, чи залишаємо unversioned `/api/...` поруч із Better Auth? Рекомендація - зафіксувати versioned product API, не змінюючи existing `/api/auth/*` provider boundary.
+1. **API route/version contract - resolved for Milestone 7.1:** product API використовує versioned prefix `/api/v1`; vehicle taxonomy доступна через `/api/v1/vehicles/*`, успішні collection responses мають envelope `{ data: [...] }`, а помилки використовують standard Nest `{ statusCode, message, error }`. Existing `/api/auth/*` provider boundary не змінюється.
 2. **SavedVehicle exactness and active selection:** де зберігати selected year і як гарантувати рівно один active SavedVehicle на User? Рекомендація - додати exact `year` та database-enforced single-active invariant новою forward migration; service додатково перевіряє, що year входить у generation range, а engine належить generation.
 3. **Listing condition vocabulary:** які values підтримує condition filter і чи condition належить Listing або ProductVariant? Поточна schema не має поля. До погодження enum та semantics не створювати migration і не імітувати condition через інші поля.
 4. **Catalog result unit:** один result представляє Product, ProductVariant чи Listing? Це визначає price sorting, duplicate handling і pagination. Рекомендація - product-centric result із variants та лише public active Listings, але потрібно погодити правило representative/minimum price.
@@ -122,21 +122,21 @@ Common API rules:
 
 ### Tasks
 
-- [ ] Закрити Open question 1 і зафіксувати route naming, response DTO та shared error envelope для Milestone 7.
-- [ ] Створити `VehicleTaxonomyModule` із controller/service boundary; PrismaService використовувати лише через DI.
-- [ ] Додати endpoints для supported years, makes by year, models by year/make, generations by year/model та engines by generation.
-- [ ] Derive supported years з `VehicleGeneration.yearFrom/yearTo`; повертати years descending, а names/codes - у deterministic order із ID tie-breaker.
-- [ ] Валідувати year range, UUIDs і parent-child hierarchy; порожній валідний result повертати окремо від malformed query або nonexistent parent.
-- [ ] Додати unit tests для query validation/service mapping та integration/e2e tests для повного selector flow, invalid hierarchy і stable ordering.
-- [ ] Перевірити query count і indexes для cascade endpoints; не завантажувати всю taxonomy для кожного step.
+- [x] Закрити Open question 1 і зафіксувати route naming, response DTO та shared error envelope для Milestone 7.
+- [x] Створити `VehicleTaxonomyModule` із controller/service boundary; PrismaService використовувати лише через DI.
+- [x] Додати endpoints для supported years, makes by year, models by year/make, generations by year/model та engines by generation.
+- [x] Derive supported years з `VehicleGeneration.yearFrom/yearTo`; повертати years descending, а names/codes - у deterministic order із ID tie-breaker.
+- [x] Валідувати year range, UUIDs і parent-child hierarchy; порожній валідний result повертати окремо від malformed query або nonexistent parent.
+- [x] Додати unit tests для query validation/service mapping та integration/e2e tests для повного selector flow, invalid hierarchy і stable ordering.
+- [x] Перевірити query count і indexes для cascade endpoints; не завантажувати всю taxonomy для кожного step.
 
 ### Definition of Done
 
-- [ ] Клієнт може пройти Year -> Make -> Model -> Generation -> Engine лише через API responses без hardcoded taxonomy.
-- [ ] Кожен endpoint повертає deterministic, duplicate-free result і не показує child rows поза вибраним parent/year.
-- [ ] Invalid year/UUID/hierarchy має стабільний `400` або `404` contract; валідний selector без matches повертає порожній list.
-- [ ] Public taxonomy routes не вимагають session і не повертають persistence-only fields.
-- [ ] Unit, integration та e2e regression проходять на `auto_parts_test` без demo seed dependency.
+- [x] Клієнт може пройти Year -> Make -> Model -> Generation -> Engine лише через API responses без hardcoded taxonomy.
+- [x] Кожен endpoint повертає deterministic, duplicate-free result і не показує child rows поза вибраним parent/year.
+- [x] Invalid year/UUID/hierarchy має стабільний `400` або `404` contract; валідний selector без matches повертає порожній list.
+- [x] Public taxonomy routes не вимагають session і не повертають persistence-only fields.
+- [x] Unit, integration та e2e regression проходять на `auto_parts_test` без demo seed dependency.
 
 ### Validation
 
@@ -149,6 +149,22 @@ pnpm --filter api test:e2e
 pnpm --filter api build
 git diff --check
 ```
+
+### Implementation log
+
+#### What changed
+
+- Додано public versioned endpoints `/api/v1/vehicles/years|makes|models|generations|engines` через один `VehicleTaxonomyModule` і injected `PrismaService`.
+- Додано centralized whitelist validation для year/UUID query parameters та стабільний distinction між malformed request, missing parent і valid empty result.
+- Додано explicit response projections, deterministic ordering і bounded Prisma queries; existing indexes покривають make/model, model/generation year range та generation/engine lookups.
+- Додано unit validation, real-database integration і Supertest e2e regression без schema changes, migrations, new dependencies або demo seed coupling.
+
+#### Verification results
+
+- API lint і workspace type-check - green; API build був green після фінального production TypeScript check у кроці 2.
+- Unit suites: 4/4, 22 tests; integration suites: 5/5, 15 tests; e2e suites: 5/5, 21 tests.
+- Taxonomy-specific regression: 5 unit validation tests, 1 integration flow і 10 e2e contract tests.
+- `auto_parts_test` guard застосував усі 4 committed migrations; pending migrations немає.
 
 ## Milestone 7.2 - Customer Garage API
 

@@ -174,22 +174,24 @@ model FitmentRule {
 }
 
 model User {
-  id              String           @id @default(uuid()) @db.Uuid
-  name            String
-  email           String           @unique
-  emailVerified   Boolean          @default(false)
-  image           String?
-  role            UserRole         @default(CUSTOMER)
-  isActive        Boolean          @default(true)
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  sessions        Session[]
-  accounts        Account[]
-  customerProfile CustomerProfile?
-  savedVehicles   SavedVehicle[]
-  addresses       Address[]
-  supplierUser    SupplierUser?
-  orders          Order[]
+  id                   String           @id @default(uuid()) @db.Uuid
+  name                 String
+  email                String           @unique
+  emailVerified        Boolean          @default(false)
+  image                String?
+  role                 UserRole         @default(CUSTOMER)
+  isActive             Boolean          @default(true)
+  activeSavedVehicleId String?          @unique @db.Uuid
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+  sessions             Session[]
+  accounts             Account[]
+  customerProfile      CustomerProfile?
+  savedVehicles        SavedVehicle[]   @relation("SavedVehicleOwner")
+  activeSavedVehicle   SavedVehicle?    @relation("ActiveSavedVehicle", fields: [activeSavedVehicleId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  addresses            Address[]
+  supplierUser         SupplierUser?
+  orders               Order[]
 }
 
 model Session {
@@ -252,14 +254,17 @@ model SavedVehicle {
   userId              String            @db.Uuid
   vehicleGenerationId String            @db.Uuid
   engineTypeId        String?           @db.Uuid
+  year                Int
   label               String?
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt
-  user                User              @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user                User              @relation("SavedVehicleOwner", fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  activeForUser       User?             @relation("ActiveSavedVehicle")
   vehicleGeneration   VehicleGeneration @relation(fields: [vehicleGenerationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   engineType          EngineType?       @relation(fields: [engineTypeId, vehicleGenerationId], references: [id, vehicleGenerationId], onDelete: Cascade, onUpdate: Cascade)
 
   @@index([userId])
+  @@index([userId, year, vehicleGenerationId, engineTypeId])
   @@index([vehicleGenerationId])
   @@index([engineTypeId])
 }
