@@ -321,6 +321,7 @@ async function createFixtures(prisma: PrismaService): Promise<void> {
               create: {
                 vehicleGenerationId: GENERATION_ID,
                 engineTypeId: ENGINE_ID,
+                effect: 'COMPATIBLE',
               },
             },
             listings: {
@@ -356,7 +357,12 @@ async function createFixtures(prisma: PrismaService): Promise<void> {
             id: VARIANT_A2_ID,
             sku: 'CAT-BRAKE-200',
             manufacturerPartNumber: 'MPN-BRAKE-200',
-            fitmentRules: { create: { vehicleGenerationId: GENERATION_ID } },
+            fitmentRules: {
+              create: {
+                vehicleGenerationId: GENERATION_ID,
+                effect: 'COMPATIBLE',
+              },
+            },
             listings: {
               create: {
                 supplierId: SUPPLIER_ID,

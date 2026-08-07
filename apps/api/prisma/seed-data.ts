@@ -192,30 +192,35 @@ export const demoFitmentRules = [
     variantSku: 'DEMO-BOSCH-BP-001',
     generationKey: 'Toyota:Corolla:E210',
     engineKey: 'Toyota:Corolla:E210:2ZR-FXE',
+    effect: 'COMPATIBLE',
   },
   {
     id: '44000000-0000-4000-8000-000000000002',
     variantSku: 'DEMO-BOSCH-BP-001',
     generationKey: 'Toyota:Corolla:E210',
     engineKey: 'Toyota:Corolla:E210:M20A-FKS',
+    effect: 'COMPATIBLE',
   },
   {
     id: '44000000-0000-4000-8000-000000000003',
     variantSku: 'DEMO-BOSCH-BP-002',
     generationKey: 'Volkswagen:Golf:MK7',
     engineKey: 'Volkswagen:Golf:MK7:CZCA',
+    effect: 'COMPATIBLE',
   },
   {
     id: '44000000-0000-4000-8000-000000000004',
     variantSku: 'DEMO-MANN-OF-003',
     generationKey: 'Toyota:Corolla:E210',
     engineKey: 'Toyota:Corolla:E210:2ZR-FXE',
+    effect: 'COMPATIBLE',
   },
   {
     id: '44000000-0000-4000-8000-000000000005',
     variantSku: 'DEMO-MANN-OF-003',
     generationKey: 'Volkswagen:Golf:MK7',
     engineKey: 'Volkswagen:Golf:MK7:CRBC',
+    effect: 'COMPATIBLE',
   },
 ] as const;
 

@@ -35,6 +35,11 @@ enum ListingCondition {
   REMANUFACTURED
 }
 
+enum FitmentRuleEffect {
+  COMPATIBLE
+  INCOMPATIBLE
+}
+
 enum OrderStatus {
   PENDING_PAYMENT
   PAID
@@ -168,6 +173,7 @@ model FitmentRule {
   productVariantId    String            @db.Uuid
   vehicleGenerationId String            @db.Uuid
   engineTypeId        String?           @db.Uuid
+  effect              FitmentRuleEffect
   createdAt           DateTime          @default(now())
   productVariant      ProductVariant    @relation(fields: [productVariantId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   vehicleGeneration   VehicleGeneration @relation(fields: [vehicleGenerationId], references: [id], onDelete: Cascade, onUpdate: Cascade)

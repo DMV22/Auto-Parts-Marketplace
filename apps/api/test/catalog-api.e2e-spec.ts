@@ -179,6 +179,7 @@ async function createFixtures(prisma: PrismaService): Promise<void> {
             create: {
               vehicleGenerationId: GENERATION_ID,
               engineTypeId: ENGINE_ID,
+              effect: 'COMPATIBLE',
             },
           },
           listings: {

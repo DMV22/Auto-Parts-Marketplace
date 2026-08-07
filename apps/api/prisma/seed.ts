@@ -244,6 +244,7 @@ async function seed(): Promise<void> {
               fitment.generationKey,
             ),
             engineTypeId: requireId(engineIds, fitment.engineKey),
+            effect: fitment.effect,
           },
           create: {
             id: fitment.id,
@@ -253,6 +254,7 @@ async function seed(): Promise<void> {
               fitment.generationKey,
             ),
             engineTypeId: requireId(engineIds, fitment.engineKey),
+            effect: fitment.effect,
           },
         });
       }
