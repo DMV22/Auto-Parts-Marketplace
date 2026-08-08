@@ -81,8 +81,8 @@ Milestone 6 надає persistence і security foundation, але не public ca
 2. **SavedVehicle exactness and active selection - resolved for Milestone 7.2:** exact `year` зберігається в `SavedVehicle`; nullable unique `User.activeSavedVehicleId` є єдиним active pointer і має FK `ON DELETE SET NULL`. Service перевіряє generation year range та належність optional engine до generation. Повторний create однакового year/generation/engine повертає `409`, repeated select-active є idempotent, а repeated delete повертає `404`; видалення active vehicle очищає pointer.
 3. **Listing condition vocabulary - resolved for Milestone 7.3:** condition належить конкретному `Listing`, а не `ProductVariant`, і використовує required enum `NEW | USED | REMANUFACTURED`. Forward migration явно backfill-ить synthetic baseline listings як `NEW`, після чого встановлює `NOT NULL` та catalog filter index; historical migrations не змінюються.
 4. **Catalog result unit - resolved for Milestone 7.3:** один result і одна pagination unit представляють унікальний `Product`; response містить лише variants і `ACTIVE` listings, що відповідають усім commercial/vehicle filters. `minimumPrice` обчислюється серед matching listings у явно вибраній currency; price filters та `price_asc`/`price_desc` без currency відхиляються. Sort allowlist: `newest`, `name_asc`, `name_desc`, `price_asc`, `price_desc`, кожен із stable `Product.id` tie-breaker.
-5. **Fitment truth table:** який database evidence дозволяє відрізнити `incompatible` від `unknown`, і коли partial selection дає `caution`? Positive-only FitmentRule недостатньо для негативного твердження без completeness/exclusion contract. Truth table треба затвердити до 7.4; за потреби schema розширюється лише новою migration.
-6. **Public commercial fields:** чи показує PDP точний `stockQuantity`, чи лише `inStock`, і які Supplier fields є public? Рекомендація - не повертати exact stock або internal Supplier data без явної product requirement.
+5. **Fitment truth table — resolved for Milestone 7.4:** `FitmentRule.effect` є required enum `COMPATIBLE | INCOMPATIBLE`. Exact-engine rule має precedence над generation-wide rule; за відсутності exact rule застосовується generation-wide rule. Відсутність applicable rule повертає `unknown`, а engine-specific coverage без вибраного engine — `caution`. Стабільні reason codes: `VEHICLE_NOT_SELECTED`, `EXACT_ENGINE_MATCH`, `EXACT_ENGINE_EXCLUSION`, `GENERATION_MATCH`, `GENERATION_EXCLUSION`, `ENGINE_REQUIRED`, `NO_FITMENT_DATA`.
+6. **Public commercial fields — resolved for Milestone 7.4:** PDP повертає Listing `id`, `condition`, `price`, `currency`, derived `inStock` і public Supplier `{ id, name, slug }`. Exact `stockQuantity`, memberships та інші internal Supplier/auth fields не входять до public projection.
 
 ## Proposed approach
 
@@ -290,22 +290,22 @@ git diff --check
 
 ### Tasks
 
-- [ ] Закрити Open questions 5-6 і зафіксувати exhaustive truth table для `compatible`, `incompatible`, `unknown`, `caution`, включно з reason codes та partial vehicle selection.
-- [ ] Якщо `incompatible` потребує explicit negative/completeness data, створити мінімальну forward migration; не виводити negative answer із простої відсутності FitmentRule.
-- [ ] Реалізувати PDP endpoint для Product із Brand/Category, variants, SKU/OEM/manufacturer part number та public `ACTIVE` Listings із погодженими Supplier/availability fields.
-- [ ] Реалізувати один `FitmentService`, який приймає normalized VehicleContext і повертає result, reason code та matched rule details без controller-specific branching.
-- [ ] Підтримати PDP без vehicle context, з explicit taxonomy context і з owner-only savedVehicleId/active garage context.
-- [ ] Відрізняти product/variant not found, unavailable public listing, invalid vehicle hierarchy та unknown fitment coverage узгодженими HTTP/domain responses.
-- [ ] Додати unit truth-table tests і integration/e2e tests для exact engine rule, generation-wide rule, engine mismatch, missing rule, partial selection, cross-owner saved vehicle та hidden Listings.
-- [ ] Перевірити Prisma query shape на bounded query count і відсутність N+1 для variants/listings/fitment details.
+- [x] Закрити Open questions 5-6 і зафіксувати exhaustive truth table для `compatible`, `incompatible`, `unknown`, `caution`, включно з reason codes та partial vehicle selection.
+- [x] Якщо `incompatible` потребує explicit negative/completeness data, створити мінімальну forward migration; не виводити negative answer із простої відсутності FitmentRule.
+- [x] Реалізувати PDP endpoint для Product із Brand/Category, variants, SKU/OEM/manufacturer part number та public `ACTIVE` Listings із погодженими Supplier/availability fields.
+- [x] Реалізувати один `FitmentService`, який приймає normalized VehicleContext і повертає result, reason code та matched rule details без controller-specific branching.
+- [x] Підтримати PDP без vehicle context, з explicit taxonomy context і з owner-only savedVehicleId/active garage context.
+- [x] Відрізняти product/variant not found, unavailable public listing, invalid vehicle hierarchy та unknown fitment coverage узгодженими HTTP/domain responses.
+- [x] Додати unit truth-table tests і integration/e2e tests для exact engine rule, generation-wide rule, engine mismatch, missing rule, partial selection, cross-owner saved vehicle та hidden Listings.
+- [x] Перевірити Prisma query shape на bounded query count і відсутність N+1 для variants/listings/fitment details.
 
 ### Definition of Done
 
-- [ ] PDP повертає погоджений public Product/Variant/Listing projection без internal Supplier/auth fields.
-- [ ] Однаковий Variant і VehicleContext дають однаковий fitment result у catalog та PDP.
-- [ ] `compatible` завжди має matching FitmentRule; `incompatible`, `unknown` і `caution` відповідають затвердженій truth table.
-- [ ] Incomplete vehicle selection або fitment coverage не подається як гарантована compatibility.
-- [ ] PDP, reason codes, hidden listing behavior і повна fitment matrix покриті unit/integration/e2e tests.
+- [x] PDP повертає погоджений public Product/Variant/Listing projection без internal Supplier/auth fields.
+- [x] Однаковий Variant і VehicleContext дають однаковий fitment result у catalog та PDP.
+- [x] `compatible` завжди має matching FitmentRule; `incompatible`, `unknown` і `caution` відповідають затвердженій truth table.
+- [x] Incomplete vehicle selection або fitment coverage не подається як гарантована compatibility.
+- [x] PDP, reason codes, hidden listing behavior і повна fitment matrix покриті unit/integration/e2e tests.
 
 ### Validation
 
@@ -322,6 +322,29 @@ pnpm --filter api test:e2e
 pnpm --filter api build
 git diff --check
 ```
+
+### Implementation log
+
+#### What changed
+
+- Додано explicit `FitmentRuleEffect` baseline і forward migration з data-preserving backfill для existing positive rules.
+- Додано один `FitmentService` з exact-engine precedence, stable reason codes і спільною policy для catalog filtering та PDP answers.
+- Додано public `GET /api/v1/catalog/products/:productId`, normalized explicit/saved vehicle context і projection лише `ACTIVE` Listings із public Supplier fields.
+- Catalog boundary структуровано за feature folders `fitment`, `product-detail` і `vehicle-context` без нового Prisma Client або окремого persistence boundary.
+- Додано reusable synthetic fixtures, integration та HTTP e2e coverage для fitment matrix, hidden data, ownership і error contract.
+
+#### Query-shape audit
+
+- PDP завантажує Product, Brand/Category, relevant variants, `ACTIVE` Listings, Supplier projection і relevant FitmentRules одним nested Prisma query.
+- No-context flow виконує 1 database query; saved-vehicle flow — 2; explicit generation/engine flow — максимум 3 bounded queries.
+- Усередині mapping variants/listings немає Prisma calls, тому query count не залежить від кількості variants або listings і N+1 не виникає.
+
+#### Verification results
+
+- Prisma 7.9 validation/generation/deploy/status для 7 committed migrations — green; schema/migration checks виконані на попередньому кроці 7.4 і не дублювалися в regression gate.
+- Unit suites: 8/8, 51 tests; integration suites: 9/9, 31 tests; e2e suites: 8/8, 32 tests.
+- PDP-specific regression: 8 truth-table unit cases, 4 service integration scenarios і 4 HTTP e2e scenarios на guarded `auto_parts_test` без demo seed dependency.
+- API build, targeted ESLint/Prettier і `git diff --check` — green; повторні build/lint запуски після суто test/docs змін не виконувалися.
 
 ## Milestone 7.5 - Catalog API readiness gate
 
