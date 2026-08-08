@@ -1,33 +1,37 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Prisma } from '../generated/prisma/client';
 import { ListingStatus } from '../generated/prisma/enums';
 import { PrismaService } from '../prisma/prisma.service';
+import { FitmentService } from './fitment/fitment.service';
+import type { VehicleContext } from './fitment/fitment.types';
 import type {
   CatalogProduct,
   CatalogQuery,
   CatalogResponse,
-  VehicleContext,
 } from './catalog.types';
+import { VehicleContextService } from './vehicle-context/vehicle-context.service';
 
 @Injectable()
 export class CatalogService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly vehicleContexts: VehicleContextService,
+    private readonly fitment: FitmentService,
+  ) {}
 
   async list(
     query: CatalogQuery,
     authenticatedUserId: string | null,
   ): Promise<CatalogResponse> {
-    const vehicle = await this.resolveVehicleContext(
+    const vehicle = await this.vehicleContexts.resolve(
       query,
       authenticatedUserId,
     );
     const listingWhere = buildListingWhere(query);
-    const variantWhere = buildVariantWhere(listingWhere, vehicle);
+    const variantWhere = buildVariantWhere(
+      listingWhere,
+      this.fitment.compatibleVariantWhere(vehicle),
+    );
     const productWhere = buildProductWhere(query, variantWhere);
     const total = await this.prisma.product.count({ where: productWhere });
     const skip = (query.page - 1) * query.pageSize;
@@ -88,72 +92,16 @@ export class CatalogService {
     };
   }
 
-  private async resolveVehicleContext(
-    query: CatalogQuery,
-    authenticatedUserId: string | null,
-  ): Promise<VehicleContext | null> {
-    if (query.savedVehicleId) {
-      if (!authenticatedUserId) {
-        throw new UnauthorizedException(
-          'Authentication required for savedVehicleId',
-        );
-      }
-      const savedVehicle = await this.prisma.savedVehicle.findFirst({
-        where: { id: query.savedVehicleId, userId: authenticatedUserId },
-        select: { year: true, vehicleGenerationId: true, engineTypeId: true },
-      });
-      if (!savedVehicle) {
-        throw new NotFoundException('Saved vehicle not found');
-      }
-      return {
-        year: savedVehicle.year,
-        generationId: savedVehicle.vehicleGenerationId,
-        engineTypeId: savedVehicle.engineTypeId,
-      };
-    }
-
-    if (!query.generationId || query.year === null) return null;
-    const generation = await this.prisma.vehicleGeneration.findUnique({
-      where: { id: query.generationId },
-      select: { yearFrom: true, yearTo: true },
-    });
-    if (!generation) {
-      throw new NotFoundException('Vehicle generation not found');
-    }
-    if (query.year < generation.yearFrom || query.year > generation.yearTo) {
-      throw new BadRequestException(
-        'Year is outside the vehicle generation range',
-      );
-    }
-    if (query.engineTypeId) {
-      const engine = await this.prisma.engineType.findUnique({
-        where: {
-          id_vehicleGenerationId: {
-            id: query.engineTypeId,
-            vehicleGenerationId: query.generationId,
-          },
-        },
-        select: { id: true },
-      });
-      if (!engine) {
-        throw new BadRequestException(
-          'Engine does not belong to vehicle generation',
-        );
-      }
-    }
-    return {
-      year: query.year,
-      generationId: query.generationId,
-      engineTypeId: query.engineTypeId,
-    };
-  }
-
   private async findPriceSortedProductIds(
     query: CatalogQuery,
     vehicle: VehicleContext | null,
     skip: number,
   ): Promise<string[]> {
-    const clauses = buildSqlClauses(query, vehicle);
+    const clauses = buildSqlClauses(
+      query,
+      this.fitment.compatibleVariantSql(vehicle, 'variant'),
+      this.fitment.compatibleVariantSql(vehicle, 'search_variant'),
+    );
     const direction =
       query.sort === 'price_asc' ? Prisma.sql`ASC` : Prisma.sql`DESC`;
     const rows = await this.prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`
@@ -195,25 +143,11 @@ function buildListingWhere(query: CatalogQuery): Prisma.ListingWhereInput {
 
 function buildVariantWhere(
   listingWhere: Prisma.ListingWhereInput,
-  vehicle: VehicleContext | null,
+  fitmentWhere: Prisma.ProductVariantWhereInput,
 ): Prisma.ProductVariantWhereInput {
   return {
     listings: { some: listingWhere },
-    fitmentRules: vehicle
-      ? {
-          some: {
-            vehicleGenerationId: vehicle.generationId,
-            ...(vehicle.engineTypeId
-              ? {
-                  OR: [
-                    { engineTypeId: vehicle.engineTypeId },
-                    { engineTypeId: null },
-                  ],
-                }
-              : { engineTypeId: null }),
-          },
-        }
-      : undefined,
+    ...fitmentWhere,
   };
 }
 
@@ -269,7 +203,8 @@ function productOrderBy(
 
 function buildSqlClauses(
   query: CatalogQuery,
-  vehicle: VehicleContext | null,
+  fitmentClause: Prisma.Sql | null,
+  searchFitment: Prisma.Sql | null,
 ): Prisma.Sql[] {
   const clauses: Prisma.Sql[] = [
     Prisma.sql`listing.status = 'ACTIVE'::"ListingStatus"`,
@@ -292,32 +227,12 @@ function buildSqlClauses(
     clauses.push(Prisma.sql`listing."stockQuantity" > 0`);
   if (query.inStock === false)
     clauses.push(Prisma.sql`listing."stockQuantity" = 0`);
-  if (vehicle) {
-    clauses.push(Prisma.sql`EXISTS (
-      SELECT 1 FROM "FitmentRule" AS fitment
-      WHERE fitment."productVariantId" = variant.id
-        AND fitment."vehicleGenerationId" = ${vehicle.generationId}::uuid
-        AND ${
-          vehicle.engineTypeId
-            ? Prisma.sql`(fitment."engineTypeId" = ${vehicle.engineTypeId}::uuid OR fitment."engineTypeId" IS NULL)`
-            : Prisma.sql`fitment."engineTypeId" IS NULL`
-        }
-    )`);
-  }
+  if (fitmentClause) clauses.push(fitmentClause);
   if (query.q) {
     const pattern = `%${escapeLike(query.q)}%`;
     const searchListingClauses = buildSearchListingClauses(query);
-    const searchFitmentClause = vehicle
-      ? Prisma.sql`AND EXISTS (
-          SELECT 1 FROM "FitmentRule" AS search_fitment
-          WHERE search_fitment."productVariantId" = search_variant.id
-            AND search_fitment."vehicleGenerationId" = ${vehicle.generationId}::uuid
-            AND ${
-              vehicle.engineTypeId
-                ? Prisma.sql`(search_fitment."engineTypeId" = ${vehicle.engineTypeId}::uuid OR search_fitment."engineTypeId" IS NULL)`
-                : Prisma.sql`search_fitment."engineTypeId" IS NULL`
-            }
-        )`
+    const searchFitmentClause = searchFitment
+      ? Prisma.sql`AND ${searchFitment}`
       : Prisma.empty;
     clauses.push(Prisma.sql`(
       product.name ILIKE ${pattern} ESCAPE '\\'

@@ -2,6 +2,8 @@ import 'dotenv/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import { CatalogService } from '../src/catalog/catalog.service';
 import type { CatalogQuery } from '../src/catalog/catalog.types';
+import { FitmentService } from '../src/catalog/fitment/fitment.service';
+import { VehicleContextService } from '../src/catalog/vehicle-context/vehicle-context.service';
 import { PrismaModule } from '../src/prisma/prisma.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 
@@ -47,7 +49,7 @@ describe('CatalogService integration', () => {
   beforeAll(async () => {
     moduleRef = await Test.createTestingModule({
       imports: [PrismaModule],
-      providers: [CatalogService],
+      providers: [CatalogService, FitmentService, VehicleContextService],
     }).compile();
     await moduleRef.init();
     prisma = moduleRef.get(PrismaService);

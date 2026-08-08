@@ -1,3 +1,4 @@
+/* eslint-disable no-unsafe-finally */
 import 'dotenv/config';
 import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';

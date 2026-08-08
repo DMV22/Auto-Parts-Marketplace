@@ -25,12 +25,6 @@ export type CatalogQuery = {
   sort: CatalogSort;
 };
 
-export type VehicleContext = {
-  year: number;
-  generationId: string;
-  engineTypeId: string | null;
-};
-
 export type CatalogListing = {
   id: string;
   condition: ListingCondition;
