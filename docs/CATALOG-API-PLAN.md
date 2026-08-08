@@ -354,21 +354,21 @@ git diff --check
 
 ### Tasks
 
-- [ ] Відтворити `auto_parts_dev` і `auto_parts_test` лише з committed migrations; demo seed застосувати тільки до guarded development database.
-- [ ] Запустити повний regression для taxonomy, garage ownership, catalog filters/pagination, PDP і fitment truth table.
-- [ ] Перевірити API examples/README проти фактичних routes, DTOs, pagination metadata, error responses і fitment reason codes.
-- [ ] Перевірити query plans для найбільш важких catalog/filter combinations і додати indexes лише через reviewed forward migration за виміряним evidence.
-- [ ] Провести repository audit: no edited historical migrations, tracked secrets, generated artifacts, frontend changes або Milestone 8 runtime behavior.
-- [ ] Оновити цей checklist та Implementation log лише після фактичної Validation.
+- [x] Відтворити `auto_parts_dev` і `auto_parts_test` лише з committed migrations; demo seed застосувати тільки до guarded development database.
+- [x] Запустити повний regression для taxonomy, garage ownership, catalog filters/pagination, PDP і fitment truth table.
+- [x] Перевірити API examples/README проти фактичних routes, DTOs, pagination metadata, error responses і fitment reason codes.
+- [x] Перевірити query plans для найбільш важких catalog/filter combinations і додати indexes лише через reviewed forward migration за виміряним evidence.
+- [x] Провести repository audit: no edited historical migrations, tracked secrets, generated artifacts, frontend changes або Milestone 8 runtime behavior.
+- [x] Оновити цей checklist та Implementation log лише після фактичної Validation.
 
 ### Definition of Done
 
-- [ ] Усі 7.1-7.4 Tasks/DoD позначені `[x]` лише після відповідної Validation.
-- [ ] Clean migration rehearsal, unit, integration та e2e suites проходять повторювано.
-- [ ] API documentation відповідає фактичним routes, access rules, filters, pagination і fitment semantics.
-- [ ] Catalog/PDP query behavior є deterministic, не має відомого N+1 і використовує обґрунтовані indexes.
-- [ ] Немає schema drift, pending migrations, tracked secrets або змін поза погодженим backend/docs scope.
-- [ ] Milestone 8 може використовувати public Listing/price/stock projections без зміни taxonomy, garage або fitment contracts.
+- [x] Усі 7.1-7.4 Tasks/DoD позначені `[x]` лише після відповідної Validation.
+- [x] Clean migration rehearsal, unit, integration та e2e suites проходять повторювано.
+- [x] API documentation відповідає фактичним routes, access rules, filters, pagination і fitment semantics.
+- [x] Catalog/PDP query behavior є deterministic, не має відомого N+1 і використовує обґрунтовані indexes.
+- [x] Немає schema drift, pending migrations, tracked secrets або змін поза погодженим backend/docs scope.
+- [x] Milestone 8 може використовувати public Listing/price/stock projections без зміни taxonomy, garage або fitment contracts.
 
 ### Validation
 
@@ -386,6 +386,30 @@ pnpm --filter api test:int
 pnpm --filter api test:e2e
 git diff --check
 ```
+
+### Implementation log
+
+#### What changed
+
+- Виконано clean rehearsal у disposable PostgreSQL 16 container з окремими `auto_parts_dev` і `auto_parts_test`; repository Docker volume та поточні public schemas не очищалися.
+- Оновлено `apps/api/README.md`, `docs/CONTEXT.md` і `docs/ARCHITECTURE.md` відповідно до фактичних taxonomy, garage, catalog, PDP та fitment boundaries.
+- Перевірено representative PostgreSQL plans для commercial filters, price sorting з exact fitment precedence та PDP relation lookups.
+- Проведено repository audit без runtime/schema changes; нові indexes, migrations і dependencies не знадобилися.
+
+#### Query-plan results
+
+- Commercial catalog filter використав `Listing_status_condition_currency_price_idx` і primary-key joins; execution time на synthetic baseline — приблизно 2.2 ms.
+- Price sorting з exact-engine precedence використав Listing index, FitmentRule engine/generation indexes і generic fitment key; execution time — приблизно 1.6 ms.
+- PDP lookups використали Product primary key, `ProductVariant_productId_idx`, `Listing_productVariantId_status_idx` і composite FitmentRule key; окремі plan fragments виконалися приблизно за 0.17–0.42 ms.
+- Query count є bounded, Prisma calls відсутні всередині variant/listing mapping, а measured evidence не виправдовує нову index migration.
+
+#### Verification results
+
+- Prisma 7.9 validate/generate — green; усі 7 committed migrations застосовані до обох clean databases, `migrate status` — up to date, `migrate diff` — no difference.
+- Demo seed у clean development database двічі дав стабільні counts: 5 users, 2 suppliers, 2 makes, 3 products, 4 variants, 5 fitment rules, 6 listings і 2 orders.
+- Unit suites: 8/8, 51 tests; integration suites: 9/9, 31 tests; e2e suites: 8/8, 32 tests на clean guarded `auto_parts_test` без demo seed.
+- Repository-wide lint, type-check і build — green; `git diff --check` — green.
+- Historical migrations і frontend/packages не змінені; tracked secret files, generated Prisma client artifacts і Milestone 8 controllers відсутні.
 
 ## Migration and rollback strategy
 

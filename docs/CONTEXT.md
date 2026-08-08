@@ -2,7 +2,7 @@
 
 ## Product
 
-Auto Parts Marketplace is an early-stage marketplace for automotive parts. The repository currently provides a reproducible backend foundation; public marketplace workflows and frontend-to-API integration remain future work.
+Auto Parts Marketplace is an early-stage marketplace for automotive parts. The repository currently provides a reproducible backend foundation and public fitment-aware discovery API; frontend-to-API integration and commerce write workflows remain future work.
 
 ## Current repository baseline
 
@@ -28,7 +28,10 @@ apps/
 
 apps/api/prisma/        Schema, committed migrations and demo seed
 apps/api/src/auth/      Better Auth, session, RBAC and ownership boundary
+apps/api/src/catalog/   Public catalog/PDP queries and shared fitment policy
+apps/api/src/garage/    Customer-owned SavedVehicle API
 apps/api/src/prisma/    Single Nest Prisma provider and database guards
+apps/api/src/vehicle-taxonomy/  Public vehicle selector API
 apps/api/test/          Integration/e2e suites and guarded test setup
 
 packages/ui/            Shared React UI primitives
@@ -48,6 +51,15 @@ The canonical Prisma model contains:
 Persisted roles are `CUSTOMER`, `SUPPLIER_USER`, `SUPPORT_MANAGER` and `ADMIN`; Guest is an unauthenticated state, not a database role. RBAC answers which action a role may perform, while supplier ownership requires an active membership matching the target Supplier.
 
 Commerce records have agreed status enums, defaults, foreign keys and idempotency constraints. They are persistence contracts only: status-transition services, checkout, Stripe/webhook processing, stock reservation, shipping and returns workflows are not implemented.
+
+## Implemented discovery API
+
+- `/api/v1/vehicles/*` provides the deterministic Year → Make → Model → Generation → Engine selector.
+- `/api/v1/garage/vehicles` provides Customer-only SavedVehicle CRUD and active selection with owner checks.
+- `GET /api/v1/catalog/products` provides public PostgreSQL-backed search, filters, bounded pagination and stable sorting over `ACTIVE` Listings.
+- `GET /api/v1/catalog/products/:productId` provides Product/Variant details, public Supplier listing data and fitment answers.
+
+Catalog and PDP normalize explicit taxonomy context or an owner-only `savedVehicleId` through one vehicle-context boundary. One `FitmentService` applies exact-engine precedence over generation-wide rules and returns `compatible`, `incompatible`, `unknown` or `caution`; missing coverage never implies compatibility.
 
 ## Auth and persistence boundaries
 
