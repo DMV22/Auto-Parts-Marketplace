@@ -2,69 +2,84 @@
 
 ## Purpose
 
-Auto Parts Marketplace is intended to let users discover, list, and manage automotive parts through a web application backed by an API and PostgreSQL database.
+Auto Parts Marketplace is intended to let customers discover compatible automotive parts and suppliers manage marketplace inventory through a web application backed by a NestJS API and PostgreSQL.
 
-Business capabilities are still being defined. Do not invent checkout, payment, shipping, moderation, or compatibility behavior without an accepted requirement.
+The repository currently implements the backend foundation, not complete marketplace workflows. Do not invent checkout, payment, shipping, moderation or return behavior without an accepted milestone.
 
-## Current state
+## Current system
 
-The repository currently contains:
+- `apps/web` — Next.js 16 / React 19 application; no marketplace API integration yet.
+- `apps/api` — NestJS 11 API, Better Auth boundary and Prisma 7.9.0 persistence owner.
+- `packages/ui` — shared presentational React primitives.
+- Docker Compose — PostgreSQL 16 with `auto_parts_dev` and `auto_parts_test`, exposed on host port `5433`.
+- pnpm/Turborepo — workspace task graph, including `.next/**` and API `dist/**` build outputs.
 
-- `apps/web` — Next.js 16 App Router application using React 19.
-- `apps/api` — NestJS 11 HTTP API with Prisma 7.9.0 persistence.
-- `packages/ui` — shared React UI primitives.
-- `packages/eslint-config` — shared ESLint configuration.
-- `packages/typescript-config` — shared TypeScript configuration.
-- Turborepo orchestration through `turbo.json`.
-- pnpm workspaces through `pnpm-workspace.yaml`.
-- PostgreSQL 16 development/test infrastructure through Docker Compose.
+The committed migration chain implements catalog and vehicle taxonomy, identity/supplier ownership, and status-bearing commerce records. Integration tests cover migration preservation, catalog/fitment constraints, auth/session lifecycle, RBAC, supplier ownership, status defaults, foreign keys and payment-event idempotency.
 
-The API has a committed Prisma schema and migration for `Part`, `Vehicle`, and their explicit `Fitment` relation. Database integration tests cover reads/writes, uniqueness, foreign keys, and cascade deletion. No public Part/Vehicle/Fitment controllers are implemented yet.
+## Application boundaries
 
-Not implemented yet:
-
-- `Listing` or `Order` persistence and workflows;
-- checkout, payment, shipping, or moderation;
-- authentication and authorization;
-- production API contract for the domain model;
-- frontend-to-API integration;
-- media storage;
-- production database provisioning, secrets, backups, monitoring, or deployment architecture.
-
-## Boundaries
-
-- `apps/web` contains UI, routing, and browser-facing concerns. It does not import Prisma Client or access PostgreSQL directly.
-- `apps/api` owns HTTP endpoints, validation, business services, Prisma schema/migrations, and persistence orchestration.
-- `packages/ui` is for reusable presentational components. Do not add data fetching or business logic there.
-- Shared configuration packages (`eslint-config`, `typescript-config`) should not depend on application code.
+- `apps/web` owns browser UI and routing. It never imports Prisma Client or connects to PostgreSQL.
+- `apps/api` owns HTTP, authentication, authorization, domain services, Prisma schema/migrations and persistence orchestration.
+- Controllers delegate to application/domain services; they do not construct Prisma clients.
+- Shared packages must not depend on application code or own persistence concerns.
 
 ## Persistence boundary
 
-`PrismaModule` is imported by the API `AppModule` and exposes the single application-wide `PrismaService` provider. `PrismaService` constructs Prisma Client with the PostgreSQL driver adapter, connects during Nest module initialization, and disconnects during module destruction.
+`AppModule` imports the global `PrismaModule`, which exports one application-wide `PrismaService`. The service constructs Prisma Client with `PrismaPg`, connects during Nest module initialization and disconnects during module destruction. Future domain repositories and services receive it through dependency injection.
 
-Future domain services receive `PrismaService` through Nest dependency injection. Controllers must call domain/application services instead of creating Prisma clients or querying the database directly. No other application or shared package owns a Prisma Client instance.
+Normal development reads `DATABASE_URL`. Under `NODE_ENV=test`, the provider requires `TEST_DATABASE_URL` and accepts only local `auto_parts_test`. Integration/e2e setup applies committed migrations before suites and never runs demo seed.
 
-For normal development, the provider reads `DATABASE_URL`. Under `NODE_ENV=test`, it requires `TEST_DATABASE_URL` and accepts only the local `auto_parts_test` database. Integration and e2e suites apply committed migrations before running and use the same injected provider as the application.
+The standalone Prisma CLI seed process is the only additional Prisma Client boundary. It is not part of Nest runtime, is guarded to local `auto_parts_dev`, and creates synthetic idempotent demo records.
 
-## System context
+## Authentication and authorization boundary
+
+`AuthModule` is the single Better Auth integration boundary and reuses the Prisma persistence owner. Supported authentication methods are email/password and Google OAuth. Sessions are persisted; secrets and provider credentials come only from environment variables.
+
+Authorization has two independent layers:
+
+- RBAC guards/decorators enforce `CUSTOMER`, `SUPPLIER_USER`, `SUPPORT_MANAGER` and `ADMIN` permissions;
+- supplier ownership verifies an active `SupplierUser` membership for the target Supplier.
+
+Guest is represented by the absence of an authenticated session and is never persisted as a role.
+
+## Domain persistence
+
+```text
+Catalog                          Vehicle compatibility
+Category / Brand                VehicleMake
+        |                             |
+     Product                     VehicleModel
+        |                             |
+ ProductVariant  <--- FitmentRule ---> VehicleGeneration
+                                           |
+                                       EngineType
+
+Supplier -> Listing -> OrderItem -> Order -> User
+                         |
+                   ReturnRequest
+Order -> PaymentEvent (unique externalEventId)
+```
+
+`Listing`, `Order`, `PaymentEvent` and `ReturnRequest` status enums are stored and constrained, but transitions are not executed automatically. Payment events are append-only external-event records.
+
+## Not implemented
+
+- public catalog/PDP/fitment REST API;
+- supplier listing-management endpoints;
+- cart, checkout, Stripe webhook processing or stock reservation;
+- order fulfillment, shipping and return workflows;
+- frontend-to-API integration;
+- production database, secret management, backups, monitoring and deployment architecture.
+
+These capabilities belong to later milestones and must build on the established persistence, auth and ownership boundaries.
+
+## Runtime context
 
 ```text
 Browser
-   |
-   v
-Next.js web application
-   |
-   | future HTTPS / versioned API contract
-   v
-NestJS controller and application service
-   |
-   | dependency injection
-   v
-PrismaModule / PrismaService
-   |
-   | Prisma Client + PostgreSQL adapter
-   v
-PostgreSQL 16
+  -> Next.js application
+  -> future versioned NestJS API
+  -> Auth guards / application services
+  -> PrismaModule / PrismaService
+  -> PostgreSQL 16
 ```
-
-The browser-to-domain API path is a target boundary, not a claim that marketplace endpoints or workflows are already implemented.

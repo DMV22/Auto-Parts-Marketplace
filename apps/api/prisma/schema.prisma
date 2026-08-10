@@ -8,37 +8,376 @@ datasource db {
   provider = "postgresql"
 }
 
-model Part {
-  id                     String    @id @default(uuid()) @db.Uuid
-  name                   String
-  manufacturer           String
-  manufacturerPartNumber String
-  createdAt              DateTime  @default(now())
-  updatedAt              DateTime  @updatedAt
-  fitments               Fitment[]
-
-  @@unique([manufacturer, manufacturerPartNumber])
+enum UserRole {
+  CUSTOMER
+  SUPPLIER_USER
+  SUPPORT_MANAGER
+  ADMIN
 }
 
-model Vehicle {
+enum SupplierUserStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum ListingStatus {
+  DRAFT
+  PENDING_APPROVAL
+  ACTIVE
+  PAUSED
+  REJECTED
+  ARCHIVED
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  PAID
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentEventProcessingStatus {
+  RECEIVED
+  PROCESSED
+  FAILED
+}
+
+enum ReturnRequestStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  RECEIVED
+  COMPLETED
+  CANCELLED
+}
+
+model Category {
   id        String    @id @default(uuid()) @db.Uuid
-  make      String
-  model     String
-  year      Int
+  name      String    @unique
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
-  fitments  Fitment[]
-
-  @@unique([make, model, year])
+  products  Product[]
 }
 
-model Fitment {
-  partId    String   @db.Uuid
-  vehicleId String   @db.Uuid
-  createdAt DateTime @default(now())
-  part      Part     @relation(fields: [partId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  vehicle   Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+model Brand {
+  id        String    @id @default(uuid()) @db.Uuid
+  name      String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  products  Product[]
+}
 
-  @@id([partId, vehicleId])
-  @@index([vehicleId])
+model Product {
+  id          String           @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  categoryId  String?          @db.Uuid
+  brandId     String           @db.Uuid
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  category    Category?        @relation(fields: [categoryId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  brand       Brand            @relation(fields: [brandId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  variants    ProductVariant[]
+
+  @@index([categoryId])
+  @@index([brandId])
+}
+
+model ProductVariant {
+  id                     String        @id @default(uuid()) @db.Uuid
+  productId              String        @db.Uuid
+  sku                    String        @unique
+  manufacturerPartNumber String
+  oemNumber              String?
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+  product                Product       @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  fitmentRules           FitmentRule[]
+  listings               Listing[]
+
+  @@unique([productId, manufacturerPartNumber])
+  @@index([productId])
+}
+
+model VehicleMake {
+  id        String         @id @default(uuid()) @db.Uuid
+  name      String         @unique
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  models    VehicleModel[]
+}
+
+model VehicleModel {
+  id            String              @id @default(uuid()) @db.Uuid
+  vehicleMakeId String              @db.Uuid
+  name          String
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  vehicleMake   VehicleMake         @relation(fields: [vehicleMakeId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  generations   VehicleGeneration[]
+
+  @@unique([vehicleMakeId, name])
+  @@index([vehicleMakeId])
+}
+
+model VehicleGeneration {
+  id             String        @id @default(uuid()) @db.Uuid
+  vehicleModelId String        @db.Uuid
+  code           String
+  name           String?
+  yearFrom       Int
+  yearTo         Int
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  vehicleModel   VehicleModel  @relation(fields: [vehicleModelId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  engineTypes    EngineType[]
+  fitmentRules   FitmentRule[]
+  savedVehicles  SavedVehicle[]
+
+  @@unique([vehicleModelId, code])
+  @@index([vehicleModelId])
+  @@index([yearFrom, yearTo])
+}
+
+model EngineType {
+  id                  String            @id @default(uuid()) @db.Uuid
+  vehicleGenerationId String            @db.Uuid
+  code                String
+  name                String
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  vehicleGeneration   VehicleGeneration @relation(fields: [vehicleGenerationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  fitmentRules        FitmentRule[]
+  savedVehicles       SavedVehicle[]
+
+  @@unique([id, vehicleGenerationId])
+  @@unique([vehicleGenerationId, code])
+  @@index([vehicleGenerationId])
+}
+
+model FitmentRule {
+  id                  String            @id @default(uuid()) @db.Uuid
+  productVariantId    String            @db.Uuid
+  vehicleGenerationId String            @db.Uuid
+  engineTypeId        String?           @db.Uuid
+  createdAt           DateTime          @default(now())
+  productVariant      ProductVariant    @relation(fields: [productVariantId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  vehicleGeneration   VehicleGeneration @relation(fields: [vehicleGenerationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  engineType          EngineType?       @relation(fields: [engineTypeId, vehicleGenerationId], references: [id, vehicleGenerationId], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([productVariantId, vehicleGenerationId, engineTypeId], map: "FitmentRule_productVariantId_vehicleGenerationId_engineTypeId_k")
+  @@index([productVariantId])
+  @@index([vehicleGenerationId])
+  @@index([engineTypeId])
+}
+
+model User {
+  id              String           @id @default(uuid()) @db.Uuid
+  name            String
+  email           String           @unique
+  emailVerified   Boolean          @default(false)
+  image           String?
+  role            UserRole         @default(CUSTOMER)
+  isActive        Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  sessions        Session[]
+  accounts        Account[]
+  customerProfile CustomerProfile?
+  savedVehicles   SavedVehicle[]
+  addresses       Address[]
+  supplierUser    SupplierUser?
+  orders          Order[]
+}
+
+model Session {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Account {
+  id                    String    @id @default(uuid()) @db.Uuid
+  userId                String    @db.Uuid
+  accountId             String
+  providerId            String
+  accessToken           String?   @db.Text
+  refreshToken          String?   @db.Text
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  idToken               String?   @db.Text
+  password              String?   @db.Text
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id @default(uuid()) @db.Uuid
+  identifier String
+  value      String   @db.Text
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+}
+
+model CustomerProfile {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @unique @db.Uuid
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+}
+
+model SavedVehicle {
+  id                  String            @id @default(uuid()) @db.Uuid
+  userId              String            @db.Uuid
+  vehicleGenerationId String            @db.Uuid
+  engineTypeId        String?           @db.Uuid
+  label               String?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  user                User              @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  vehicleGeneration   VehicleGeneration @relation(fields: [vehicleGenerationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  engineType          EngineType?       @relation(fields: [engineTypeId, vehicleGenerationId], references: [id, vehicleGenerationId], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId])
+  @@index([vehicleGenerationId])
+  @@index([engineTypeId])
+}
+
+model Address {
+  id            String   @id @default(uuid()) @db.Uuid
+  userId        String   @db.Uuid
+  label         String?
+  recipientName String
+  line1         String
+  line2         String?
+  city          String
+  region        String?
+  postalCode    String
+  countryCode   String   @db.Char(2)
+  phone         String?
+  isDefault     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId])
+}
+
+model Supplier {
+  id        String         @id @default(uuid()) @db.Uuid
+  name      String
+  slug      String         @unique
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  users     SupplierUser[]
+  listings  Listing[]
+}
+
+model SupplierUser {
+  id         String             @id @default(uuid()) @db.Uuid
+  userId     String             @unique @db.Uuid
+  supplierId String             @db.Uuid
+  status     SupplierUserStatus @default(ACTIVE)
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  supplier   Supplier           @relation(fields: [supplierId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([supplierId, status])
+}
+
+model Listing {
+  id               String         @id @default(uuid()) @db.Uuid
+  supplierId       String         @db.Uuid
+  productVariantId String         @db.Uuid
+  status           ListingStatus  @default(DRAFT)
+  price            Decimal        @db.Decimal(12, 2)
+  currency         String         @db.Char(3)
+  stockQuantity    Int            @default(0)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  supplier         Supplier       @relation(fields: [supplierId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  productVariant   ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  orderItems       OrderItem[]
+
+  @@index([supplierId, status])
+  @@index([productVariantId, status])
+}
+
+model Order {
+  id            String         @id @default(uuid()) @db.Uuid
+  customerId    String         @db.Uuid
+  status        OrderStatus    @default(PENDING_PAYMENT)
+  currency      String         @db.Char(3)
+  totalAmount   Decimal        @db.Decimal(12, 2)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  customer      User           @relation(fields: [customerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  items         OrderItem[]
+  paymentEvents PaymentEvent[]
+
+  @@index([customerId, status])
+}
+
+model OrderItem {
+  id             String          @id @default(uuid()) @db.Uuid
+  orderId        String          @db.Uuid
+  listingId      String          @db.Uuid
+  quantity       Int
+  unitPrice      Decimal         @db.Decimal(12, 2)
+  createdAt      DateTime        @default(now())
+  order          Order           @relation(fields: [orderId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  listing        Listing         @relation(fields: [listingId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  returnRequests ReturnRequest[]
+
+  @@index([orderId])
+  @@index([listingId])
+}
+
+model PaymentEvent {
+  id              String                       @id @default(uuid()) @db.Uuid
+  orderId         String                       @db.Uuid
+  externalEventId String                       @unique
+  provider        String
+  eventType       String
+  status          PaymentEventProcessingStatus @default(RECEIVED)
+  payload         Json
+  receivedAt      DateTime                     @default(now())
+  processedAt     DateTime?
+  order           Order                        @relation(fields: [orderId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([orderId, status])
+}
+
+model ReturnRequest {
+  id          String              @id @default(uuid()) @db.Uuid
+  orderItemId String              @db.Uuid
+  status      ReturnRequestStatus @default(REQUESTED)
+  reason      String
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  orderItem   OrderItem           @relation(fields: [orderItemId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([orderItemId, status])
 }

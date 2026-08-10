@@ -253,6 +253,17 @@ pnpm --filter api test:e2e
 git diff --check
 ```
 
+### Milestone 6 — backend domain foundation та Auth/RBAC
+
+Milestone 6 винесено в окремий execution plan [`BACKEND-PLAN.md`](BACKEND-PLAN.md), щоб schema evolution, auth/security та seed/status baseline не виконувалися однією mega-change.
+
+- [ ] Milestone 6.1 — Domain schema migration: `Product`, `ProductVariant`, `FitmentRule` і vehicle taxonomy.
+- [ ] Milestone 6.2 — Auth/RBAC: Users, Sessions, Customers, Suppliers і supplier ownership.
+- [ ] Milestone 6.3 — Idempotent seed і status baseline для Listing/Order/Payment/ReturnRequest.
+- [ ] Milestone 6.4 — Clean-database rehearsal, regression verification і foundation readiness gate.
+
+Goal, Tasks, Definition of Done, Open questions, migration strategy та окремі Validation commands для 6.1–6.4 є source of truth у [`docs/BACKEND-PLAN.md`](BACKEND-PLAN.md). Milestones 7–10 не входять до цього Prisma baseline plan і не змінюються цим посиланням.
+
 ### Migration and rollback strategy
 
 - Початкова migration є additive: вона створює нові таблиці та constraints, оскільки persistence layer зараз відсутній.
