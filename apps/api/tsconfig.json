@@ -26,5 +26,8 @@
       "@/*": ["./src/*"],
       "*": ["./src/*"]
     }
+  },
+  "ts-node": {
+    "experimentalResolver": true
   }
 }
