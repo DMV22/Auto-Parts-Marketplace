@@ -4,6 +4,7 @@ import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { CatalogModule } from './catalog/catalog.module';
 import { CartModule } from './commerce/cart/cart.module';
+import { CheckoutModule } from './commerce/checkout/checkout.module';
 import { GarageModule } from './garage/garage.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { VehicleTaxonomyModule } from './vehicle-taxonomy/vehicle-taxonomy.module';
@@ -16,6 +17,7 @@ import { VehicleTaxonomyModule } from './vehicle-taxonomy/vehicle-taxonomy.modul
     GarageModule,
     CatalogModule,
     CartModule,
+    CheckoutModule,
   ],
   controllers: [AppController],
   providers: [AppService],

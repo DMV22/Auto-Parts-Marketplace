@@ -214,24 +214,24 @@ git diff --check
 
 ### Tasks
 
-- [ ] Закрити Open questions 4-5 і timeline частину Open question 7: reservation timing/expiry, stock release, checkout idempotency та initial status event.
-- [ ] Новою reviewed forward migration зробити `Order.customerId` nullable для guest ownership, додати guest owner hash/XOR constraint, `checkoutRequestId`, checkout expiry/session fields та мінімальний `OrderStatusEvent` baseline.
-- [ ] Розширити `OrderItem` immutable display snapshots, потрібні для order history без залежності від майбутнього редагування Product/Listing/Supplier; зберегти authoritative `unitPrice`, quantity і Listing reference.
-- [ ] Додати official Stripe server SDK лише до `apps/api`, env-only `STRIPE_SECRET_KEY`, redirect URLs і injectable `StripeCheckoutGateway`; application tests використовують fake gateway.
-- [ ] Реалізувати `POST /api/v1/checkout/session`: resolve owner, whitelist validate request/idempotency key, повторно прочитати Cart/Listings і відхилити empty/stale/inactive/mixed-currency/insufficient-stock checkout.
-- [ ] У короткій serializable transaction атомарно reserve stock, створити pending Order, OrderItems із server price snapshots, initial timeline entry та зв'язати checkout request; не викликати Stripe всередині transaction.
-- [ ] Після commit створити Stripe Checkout Session server-side з Order metadata та snapshot line items, потім persist provider session ID; при Stripe failure виконати idempotent compensating cancellation/release.
-- [ ] Зробити repeated same owner/idempotency-key безпечним, не створювати другий Order/reservation/Stripe Session; different request під тим самим key повертати `409`.
-- [ ] Додати unit/integration/e2e tests для pending-before-redirect, server pricing, snapshot immutability, stale cart, concurrent stock, retry/idempotency, guest/customer ownership і Stripe-gateway failure compensation.
+- [x] Закрити Open questions 4-5 і timeline частину Open question 7: reservation timing/expiry, stock release, checkout idempotency та initial status event.
+- [x] Новою reviewed forward migration зробити `Order.customerId` nullable для guest ownership, додати guest owner hash/XOR constraint, `checkoutRequestId`, checkout expiry/session fields та мінімальний `OrderStatusEvent` baseline.
+- [x] Розширити `OrderItem` immutable display snapshots, потрібні для order history без залежності від майбутнього редагування Product/Listing/Supplier; зберегти authoritative `unitPrice`, quantity і Listing reference.
+- [x] Додати official Stripe server SDK лише до `apps/api`, env-only `STRIPE_SECRET_KEY`, redirect URLs і injectable `StripeCheckoutGateway`; application tests використовують fake gateway.
+- [x] Реалізувати `POST /api/v1/checkout/session`: resolve owner, whitelist validate request/idempotency key, повторно прочитати Cart/Listings і відхилити empty/stale/inactive/mixed-currency/insufficient-stock checkout.
+- [x] У короткій serializable transaction атомарно reserve stock, створити pending Order, OrderItems із server price snapshots, initial timeline entry та зв'язати checkout request; не викликати Stripe всередині transaction.
+- [x] Після commit створити Stripe Checkout Session server-side з Order metadata та snapshot line items, потім persist provider session ID; при Stripe failure виконати idempotent compensating cancellation/release.
+- [x] Зробити repeated same owner/idempotency-key безпечним, не створювати другий Order/reservation/Stripe Session; different request під тим самим key повертати `409`.
+- [x] Додати unit/integration/e2e tests для pending-before-redirect, server pricing, snapshot immutability, stale cart, concurrent stock, retry/idempotency, guest/customer ownership і Stripe-gateway failure compensation.
 
 ### Definition of Done
 
-- [ ] Pending Order, items, reservation і initial timeline існують до повернення Stripe redirect/session response.
-- [ ] Stripe line items і Order total походять лише з server-revalidated Listing snapshots; Cart/client total не є authoritative.
-- [ ] Concurrent checkout не може успішно зарезервувати більше stock, ніж доступно, або створити negative `Listing.stockQuantity`.
-- [ ] Повторний checkout із тим самим idempotency key не створює duplicate Order, items, reservation або provider session.
-- [ ] Stripe API failure не залишає невідновлювану reservation: Order переходить у погоджений terminal state і stock повертається рівно один раз.
-- [ ] Success/cancel URL є redirect-only data і не містить способу змінити Order/Payment state.
+- [x] Pending Order, items, reservation і initial timeline існують до повернення Stripe redirect/session response.
+- [x] Stripe line items і Order total походять лише з server-revalidated Listing snapshots; Cart/client total не є authoritative.
+- [x] Concurrent checkout не може успішно зарезервувати більше stock, ніж доступно, або створити negative `Listing.stockQuantity`.
+- [x] Повторний checkout із тим самим idempotency key не створює duplicate Order, items, reservation або provider session.
+- [x] Stripe API failure не залишає невідновлювану reservation: Order переходить у погоджений terminal state і stock повертається рівно один раз.
+- [x] Success/cancel URL є redirect-only data і не містить способу змінити Order/Payment state.
 
 ### Validation
 
@@ -248,6 +248,14 @@ pnpm --filter api test:e2e
 pnpm --filter api build
 git diff --check
 ```
+
+### Implementation log
+
+- Додано reviewed forward migration для guest/customer Order ownership, checkout request/session state, immutable `OrderItem` snapshots і append-only `OrderStatusEvent` baseline.
+- Реалізовано `CheckoutModule` та `POST /api/v1/checkout/session` з required UUID v4 `Idempotency-Key`, empty-body whitelist і server-only Cart/Listing validation.
+- `CheckoutService` у serializable transaction резервує stock і створює `PENDING_PAYMENT` Order до зовнішнього виклику; 30-хвилинна expiry policy має 1-хвилинний provider safety buffer, а Stripe SDK доступний лише через injectable `CheckoutGateway`.
+- Provider failure ідемпотентно переводить Order у `CANCELLED`, повертає stock рівно один раз і додає SYSTEM timeline event; same-key retries сходяться на одному Order/Session.
+- Validation пройдено: Prisma має `9` applied migrations без pending changes або drift; unit `13/13` suites (`78` tests), integration `11/11` suites (`51` tests), e2e `10/10` suites (`38` tests); API lint/build і repository type-check завершилися успішно.
 
 ## Milestone 8.3 - Signature-verified Stripe webhook and idempotent payment transitions
 
