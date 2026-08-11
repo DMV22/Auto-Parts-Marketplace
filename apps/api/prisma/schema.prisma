@@ -55,6 +55,12 @@ enum PaymentEventProcessingStatus {
   FAILED
 }
 
+enum OrderStatusEventSource {
+  CHECKOUT
+  STRIPE_WEBHOOK
+  SYSTEM
+}
+
 enum ReturnRequestStatus {
   REQUESTED
   APPROVED
@@ -375,48 +381,78 @@ model CartItem {
 }
 
 model Order {
-  id            String         @id @default(uuid()) @db.Uuid
-  customerId    String         @db.Uuid
-  status        OrderStatus    @default(PENDING_PAYMENT)
-  currency      String         @db.Char(3)
-  totalAmount   Decimal        @db.Decimal(12, 2)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  customer      User           @relation(fields: [customerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  items         OrderItem[]
-  paymentEvents PaymentEvent[]
+  id                         String             @id @default(uuid()) @db.Uuid
+  customerId                 String?            @db.Uuid
+  guestTokenHash             String?            @db.Char(64)
+  status                     OrderStatus        @default(PENDING_PAYMENT)
+  currency                   String             @db.Char(3)
+  totalAmount                Decimal            @db.Decimal(12, 2)
+  checkoutRequestId          String?            @unique @db.Uuid
+  checkoutRequestFingerprint String?            @db.Char(64)
+  checkoutExpiresAt          DateTime?
+  checkoutSessionId          String?            @unique
+  checkoutSessionUrl         String?            @db.Text
+  reservationReleasedAt      DateTime?
+  createdAt                  DateTime           @default(now())
+  updatedAt                  DateTime           @updatedAt
+  customer                   User?              @relation(fields: [customerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  items                      OrderItem[]
+  paymentEvents              PaymentEvent[]
+  statusEvents               OrderStatusEvent[]
 
   @@index([customerId, status])
+  @@index([guestTokenHash, status])
+  @@index([status, checkoutExpiresAt])
 }
 
 model OrderItem {
-  id             String          @id @default(uuid()) @db.Uuid
-  orderId        String          @db.Uuid
-  listingId      String          @db.Uuid
-  quantity       Int
-  unitPrice      Decimal         @db.Decimal(12, 2)
-  createdAt      DateTime        @default(now())
-  order          Order           @relation(fields: [orderId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  listing        Listing         @relation(fields: [listingId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  returnRequests ReturnRequest[]
+  id                     String            @id @default(uuid()) @db.Uuid
+  orderId                String            @db.Uuid
+  listingId              String            @db.Uuid
+  quantity               Int
+  unitPrice              Decimal           @db.Decimal(12, 2)
+  productName            String?
+  sku                    String?
+  manufacturerPartNumber String?
+  condition              ListingCondition?
+  supplierName           String?
+  createdAt              DateTime          @default(now())
+  order                  Order             @relation(fields: [orderId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  listing                Listing           @relation(fields: [listingId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  returnRequests         ReturnRequest[]
 
   @@index([orderId])
   @@index([listingId])
 }
 
 model PaymentEvent {
-  id              String                       @id @default(uuid()) @db.Uuid
-  orderId         String                       @db.Uuid
-  externalEventId String                       @unique
-  provider        String
-  eventType       String
-  status          PaymentEventProcessingStatus @default(RECEIVED)
-  payload         Json
-  receivedAt      DateTime                     @default(now())
-  processedAt     DateTime?
-  order           Order                        @relation(fields: [orderId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  id               String                       @id @default(uuid()) @db.Uuid
+  orderId          String                       @db.Uuid
+  externalEventId  String                       @unique
+  provider         String
+  eventType        String
+  status           PaymentEventProcessingStatus @default(RECEIVED)
+  payload          Json
+  receivedAt       DateTime                     @default(now())
+  processedAt      DateTime?
+  order            Order                        @relation(fields: [orderId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  orderStatusEvent OrderStatusEvent?
 
   @@index([orderId, status])
+}
+
+model OrderStatusEvent {
+  id             String                 @id @default(uuid()) @db.Uuid
+  orderId        String                 @db.Uuid
+  fromStatus     OrderStatus?
+  toStatus       OrderStatus
+  source         OrderStatusEventSource
+  paymentEventId String?                @unique @db.Uuid
+  createdAt      DateTime               @default(now())
+  order          Order                  @relation(fields: [orderId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  paymentEvent   PaymentEvent?          @relation(fields: [paymentEventId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([orderId, createdAt])
 }
 
 model ReturnRequest {
