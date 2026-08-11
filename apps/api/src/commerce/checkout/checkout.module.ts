@@ -5,6 +5,7 @@ import { CheckoutController } from './checkout.controller';
 import { CHECKOUT_GATEWAY } from './checkout.gateway';
 import { CheckoutService } from './checkout.service';
 import { StripeCheckoutGateway } from './stripe-checkout.gateway';
+import { STRIPE_WEBHOOK_GATEWAY } from '../payments/webhook.gateway';
 import {
   CheckoutBodyPipe,
   CheckoutIdempotencyKeyPipe,
@@ -18,8 +19,10 @@ import {
     CheckoutBodyPipe,
     CheckoutIdempotencyKeyPipe,
     { provide: CHECKOUT_CONFIG, useFactory: loadCheckoutConfig },
-    { provide: CHECKOUT_GATEWAY, useClass: StripeCheckoutGateway },
+    StripeCheckoutGateway,
+    { provide: CHECKOUT_GATEWAY, useExisting: StripeCheckoutGateway },
+    { provide: STRIPE_WEBHOOK_GATEWAY, useExisting: StripeCheckoutGateway },
   ],
-  exports: [CheckoutService],
+  exports: [CheckoutService, STRIPE_WEBHOOK_GATEWAY],
 })
 export class CheckoutModule {}

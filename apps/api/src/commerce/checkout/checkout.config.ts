@@ -1,5 +1,6 @@
 export interface CheckoutConfig {
   secretKey: string;
+  webhookSecret: string;
   successUrl: string;
   cancelUrl: string;
 }
@@ -37,6 +38,7 @@ export function loadCheckoutConfig(
 ): CheckoutConfig {
   return {
     secretKey: required(env, 'STRIPE_SECRET_KEY'),
+    webhookSecret: required(env, 'STRIPE_WEBHOOK_SECRET'),
     successUrl: absoluteHttpUrl(env, 'STRIPE_CHECKOUT_SUCCESS_URL'),
     cancelUrl: absoluteHttpUrl(env, 'STRIPE_CHECKOUT_CANCEL_URL'),
   };

@@ -6,9 +6,16 @@ import {
   type CheckoutGatewaySession,
   type CreateCheckoutSessionCommand,
 } from './checkout.gateway';
+import {
+  type StripeWebhookGateway,
+  type VerifiedStripeWebhookEvent,
+  WebhookSignatureVerificationError,
+} from '../payments/webhook.gateway';
 
 @Injectable()
-export class StripeCheckoutGateway implements CheckoutGateway {
+export class StripeCheckoutGateway
+  implements CheckoutGateway, StripeWebhookGateway
+{
   private readonly stripe: Stripe;
 
   constructor(
@@ -54,6 +61,41 @@ export class StripeCheckoutGateway implements CheckoutGateway {
       id: session.id,
       url: session.url,
       expiresAt: new Date(session.expires_at * 1000),
+    };
+  }
+
+  verifyWebhook(
+    rawBody: Buffer,
+    signature: string,
+  ): VerifiedStripeWebhookEvent {
+    let event: Stripe.Event;
+    try {
+      event = this.stripe.webhooks.constructEvent(
+        rawBody,
+        signature,
+        this.config.webhookSecret,
+      );
+    } catch (error: unknown) {
+      throw new WebhookSignatureVerificationError({ cause: error });
+    }
+
+    const object = event.data.object;
+    const checkoutSession =
+      object.object === 'checkout.session'
+        ? {
+            id: object.id,
+            orderId: object.metadata?.orderId ?? null,
+            paymentStatus: object.payment_status ?? null,
+            currency: object.currency ?? null,
+            amountTotal: object.amount_total ?? null,
+          }
+        : null;
+
+    return {
+      externalEventId: event.id,
+      type: event.type,
+      payload: event as unknown as Record<string, unknown>,
+      checkoutSession,
     };
   }
 }
