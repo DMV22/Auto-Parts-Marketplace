@@ -265,24 +265,24 @@ git diff --check
 
 ### Tasks
 
-- [ ] Закрити Open question 6 і webhook частину Open question 7: supported event types, Stripe field mapping, terminal/retry behavior і timeline source.
-- [ ] Додати `STRIPE_WEBHOOK_SECRET` placeholder до `.env.example` і startup validation без логування secret values.
-- [ ] Налаштувати raw request body лише для Stripe webhook boundary так, щоб signature verification отримувала exact bytes і не ламала existing JSON/Auth routes.
-- [ ] Реалізувати public `POST /api/v1/webhooks/stripe`; signature перевіряти до parse-dependent domain lookup або будь-якого Prisma write.
-- [ ] Allowlist-ити погоджені checkout events, перевіряти provider object/metadata/order/session/currency/amount consistency та відхиляти spoofed або mismatched payload.
-- [ ] У Prisma transaction вставляти `PaymentEvent` із unique `externalEventId`, виконувати conditional allowed Order transition, append timeline і release stock лише для first valid terminal pending-order event.
-- [ ] Duplicate `externalEventId` acknowledge-ити `2xx` без duplicate row, status transition, timeline entry або stock mutation; unexpected processing failure повертати retryable non-2xx.
-- [ ] Встановлювати `PAID` лише для валідного paid webhook state. `checkout.session.completed` без paid confirmation не повинен автоматично означати `PAID`.
-- [ ] Додати unit/integration/e2e tests для invalid/missing signature, raw-body verification, valid paid event, async success/failure, expiry, duplicate delivery, out-of-order/terminal events, metadata/amount mismatch і success redirect no-op.
+- [x] Закрити Open question 6 і webhook частину Open question 7: supported event types, Stripe field mapping, terminal/retry behavior і timeline source.
+- [x] Додати `STRIPE_WEBHOOK_SECRET` placeholder до `.env.example` і startup validation без логування secret values.
+- [x] Налаштувати raw request body лише для Stripe webhook boundary так, щоб signature verification отримувала exact bytes і не ламала existing JSON/Auth routes.
+- [x] Реалізувати public `POST /api/v1/webhooks/stripe`; signature перевіряти до parse-dependent domain lookup або будь-якого Prisma write.
+- [x] Allowlist-ити погоджені checkout events, перевіряти provider object/metadata/order/session/currency/amount consistency та відхиляти spoofed або mismatched payload.
+- [x] У Prisma transaction вставляти `PaymentEvent` із unique `externalEventId`, виконувати conditional allowed Order transition, append timeline і release stock лише для first valid terminal pending-order event.
+- [x] Duplicate `externalEventId` acknowledge-ити `2xx` без duplicate row, status transition, timeline entry або stock mutation; unexpected processing failure повертати retryable non-2xx.
+- [x] Встановлювати `PAID` лише для валідного paid webhook state. `checkout.session.completed` без paid confirmation не повинен автоматично означати `PAID`.
+- [x] Додати unit/integration/e2e tests для invalid/missing signature, raw-body verification, valid paid event, async success/failure, expiry, duplicate delivery, out-of-order/terminal events, metadata/amount mismatch і success redirect no-op.
 
 ### Definition of Done
 
-- [ ] Invalid або missing Stripe signature не створює PaymentEvent і не змінює Order, timeline чи stock.
-- [ ] Валідний supported webhook атомарно створює рівно один PaymentEvent і погоджений Order/timeline transition.
-- [ ] `PaymentEvent.externalEventId` гарантує, що repeated webhook безпечно ігнорується без duplicate side effects.
-- [ ] Лише webhook-confirmed paid state переводить Order у `PAID`; browser redirect, polling і checkout-session creation цього не роблять.
-- [ ] Expired/failed pending checkout release-ить reservation рівно один раз; already paid/terminal Order не регресує від late event.
-- [ ] Tests не використовують live Stripe network або real secrets і проходять на isolated fixtures.
+- [x] Invalid або missing Stripe signature не створює PaymentEvent і не змінює Order, timeline чи stock.
+- [x] Валідний supported webhook атомарно створює рівно один PaymentEvent і погоджений Order/timeline transition.
+- [x] `PaymentEvent.externalEventId` гарантує, що repeated webhook безпечно ігнорується без duplicate side effects.
+- [x] Лише webhook-confirmed paid state переводить Order у `PAID`; browser redirect, polling і checkout-session creation цього не роблять.
+- [x] Expired/failed pending checkout release-ить reservation рівно один раз; already paid/terminal Order не регресує від late event.
+- [x] Tests не використовують live Stripe network або real secrets і проходять на isolated fixtures.
 
 ### Validation
 
@@ -295,6 +295,14 @@ pnpm --filter api test:e2e
 pnpm --filter api build
 git diff --check
 ```
+
+### Implementation log
+
+- Реалізовано транзакційне збереження `PaymentEvent`, conditional Order transitions, timeline та одноразове повернення зарезервованого stock.
+- Додано consistency guard для Order/session/currency/amount, paid-state policy, duplicate delivery та terminal/out-of-order semantics.
+- Integration fixtures/spec покривають paid/unpaid, async success/failure, expiry, duplicates, late events і mismatched payload без demo seed.
+- E2E перевіряє повний шлях exact raw body + реальна Stripe signature → HTTP controller → Prisma → `auto_parts_test`.
+- Validation: focused integration — 9/9; focused webhook e2e — 4/4; API build — passed. `lint` свідомо не повторювався після успішного кроку 1.
 
 ## Milestone 8.4 - Owner-only Order history, detail and timeline API
 

@@ -31,7 +31,7 @@ export class StripeWebhookController {
   handle(
     @Req() request: StripeWebhookRequest,
     @Headers('stripe-signature') signature: string | undefined,
-  ): StripeWebhookResponse {
+  ): Promise<StripeWebhookResponse> {
     if (!signature || !request.rawBody) {
       throw new BadRequestException('Invalid Stripe webhook signature');
     }
