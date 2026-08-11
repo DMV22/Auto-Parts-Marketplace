@@ -312,23 +312,23 @@ git diff --check
 
 ### Tasks
 
-- [ ] Закрити presentation частину Open question 7: timeline DTO, public source/reason vocabulary і pagination contract.
-- [ ] Реалізувати `OrdersModule` із `GET /api/v1/orders`, `GET /api/v1/orders/:orderId` та `GET /api/v1/orders/:orderId/timeline` через normalized `CommerceActor` і existing `PrismaService`.
-- [ ] Додати bounded pagination (default `20`, maximum `50`) і deterministic `createdAt desc, id desc` ordering для history/timeline.
-- [ ] Owner scope застосовувати в Prisma query (`customerId` або guest hash), а не після завантаження; cross-owner і missing Order повертати однаковий `404`.
-- [ ] Повертати explicit DTO: Order number/ID, status, currency, total, timestamps, immutable item snapshots і public current Listing/Product references лише там, де вони не змінюють historical meaning.
-- [ ] Timeline повертати ordered public status events без raw PaymentEvent payload, Stripe signature/provider secrets, guest hash або internal failure details.
-- [ ] Підтвердити, що history/detail/timeline endpoints read-only: success page може polling-ити current state, але не може виконати transition.
-- [ ] Додати unit/integration/e2e tests для customer/guest history, pagination, detail, timeline ordering, pending/paid/expired cases, cross-owner isolation і internal-field projection.
+- [x] Закрити presentation частину Open question 7: timeline DTO, public source/reason vocabulary і pagination contract.
+- [x] Реалізувати `OrdersModule` із `GET /api/v1/orders`, `GET /api/v1/orders/:orderId` та `GET /api/v1/orders/:orderId/timeline` через normalized `CommerceActor` і existing `PrismaService`.
+- [x] Додати bounded pagination (default `20`, maximum `50`) і deterministic `createdAt desc, id desc` ordering для history/timeline.
+- [x] Owner scope застосовувати в Prisma query (`customerId` або guest hash), а не після завантаження; cross-owner і missing Order повертати однаковий `404`.
+- [x] Повертати explicit DTO: Order number/ID, status, currency, total, timestamps, immutable item snapshots і public current Listing/Product references лише там, де вони не змінюють historical meaning.
+- [x] Timeline повертати ordered public status events без raw PaymentEvent payload, Stripe signature/provider secrets, guest hash або internal failure details.
+- [x] Підтвердити, що history/detail/timeline endpoints read-only: success page може polling-ити current state, але не може виконати transition.
+- [x] Додати unit/integration/e2e tests для customer/guest history, pagination, detail, timeline ordering, pending/paid/expired cases, cross-owner isolation і internal-field projection.
 
 ### Definition of Done
 
-- [ ] Authenticated Customer і guest context бачать лише власні Orders; зміна route UUID не розкриває чужий Order.
-- [ ] History і timeline мають bounded deterministic pagination без duplicates або unstable page boundaries.
-- [ ] Order detail зберігає historical item names/SKU/supplier/price/quantity навіть після future catalog/listing changes.
-- [ ] PaymentEvent payload, external secrets, raw guest identifiers та internal membership data не входять у public responses.
-- [ ] Order read API не має endpoint або code path, що приймає client-selected payment/order status.
-- [ ] Customer/guest ownership і status timeline покриті negative та positive integration/e2e regression.
+- [x] Authenticated Customer і guest context бачать лише власні Orders; зміна route UUID не розкриває чужий Order.
+- [x] History і timeline мають bounded deterministic pagination без duplicates або unstable page boundaries.
+- [x] Order detail зберігає historical item names/SKU/supplier/price/quantity навіть після future catalog/listing changes.
+- [x] PaymentEvent payload, external secrets, raw guest identifiers та internal membership data не входять у public responses.
+- [x] Order read API не має endpoint або code path, що приймає client-selected payment/order status.
+- [x] Customer/guest ownership і status timeline покриті negative та positive integration/e2e regression.
 
 ### Validation
 
@@ -341,6 +341,14 @@ pnpm --filter api test:e2e
 pnpm --filter api build
 git diff --check
 ```
+
+### Implementation log
+
+- Додано owner-scoped `OrdersModule` для history, immutable detail і customer-friendly timeline без write/status transition paths.
+- Public timeline використовує `reasonCode`: `ORDER_CREATED`, `PAYMENT_CONFIRMED`, `PAYMENT_FAILED`, `CHECKOUT_EXPIRED`, `CHECKOUT_FAILED` і fallback `STATUS_UPDATED`.
+- History/timeline використовують opaque `createdAt + id` cursor, default limit `20`, maximum `50` та deterministic descending ordering.
+- Integration/e2e fixtures ізольовані в `auto_parts_test`, не залежать від demo seed і покривають Customer/guest ownership, pagination, snapshots, pending/paid/expired та non-disclosing `404`.
+- Validation: unit validation із кроку 1 — 6/6; focused integration — 4/4; focused e2e — 4/4; API build із кроку 1 — passed. Команди кроку 1 повторно не запускалися.
 
 ## Milestone 8.5 - Commerce API readiness gate
 

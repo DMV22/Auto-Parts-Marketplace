@@ -79,7 +79,7 @@ export class OrdersService {
 
     return {
       data: page.map((order) => ({
-        id: order.id,
+        orderId: order.id,
         status: order.status,
         currency: order.currency,
         totalAmount: order.totalAmount.toFixed(2),
@@ -99,7 +99,7 @@ export class OrdersService {
     if (!order) throw orderNotFound();
 
     return {
-      id: order.id,
+      orderId: order.id,
       status: order.status,
       currency: order.currency,
       totalAmount: order.totalAmount.toFixed(2),

@@ -19,7 +19,7 @@ export type PageInfo = {
 };
 
 export type OrderHistoryItem = {
-  id: string;
+  orderId: string;
   status: OrderStatus;
   currency: string;
   totalAmount: string;
