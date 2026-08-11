@@ -203,6 +203,7 @@ model User {
   activeSavedVehicle   SavedVehicle?    @relation("ActiveSavedVehicle", fields: [activeSavedVehicleId], references: [id], onDelete: SetNull, onUpdate: Cascade)
   addresses            Address[]
   supplierUser         SupplierUser?
+  cart                 Cart?
   orders               Order[]
 }
 
@@ -337,11 +338,40 @@ model Listing {
   updatedAt        DateTime       @updatedAt
   supplier         Supplier       @relation(fields: [supplierId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   productVariant   ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  cartItems        CartItem[]
   orderItems       OrderItem[]
 
   @@index([supplierId, status])
   @@index([productVariantId, status])
   @@index([status, condition, currency, price])
+}
+
+model Cart {
+  id             String     @id @default(uuid()) @db.Uuid
+  customerId     String?    @unique @db.Uuid
+  guestTokenHash String?    @unique @db.Char(64)
+  currency       String?    @db.Char(3)
+  expiresAt      DateTime?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  customer       User?      @relation(fields: [customerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  items          CartItem[]
+
+  @@index([expiresAt])
+}
+
+model CartItem {
+  id        String   @id @default(uuid()) @db.Uuid
+  cartId    String   @db.Uuid
+  listingId String   @db.Uuid
+  quantity  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([cartId, listingId])
+  @@index([listingId])
 }
 
 model Order {
