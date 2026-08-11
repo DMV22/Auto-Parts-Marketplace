@@ -164,23 +164,23 @@ Common commerce rules:
 
 ### Tasks
 
-- [ ] Закрити Open questions 1-3: guest token storage/cookie policy, sign-in merge behavior, one-cart/one-currency invariants і expiry policy.
-- [ ] Додати `Cart` і `CartItem` новою reviewed forward migration; зафіксувати XOR customer/guest ownership, unique owner cart, unique `(cartId, listingId)`, positive quantity, timestamps, optional expiry та referential actions.
-- [ ] Додати server-only guest context issuer/resolver і normalized `CommerceActor`; не перетворювати Guest на persisted role та не приймати owner identity з body/query.
-- [ ] Реалізувати `CartModule` і owner-only get/add/update/remove/clear endpoints під `/api/v1/cart` через existing `PrismaService`.
-- [ ] На кожному write перевіряти Listing existence, `ACTIVE` status, positive stock, requested quantity, live price/currency і cart currency invariant; client price/total ігнорувати або відхиляти як unknown fields.
-- [ ] Повертати explicit Cart DTO з items, current unit price, line total, currency, availability issues і server-computed totals; exact internal stock та guest token hash не повертати.
-- [ ] Визначити idempotency/error contract: same Listing додається як controlled quantity update, malformed quantity повертає `400`, inactive/missing Listing - non-disclosing `404`, insufficient stock/currency conflict - `409`.
-- [ ] Додати unit tests для validation/actor policy та integration/e2e coverage для guest/customer isolation, cross-owner IDs, duplicate listing, inactive listing, stock, price refresh, currency і clear behavior.
+- [x] Закрити Open questions 1-3: guest token storage/cookie policy, sign-in merge behavior, one-cart/one-currency invariants і expiry policy.
+- [x] Додати `Cart` і `CartItem` новою reviewed forward migration; зафіксувати XOR customer/guest ownership, unique owner cart, unique `(cartId, listingId)`, positive quantity, timestamps, optional expiry та referential actions.
+- [x] Додати server-only guest context issuer/resolver і normalized `CommerceActor`; не перетворювати Guest на persisted role та не приймати owner identity з body/query.
+- [x] Реалізувати `CartModule` і owner-only get/add/update/remove/clear endpoints під `/api/v1/cart` через existing `PrismaService`.
+- [x] На кожному write перевіряти Listing existence, `ACTIVE` status, positive stock, requested quantity, live price/currency і cart currency invariant; client price/total ігнорувати або відхиляти як unknown fields.
+- [x] Повертати explicit Cart DTO з items, current unit price, line total, currency, availability issues і server-computed totals; exact internal stock та guest token hash не повертати.
+- [x] Визначити idempotency/error contract: same Listing додається як controlled quantity update, malformed quantity повертає `400`, inactive/missing Listing - non-disclosing `404`, insufficient stock/currency conflict - `409`.
+- [x] Додати unit tests для validation/actor policy та integration/e2e coverage для guest/customer isolation, cross-owner IDs, duplicate listing, inactive listing, stock, price refresh, currency і clear behavior.
 
 ### Definition of Done
 
-- [ ] Guest і Customer можуть керувати лише Cart свого server-resolved context; client не може підмінити owner ID/token hash.
-- [ ] Один Cart не містить duplicate Listing rows, non-positive quantities, mixed currencies або item quantity понад підтверджений current stock після успішного write.
-- [ ] Non-`ACTIVE`, missing або out-of-stock Listing не може бути успішно доданий чи збільшений.
-- [ ] Cart total обчислюється із current server-side Listing prices; client-supplied price не впливає на persistence або response.
-- [ ] Guest raw token не зберігається/логується відкрито, а cross-owner requests не розкривають existence resource.
-- [ ] Forward migration і Cart regression відтворюються на guarded `auto_parts_test` без demo seed або Stripe credentials.
+- [x] Guest і Customer можуть керувати лише Cart свого server-resolved context; client не може підмінити owner ID/token hash.
+- [x] Один Cart не містить duplicate Listing rows, non-positive quantities, mixed currencies або item quantity понад підтверджений current stock після успішного write.
+- [x] Non-`ACTIVE`, missing або out-of-stock Listing не може бути успішно доданий чи збільшений.
+- [x] Cart total обчислюється із current server-side Listing prices; client-supplied price не впливає на persistence або response.
+- [x] Guest raw token не зберігається/логується відкрито, а cross-owner requests не розкривають existence resource.
+- [x] Forward migration і Cart regression відтворюються на guarded `auto_parts_test` без demo seed або Stripe credentials.
 
 ### Validation
 
@@ -197,6 +197,14 @@ pnpm --filter api test:e2e
 pnpm --filter api build
 git diff --check
 ```
+
+### Implementation log
+
+- Додано owner-isolated `CartModule` з API для читання, додавання, заміни quantity, видалення item і очищення cart.
+- Guest context використовує opaque cookie та SHA-256 hash у БД; authenticated Customer має пріоритет без автоматичного merge guest cart.
+- Cart writes перевіряють актуальні `Listing.status`, stock, price/currency та виконуються через existing `PrismaService`; response totals обчислюються сервером.
+- Додано unit, integration та e2e regression coverage для ownership, concurrency, expiry, constraints, commercial-state conflicts і cookie lifecycle.
+- Validation пройдено: Prisma schema/migrations без pending changes або drift; unit `11/11` suites (`63` tests), integration `10/10` suites (`41` tests), e2e `9/9` suites (`35` tests); repository lint, type-check і build завершилися успішно.
 
 ## Milestone 8.2 - Pending Order and server checkout orchestration
 
