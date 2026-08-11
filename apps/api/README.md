@@ -1,6 +1,6 @@
 # Auto Parts Marketplace API
 
-NestJS 11 backend for Auto Parts Marketplace. It uses Prisma 7.9.0, PostgreSQL 16 and Better Auth 1.6.26. The implemented backend includes catalog/vehicle compatibility persistence, session authentication, RBAC, supplier ownership, customer garage and public fitment-aware catalog APIs. Commerce write workflows are not implemented yet.
+NestJS 11 backend for Auto Parts Marketplace. It uses Prisma 7.9.0, PostgreSQL 16 and Better Auth 1.6.26. The implemented backend includes catalog/vehicle compatibility, session authentication, RBAC, supplier ownership, customer garage, fitment-aware catalog APIs and the owner-isolated Cart → Checkout → Order/payment lifecycle.
 
 Run commands from the repository root with Node.js `>=22.12.0 <23` and pnpm 9.
 
@@ -32,6 +32,24 @@ The safe example documents these environment-only values:
 
 Better Auth supports email/password and Google OAuth. Do not commit populated credentials.
 
+## Commerce and Stripe environment
+
+Commerce uses the server-only Stripe configuration documented in `.env.example`:
+
+- `STRIPE_SECRET_KEY` — Stripe test-mode secret key used only by the API;
+- `STRIPE_WEBHOOK_SECRET` — signing secret printed by the local Stripe listener;
+- `STRIPE_CHECKOUT_SUCCESS_URL` and `STRIPE_CHECKOUT_CANCEL_URL` — browser redirects that never mutate payment or Order status.
+
+For a local Stripe test-mode checkout:
+
+1. Start PostgreSQL and the API, then run `stripe login` once for the Stripe CLI.
+2. Run `stripe listen --forward-to localhost:3001/api/v1/webhooks/stripe`.
+3. Put the listener's `whsec_...` value in the untracked `apps/api/.env` as `STRIPE_WEBHOOK_SECRET`, then restart the API. Never copy it into Git or logs.
+4. Create a Cart and call the server checkout endpoint with a fresh UUID `Idempotency-Key`.
+5. Open the returned Stripe Checkout URL and complete payment with Stripe test-mode data. The signed webhook, not the success redirect, moves the pending Order to `PAID`.
+
+Generic `stripe trigger` fixtures do not carry this application's Order/session/amount metadata. A mismatched signed event intentionally receives a retryable error and performs no database mutation.
+
 ## Demo seed
 
 ```bash
@@ -49,7 +67,7 @@ pnpm --filter api test
 # PostgreSQL persistence and application-service integration tests
 pnpm --filter api test:int
 
-# Auth, taxonomy, garage, catalog and PDP HTTP tests
+# Auth, taxonomy, garage, catalog, PDP and commerce HTTP tests
 pnpm --filter api test:e2e
 ```
 
@@ -79,4 +97,26 @@ Catalog and PDP accept either explicit `year` + `generationId` + optional `engin
 
 Public listings expose derived `inStock`, not exact stock quantity, and only public Supplier fields `{ id, name, slug }`. Invalid query/hierarchy returns `400`; missing or unavailable public resources return `404`; unauthenticated `savedVehicleId` access returns `401`, while missing and cross-owner saved vehicles share the same `404` response.
 
-Listing management, cart, checkout, order/payment processing and returns endpoints remain future milestones.
+## Commerce API boundary
+
+Cart and Order ownership is resolved server-side. A valid Customer session takes precedence; otherwise the API issues the opaque `apm_guest_cart` cookie with `HttpOnly`, `SameSite=Lax`, `Path=/` and production `Secure`. PostgreSQL stores only its SHA-256 hash. Losing or expiring that cookie loses access to the corresponding guest Cart and Orders; raw Order IDs are not access credentials.
+
+Implemented routes:
+
+- `GET /api/v1/cart`;
+- `POST /api/v1/cart/items`;
+- `PATCH /api/v1/cart/items/:itemId`;
+- `DELETE /api/v1/cart/items/:itemId` and `DELETE /api/v1/cart`;
+- `POST /api/v1/checkout/session` with a required fresh UUID `Idempotency-Key` and an empty body;
+- public signed boundary `POST /api/v1/webhooks/stripe`;
+- `GET /api/v1/orders`;
+- `GET /api/v1/orders/:orderId`;
+- `GET /api/v1/orders/:orderId/timeline`.
+
+The server re-reads `ACTIVE` Listing price, currency and stock during checkout. It reserves stock and creates a `PENDING_PAYMENT` Order with immutable OrderItem snapshots before calling Stripe. Client-supplied price, total, owner or status fields are rejected. Repeating the same owner/key safely converges on the same checkout; conflicting reuse returns `409`.
+
+Only a signature-verified, metadata/session/currency/amount-consistent paid webhook may set `PAID`. Duplicate Stripe event IDs acknowledge without repeated transitions; failed or expired pending checkout releases stock once. Missing signature returns `400`; stale Cart/stock/currency or idempotency conflicts return `409`; provider/consistency failures return retryable `503`. Cross-owner and missing Cart items/Orders use non-disclosing responses.
+
+Order history and timeline use opaque cursor pagination (`limit` default 20, maximum 50). Order detail returns historical item snapshots, not current Listing price or stock. PaymentEvent payloads, guest hashes, Stripe identifiers and internal ownership fields are never part of public Order responses.
+
+Supplier listing management, fulfillment/shipping, refunds and returns remain future milestones.

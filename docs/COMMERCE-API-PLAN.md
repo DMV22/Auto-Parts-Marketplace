@@ -94,10 +94,10 @@ Milestones 6-7 вже надають:
 1. **Guest ownership token - resolved for 8.1.** Сервер видає opaque 256-bit token у `HttpOnly`, `SameSite=Lax`, `Path=/`, production `Secure` cookie; PostgreSQL зберігає лише deterministic SHA-256 hash. Cookie і guest Cart мають sliding TTL 30 днів після cart mutation; expired context не відновлюється, а background cleanup не входить у 8.1. `Cart` і майбутній guest `Order` мають XOR ownership: або `customerId`, або `guestTokenHash`, але не обидва.
 2. **Guest-to-customer cart merge - resolved for 8.1.** Automatic merge не виконується. Valid Customer session має precedence над guest cookie; під час першого authenticated `/api/v1/cart*` request старий guest cookie очищається. Customer cart не отримує guest items, а abandoned guest row залишається ізольованим до expiry; merge потребуватиме окремої transactional policy в майбутньому.
 3. **Cart currency and cardinality - resolved for 8.1.** Один owner context має максимум один Cart. Cart створюється lazy під час першого item write; `GET` для відсутнього Cart повертає empty DTO без DB row. Перший Listing фіксує currency, інша currency повертає `409`, а видалення останнього item очищає currency. Price/currency/totals визначає лише сервер із current Listing.
-4. **Stock reservation and expiry - resolve before 8.2.** Рекомендовано reserved-stock baseline: checkout transaction атомарно перевіряє/decrements `Listing.stockQuantity`, створює `PENDING_PAYMENT` Order і задає `checkoutExpiresAt` (baseline 30 minutes). `checkout.session.expired` або compensating failure переводить pending Order у `CANCELLED` і повертає stock рівно один раз.
-5. **Checkout request idempotency - resolve before 8.2.** Рекомендовано required high-entropy `Idempotency-Key` для create-checkout, persisted як unique `checkoutRequestId`; повтор owner/key повертає existing checkout result або current Order state, а інший payload під тим самим key повертає `409`.
-6. **Stripe event allowlist - resolve before 8.3.** Рекомендований baseline: `checkout.session.completed` встановлює `PAID` лише якщо Stripe `payment_status=paid`; `checkout.session.async_payment_succeeded` також підтверджує payment; `checkout.session.async_payment_failed` і `checkout.session.expired` cancel-ять лише still-pending Order та release-ять reservation. Unrelated valid events acknowledge-яться без domain mutation.
-7. **Order timeline source - resolve before 8.2/8.4.** Рекомендовано append-only `OrderStatusEvent` із `fromStatus`, `toStatus`, source, timestamp і optional `paymentEventId`; initial `PENDING_PAYMENT` запис створюється разом з Order, а webhook transition і timeline insert відбуваються в одній transaction.
+4. **Stock reservation and expiry - resolved for 8.2/8.3.** Checkout transaction атомарно re-read/перевіряє Listings, conditionally decrements `stockQuantity`, створює `PENDING_PAYMENT` Order і задає 31-minute `checkoutExpiresAt` для Stripe minimum. Provider compensation, `checkout.session.expired` або async failure cancel-ять лише still-pending Order і повертають reservation рівно один раз.
+5. **Checkout request idempotency - resolved for 8.2.** Create-checkout вимагає UUID `Idempotency-Key`, persisted як unique `checkoutRequestId` разом із server-derived cart fingerprint. Повтор того самого owner/key/fingerprint повертає existing result/current Order; conflicting reuse повертає `409`, concurrent retry сходиться до одного Order.
+6. **Stripe event allowlist - resolved for 8.3.** `checkout.session.completed` встановлює `PAID` лише за `payment_status=paid`; async success також підтверджує payment; async failure та expiry cancel-ять лише pending Order. Unrelated valid events acknowledge-яться без mutation; order/session/currency/amount mismatch повертає retryable non-2xx без partial write.
+7. **Order timeline source and presentation - resolved for 8.2-8.4.** Append-only `OrderStatusEvent` зберігає from/to status, internal source, timestamp і optional PaymentEvent link в одній transition transaction. Public timeline приховує source/payment details і повертає `previousStatus`, `status`, `occurredAt` та reason code (`ORDER_CREATED`, `PAYMENT_CONFIRMED`, `PAYMENT_FAILED`, `CHECKOUT_EXPIRED`, `CHECKOUT_FAILED`, fallback `STATUS_UPDATED`) через bounded opaque cursor.
 
 ## Proposed approach
 
@@ -358,24 +358,24 @@ git diff --check
 
 ### Tasks
 
-- [ ] Переконатися, що Open questions 1-7 закриті, а фактичні decisions синхронізовані в цьому plan без окремого conflicting spec.
-- [ ] Відтворити disposable `auto_parts_dev` і guarded `auto_parts_test` лише з committed migrations; demo seed не використовувати як test prerequisite.
-- [ ] Запустити повний regression для cart ownership, server pricing/stock, checkout idempotency, pending-before-redirect, webhook signature/idempotency і order read isolation.
-- [ ] Провести concurrency rehearsal: два checkout requests на останній stock, duplicate/out-of-order Stripe events і compensating release не створюють oversell або double release.
-- [ ] Звірити README/environment/API examples із фактичними routes, cookies, required headers, Stripe CLI local webhook workflow, error responses і lifecycle semantics без real secrets.
-- [ ] Перевірити query plans/indexes для owner cart lookup, checkout Listing locks/updates, PaymentEvent idempotency та paginated order history; schema indexes додавати лише reviewed forward migration за measured evidence.
-- [ ] Провести repository audit: historical migrations immutable, schema без drift, secrets/generated artifacts не tracked, frontend/Milestone 9-10 behavior відсутні.
-- [ ] Оновити Tasks/DoD та Implementation log лише після фактичної Validation.
+- [x] Переконатися, що Open questions 1-7 закриті, а фактичні decisions синхронізовані в цьому plan без окремого conflicting spec.
+- [x] Відтворити disposable `auto_parts_dev` і guarded `auto_parts_test` лише з committed migrations; demo seed не використовувати як test prerequisite.
+- [x] Запустити повний regression для cart ownership, server pricing/stock, checkout idempotency, pending-before-redirect, webhook signature/idempotency і order read isolation.
+- [x] Провести concurrency rehearsal: два checkout requests на останній stock, duplicate/out-of-order Stripe events і compensating release не створюють oversell або double release.
+- [x] Звірити README/environment/API examples із фактичними routes, cookies, required headers, Stripe CLI local webhook workflow, error responses і lifecycle semantics без real secrets.
+- [x] Перевірити query plans/indexes для owner cart lookup, checkout Listing locks/updates, PaymentEvent idempotency та paginated order history; schema indexes додавати лише reviewed forward migration за measured evidence.
+- [x] Провести repository audit: historical migrations immutable, schema без drift, secrets/generated artifacts не tracked, frontend/Milestone 9-10 behavior відсутні.
+- [x] Оновити Tasks/DoD та Implementation log лише після фактичної Validation.
 
 ### Definition of Done
 
-- [ ] Усі 8.1-8.4 Tasks/DoD позначені `[x]` лише після відповідної validation та reviewed migrations.
-- [ ] Clean migration rehearsal, Prisma drift check, unit, integration, e2e і build проходять повторювано.
-- [ ] Pending Order завжди створюється до redirect, а лише signature-verified webhook може встановити `PAID`.
-- [ ] Duplicate/reordered webhook і checkout retry не створюють duplicate events/orders/timeline entries та не змінюють stock двічі.
-- [ ] Guest/customer Cart і Orders мають підтверджену negative ownership coverage та не залежать від demo seed.
-- [ ] API/environment документація відповідає фактичному commerce contract і не містить secrets.
-- [ ] Milestone 9 може читати supplier-owned OrderItems без зміни customer payment/ownership lifecycle.
+- [x] Усі 8.1-8.4 Tasks/DoD позначені `[x]` лише після відповідної validation та reviewed migrations.
+- [x] Clean migration rehearsal, Prisma drift check, unit, integration, e2e і build проходять повторювано.
+- [x] Pending Order завжди створюється до redirect, а лише signature-verified webhook може встановити `PAID`.
+- [x] Duplicate/reordered webhook і checkout retry не створюють duplicate events/orders/timeline entries та не змінюють stock двічі.
+- [x] Guest/customer Cart і Orders мають підтверджену negative ownership coverage та не залежать від demo seed.
+- [x] API/environment документація відповідає фактичному commerce contract і не містить secrets.
+- [x] Milestone 9 може читати supplier-owned OrderItems без зміни customer payment/ownership lifecycle.
 
 ### Validation
 
@@ -393,6 +393,22 @@ pnpm --filter api test:int
 pnpm --filter api test:e2e
 git diff --check
 ```
+
+### Implementation log
+
+- Prisma schema valid; dev migration status clean; datasource-to-schema diff порожній. Окрема `auto_parts_readiness_85` успішно відтворена всіма 9 committed migrations і видалена після rehearsal.
+- API unit regression: 15 suites, 87 tests passed. Focused commerce integration: 4 suites, 33 tests passed. Focused commerce e2e: 4 suites, 14 tests passed. API build passed.
+- Existing concurrency coverage підтверджує competing cart/checkout writes, same-key retry convergence, single compensation release, duplicate webhook no-op та late/out-of-order terminal guards.
+- Index audit підтвердив unique Cart owner lookups, Listing primary/commerce indexes і `PaymentEvent_externalEventId_key`; EXPLAIN використовує PaymentEvent unique index. Малий dev dataset обирає Seq Scan + Sort для Order history, тому нового index без production-like measurement не додано.
+- Repository audit: migration SQL має по одному introducing commit, schema drift відсутній, frontend/shared changes відсутні, tracked secrets або build artifacts не знайдені. `AGENTS.md` залишається актуальним.
+
+### Milestone 9 handoff
+
+- Supplier scope визначати server-side через active `SupplierUser`; supplier-owned OrderItems читати через `OrderItem -> Listing -> supplierId`, не приймати supplier/customer ownership із request body.
+- Для проданої позиції authoritative є immutable OrderItem snapshot (name/SKU/MPN/condition/supplier/price/quantity). Поточні public Listing price, status і derived availability залишаються catalog projections та не переписують Order history.
+- Payment lifecycle залишається boundary Milestone 8: supplier API не встановлює `PAID`, не обробляє Stripe events і не змінює customer/guest ownership. Fulfillment transitions після `PAID` потребують окремої allowlist/authorization policy Milestone 9.
+- Supplier responses не повинні розкривати guest hash, unrelated supplier items, raw PaymentEvent payload або customer membership internals. Aggregate Order status не можна виводити з одного supplier item без погодженого multi-supplier rule.
+- Перед production-scale supplier/order reads повторно виміряти owner-history та supplier-item query plans; composite index додавати лише окремою reviewed forward migration за measured evidence.
 
 ## Migration and rollback strategy
 
