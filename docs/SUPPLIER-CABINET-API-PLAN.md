@@ -359,22 +359,22 @@ git diff --check
 
 ### Tasks
 
-- [ ] Реалізувати owner-scoped OrderItem list/detail endpoints у Supplier Cabinet boundary.
-- [ ] Визначати ownership через `OrderItem -> Listing -> supplierId` у кожному Prisma query; не авторизувати за client-supplied ownership data.
-- [ ] Визначити explicit DTO лише із supplier-relevant immutable item snapshots, quantity, unit price, currency, public Order status і timestamps.
-- [ ] Виключити full Order, customer/guest identifiers, addresses, PaymentEvent payloads, Stripe metadata/secrets, guest hashes і OrderItems інших Suppliers.
-- [ ] Додати allowlisted Order status/date filters, bounded cursor pagination і stable `Order.createdAt DESC, OrderItem.id DESC` sorting.
-- [ ] Зберегти non-disclosing `404` для missing і foreign-owned detail.
-- [ ] Додати integration/e2e fixture з одним multi-supplier Order, щоб довести ізоляцію; перевірити inactive membership, SupportManager denial та explicit Admin bypass.
+- [x] Реалізувати owner-scoped OrderItem list/detail endpoints у Supplier Cabinet boundary.
+- [x] Визначати ownership через `OrderItem -> Listing -> supplierId` у кожному Prisma query; не авторизувати за client-supplied ownership data.
+- [x] Визначити explicit DTO лише із supplier-relevant immutable item snapshots, quantity, unit price, currency, public Order status і timestamps.
+- [x] Виключити full Order, customer/guest identifiers, addresses, PaymentEvent payloads, Stripe metadata/secrets, guest hashes і OrderItems інших Suppliers.
+- [x] Додати allowlisted Order status/date filters, bounded cursor pagination і stable `Order.createdAt DESC, OrderItem.id DESC` sorting.
+- [x] Зберегти non-disclosing `404` для missing і foreign-owned detail.
+- [x] Додати integration/e2e fixture з одним multi-supplier Order, щоб довести ізоляцію; перевірити inactive membership, SupportManager denial та explicit Admin bypass.
 
 ### Definition of Done
 
-- [ ] SupplierUser бачить лише OrderItems, Listing яких належить його Supplier.
-- [ ] Multi-supplier Order не розкриває items іншого Supplier або full Order.
-- [ ] Customer/guest identity, addresses і payment/webhook internals відсутні в response.
-- [ ] Endpoints є read-only і не змінюють Order/payment/fulfillment state.
-- [ ] Pagination, sorting, filters і ownership errors відповідають shared API contract.
-- [ ] Negative isolation tests працюють із fixtures у guarded `auto_parts_test`.
+- [x] SupplierUser бачить лише OrderItems, Listing яких належить його Supplier.
+- [x] Multi-supplier Order не розкриває items іншого Supplier або full Order.
+- [x] Customer/guest identity, addresses і payment/webhook internals відсутні в response.
+- [x] Endpoints є read-only і не змінюють Order/payment/fulfillment state.
+- [x] Pagination, sorting, filters і ownership errors відповідають shared API contract.
+- [x] Negative isolation tests працюють із fixtures у guarded `auto_parts_test`.
 
 ### Validation
 
@@ -385,6 +385,25 @@ pnpm --filter api test:e2e
 pnpm --filter api build
 git diff --check
 ```
+
+### Implementation log
+
+**What changed**
+
+- Додано read-only `GET /api/v1/suppliers/:supplierId/order-items` і `GET /api/v1/suppliers/:supplierId/order-items/:orderItemId` у наявний `SupplierCabinetModule`.
+- Кожен Prisma read повторно scoped через `OrderItem -> Listing -> supplierId`; missing і foreign-owned detail повертають однаковий `404`, а structurally valid foreign/missing cursor повертає empty page.
+- Додано explicit flat DTO з immutable item snapshots, quantity/money та мінімальними public Order fields; customer/guest, address, payment, Stripe й full Order data не вибираються з БД.
+- Додано allowlisted `status`, `createdFrom`, `createdTo`, bounded `pageSize` і opaque cursor зі stable `Order.createdAt DESC, OrderItem.id DESC` sorting.
+- Додано власні multi-supplier fixtures та unit/integration/e2e coverage для privacy, pagination, filters, read-only behavior, active/inactive membership, SupportManager denial і explicit Admin bypass.
+- Schema та migrations не змінювалися: наявні relations повністю підтримують read contract.
+
+**Validation results**
+
+- `pnpm --filter api test` - passed: 18 suites, 117 tests.
+- `pnpm --filter api test:int` - passed against guarded `auto_parts_test`: 15 suites, 77 tests; 11 committed migrations current.
+- `pnpm --filter api test:e2e` - passed against guarded `auto_parts_test`: 14 suites, 56 tests; 11 committed migrations current.
+- `pnpm --filter api build` - passed.
+- `git diff --check` - passed.
 
 ---
 
