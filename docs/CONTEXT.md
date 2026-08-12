@@ -2,7 +2,7 @@
 
 ## Product
 
-Auto Parts Marketplace is an early-stage marketplace for automotive parts. The repository currently provides a reproducible backend foundation and public fitment-aware discovery API; frontend-to-API integration and commerce write workflows remain future work.
+Auto Parts Marketplace is an early-stage marketplace for automotive parts. The repository currently provides a reproducible backend foundation, public fitment-aware discovery API and owner-isolated Cart/Checkout/Order API; frontend-to-API integration and supplier fulfillment remain future work.
 
 ## Current repository baseline
 
@@ -29,6 +29,7 @@ apps/
 apps/api/prisma/        Schema, committed migrations and demo seed
 apps/api/src/auth/      Better Auth, session, RBAC and ownership boundary
 apps/api/src/catalog/   Public catalog/PDP queries and shared fitment policy
+apps/api/src/commerce/  Cart, Checkout, Payments and owner-only Orders boundaries
 apps/api/src/garage/    Customer-owned SavedVehicle API
 apps/api/src/prisma/    Single Nest Prisma provider and database guards
 apps/api/src/vehicle-taxonomy/  Public vehicle selector API
@@ -46,11 +47,11 @@ The canonical Prisma model contains:
 - catalog: `Category`, `Brand`, `Product`, `ProductVariant`;
 - vehicle taxonomy: `VehicleMake`, `VehicleModel`, `VehicleGeneration`, `EngineType`, `FitmentRule`;
 - identity and suppliers: `User`, `Session`, `Account`, `Verification`, `CustomerProfile`, `SavedVehicle`, `Address`, `Supplier`, `SupplierUser`;
-- commerce persistence baseline: `Listing`, `Order`, `OrderItem`, `PaymentEvent`, `ReturnRequest`.
+- commerce: `Listing`, `Cart`, `CartItem`, `Order`, `OrderItem`, `OrderStatusEvent`, `PaymentEvent`, `ReturnRequest`.
 
 Persisted roles are `CUSTOMER`, `SUPPLIER_USER`, `SUPPORT_MANAGER` and `ADMIN`; Guest is an unauthenticated state, not a database role. RBAC answers which action a role may perform, while supplier ownership requires an active membership matching the target Supplier.
 
-Commerce records have agreed status enums, defaults, foreign keys and idempotency constraints. They are persistence contracts only: status-transition services, checkout, Stripe/webhook processing, stock reservation, shipping and returns workflows are not implemented.
+Commerce records have agreed status enums, defaults, foreign keys and idempotency constraints. Cart ownership, server-authoritative checkout, stock reservation, pending Orders, signed Stripe webhook transitions and owner-only Order reads are implemented. Supplier fulfillment, shipping, refunds and returns workflows are not implemented.
 
 ## Implemented discovery API
 
@@ -60,6 +61,15 @@ Commerce records have agreed status enums, defaults, foreign keys and idempotenc
 - `GET /api/v1/catalog/products/:productId` provides Product/Variant details, public Supplier listing data and fitment answers.
 
 Catalog and PDP normalize explicit taxonomy context or an owner-only `savedVehicleId` through one vehicle-context boundary. One `FitmentService` applies exact-engine precedence over generation-wide rules and returns `compatible`, `incompatible`, `unknown` or `caution`; missing coverage never implies compatibility.
+
+## Implemented commerce API
+
+- `/api/v1/cart*` provides owner-isolated Customer/guest Cart reads and writes with live Listing validation.
+- `POST /api/v1/checkout/session` requires a UUID `Idempotency-Key`, reserves stock and persists a pending Order plus immutable OrderItem snapshots before the server creates a Stripe Checkout Session.
+- `POST /api/v1/webhooks/stripe` verifies the exact raw-body signature and atomically/idempotently records PaymentEvent, Order transition, timeline and reservation release.
+- `/api/v1/orders*` provides owner-only history, immutable detail and a public reason-coded timeline with bounded opaque-cursor pagination.
+
+Guest is not a role. The API issues an opaque HttpOnly cookie and stores only its SHA-256 hash for Cart/Order ownership. Customer sessions take precedence. Cross-owner and missing Orders share the same non-disclosing response. Redirects and read endpoints cannot mutate payment state; only a verified consistent webhook can set `PAID`.
 
 ## Auth and persistence boundaries
 

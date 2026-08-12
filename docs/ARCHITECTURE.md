@@ -4,7 +4,7 @@
 
 Auto Parts Marketplace is intended to let customers discover compatible automotive parts and suppliers manage marketplace inventory through a web application backed by a NestJS API and PostgreSQL.
 
-The repository currently implements the backend foundation, not complete marketplace workflows. Do not invent checkout, payment, shipping, moderation or return behavior without an accepted milestone.
+The repository currently implements the backend foundation, discovery API and accepted Milestone 8 commerce lifecycle, not complete marketplace workflows. Do not invent supplier fulfillment, shipping, refunds, moderation or return behavior without an accepted milestone.
 
 ## Current system
 
@@ -14,7 +14,7 @@ The repository currently implements the backend foundation, not complete marketp
 - Docker Compose — PostgreSQL 16 with `auto_parts_dev` and `auto_parts_test`, exposed on host port `5433`.
 - pnpm/Turborepo — workspace task graph, including `.next/**` and API `dist/**` build outputs.
 
-The committed migration chain implements catalog and vehicle taxonomy, identity/supplier ownership, and status-bearing commerce records. The API implements public taxonomy, catalog and PDP reads plus Customer-owned garage operations. Regression coverage includes migration preservation, fitment semantics, catalog filtering/pagination, auth/session lifecycle, RBAC and ownership.
+The committed migration chain implements catalog and vehicle taxonomy, identity/supplier ownership, and owner-aware commerce records. The API implements public taxonomy/catalog/PDP reads, Customer-owned garage operations, Customer/guest Cart and Checkout, signed Stripe webhook transitions, and owner-only Order reads. Regression coverage includes migrations, fitment semantics, catalog pagination, auth/session lifecycle, RBAC, commerce concurrency/idempotency and ownership.
 
 ## Application boundaries
 
@@ -25,7 +25,7 @@ The committed migration chain implements catalog and vehicle taxonomy, identity/
 
 ## Persistence boundary
 
-`AppModule` imports the global `PrismaModule`, which exports one application-wide `PrismaService`. The service constructs Prisma Client with `PrismaPg`, connects during Nest module initialization and disconnects during module destruction. Future domain repositories and services receive it through dependency injection.
+`AppModule` imports the global `PrismaModule`, which exports one application-wide `PrismaService`. The service constructs Prisma Client with `PrismaPg`, connects during Nest module initialization and disconnects during module destruction. Domain services, including all commerce services, receive it through dependency injection.
 
 Normal development reads `DATABASE_URL`. Under `NODE_ENV=test`, the provider requires `TEST_DATABASE_URL` and accepts only local `auto_parts_test`. Integration/e2e setup applies committed migrations before suites and never runs demo seed.
 
@@ -50,6 +50,16 @@ Catalog controllers perform whitelist validation and delegate to injected servic
 
 Public queries return only `ACTIVE` Listings and explicit projections. PDP exposes derived availability and `{ id, name, slug }` Supplier data without exact inventory, memberships or auth records. Database filtering, pagination and sorting remain in PostgreSQL; nested relation access is bounded and contains no per-variant Prisma calls.
 
+## Commerce boundary
+
+`CommerceActorService` resolves a valid Customer session first and otherwise uses a server-issued opaque guest cookie whose SHA-256 hash is persisted. `CartModule`, `CheckoutModule` and `OrdersModule` apply this normalized owner directly in Prisma queries; missing and cross-owner Orders are indistinguishable.
+
+`CheckoutService` re-reads active Listings inside a short transaction, conditionally reserves stock and creates a `PENDING_PAYMENT` Order with immutable OrderItem snapshots before any provider redirect. The Stripe Checkout call runs outside the transaction through one gateway. A failed provider call uses an idempotent compensating cancellation and stock release.
+
+`PaymentsModule` is the public webhook boundary. It verifies Stripe's signature over exact raw bytes before domain lookup. One transaction stores the unique PaymentEvent, applies an allowed pending-state transition, appends OrderStatusEvent and releases stock when required. Browser redirects and Order GET routes are read-only and cannot set `PAID`.
+
+`OrdersModule` exposes owner-only history, immutable detail and reason-coded timeline projections. Responses exclude PaymentEvent payloads, Stripe identifiers, guest hashes and internal membership data. Collections use bounded deterministic opaque-cursor pagination.
+
 ## Domain persistence
 
 ```text
@@ -65,15 +75,16 @@ Category / Brand                VehicleMake
 Supplier -> Listing -> OrderItem -> Order -> User
                          |
                    ReturnRequest
+Owner -> Cart -> CartItem -> Listing
 Order -> PaymentEvent (unique externalEventId)
+Order -> OrderStatusEvent
 ```
 
-`Listing`, `Order`, `PaymentEvent` and `ReturnRequest` status enums are stored and constrained, but transitions are not executed automatically. Payment events are append-only external-event records.
+Order/payment transitions are explicit application-service operations guarded by expected current state. Payment events and status timeline records are append-only; unique external event identity prevents repeated webhook side effects. Shipping, refunds and returns still have no runtime workflow.
 
 ## Not implemented
 
 - supplier listing-management endpoints;
-- cart, checkout, Stripe webhook processing or stock reservation;
 - order fulfillment, shipping and return workflows;
 - frontend-to-API integration;
 - production database, secret management, backups, monitoring and deployment architecture.
