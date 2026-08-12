@@ -244,6 +244,7 @@ async function seed(): Promise<void> {
               fitment.generationKey,
             ),
             engineTypeId: requireId(engineIds, fitment.engineKey),
+            effect: fitment.effect,
           },
           create: {
             id: fitment.id,
@@ -253,6 +254,7 @@ async function seed(): Promise<void> {
               fitment.generationKey,
             ),
             engineTypeId: requireId(engineIds, fitment.engineKey),
+            effect: fitment.effect,
           },
         });
       }
@@ -264,6 +266,7 @@ async function seed(): Promise<void> {
             supplierId: requireId(supplierIds, listing.supplierSlug),
             productVariantId: requireId(variantIds, listing.variantSku),
             status: listing.status,
+            condition: listing.condition,
             price: listing.price,
             currency: 'UAH',
             stockQuantity: listing.stockQuantity,
@@ -273,6 +276,7 @@ async function seed(): Promise<void> {
             supplierId: requireId(supplierIds, listing.supplierSlug),
             productVariantId: requireId(variantIds, listing.variantSku),
             status: listing.status,
+            condition: listing.condition,
             price: listing.price,
             currency: 'UAH',
             stockQuantity: listing.stockQuantity,

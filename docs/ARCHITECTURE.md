@@ -14,7 +14,7 @@ The repository currently implements the backend foundation, not complete marketp
 - Docker Compose — PostgreSQL 16 with `auto_parts_dev` and `auto_parts_test`, exposed on host port `5433`.
 - pnpm/Turborepo — workspace task graph, including `.next/**` and API `dist/**` build outputs.
 
-The committed migration chain implements catalog and vehicle taxonomy, identity/supplier ownership, and status-bearing commerce records. Integration tests cover migration preservation, catalog/fitment constraints, auth/session lifecycle, RBAC, supplier ownership, status defaults, foreign keys and payment-event idempotency.
+The committed migration chain implements catalog and vehicle taxonomy, identity/supplier ownership, and status-bearing commerce records. The API implements public taxonomy, catalog and PDP reads plus Customer-owned garage operations. Regression coverage includes migration preservation, fitment semantics, catalog filtering/pagination, auth/session lifecycle, RBAC and ownership.
 
 ## Application boundaries
 
@@ -42,6 +42,14 @@ Authorization has two independent layers:
 
 Guest is represented by the absence of an authenticated session and is never persisted as a role.
 
+## Catalog read boundary
+
+`VehicleTaxonomyModule` exposes the public selector under `/api/v1/vehicles/*`. `GarageModule` owns authenticated SavedVehicle operations under `/api/v1/garage/vehicles`. `CatalogModule` exposes public catalog list and PDP routes under `/api/v1/catalog/products`.
+
+Catalog controllers perform whitelist validation and delegate to injected services. Explicit taxonomy fields and owner-only `savedVehicleId` are normalized by one vehicle-context service. `FitmentService` is the shared policy for catalog compatibility filtering and PDP answers; exact-engine rules override generation-wide rules, while missing or incomplete coverage returns `unknown` or `caution` instead of a false compatibility claim.
+
+Public queries return only `ACTIVE` Listings and explicit projections. PDP exposes derived availability and `{ id, name, slug }` Supplier data without exact inventory, memberships or auth records. Database filtering, pagination and sorting remain in PostgreSQL; nested relation access is bounded and contains no per-variant Prisma calls.
+
 ## Domain persistence
 
 ```text
@@ -64,7 +72,6 @@ Order -> PaymentEvent (unique externalEventId)
 
 ## Not implemented
 
-- public catalog/PDP/fitment REST API;
 - supplier listing-management endpoints;
 - cart, checkout, Stripe webhook processing or stock reservation;
 - order fulfillment, shipping and return workflows;
@@ -78,8 +85,8 @@ These capabilities belong to later milestones and must build on the established 
 ```text
 Browser
   -> Next.js application
-  -> future versioned NestJS API
-  -> Auth guards / application services
+  -> versioned NestJS API (`/api/v1`) or Better Auth (`/api/auth`)
+  -> optional auth guards / application services
   -> PrismaModule / PrismaService
   -> PostgreSQL 16
 ```
