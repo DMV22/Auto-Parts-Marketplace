@@ -92,7 +92,7 @@ describe('SupplierListingsService integration', () => {
 
     await prisma.listing.update({
       where: { id: LISTING_A_ID },
-      data: { status: 'ACTIVE' },
+      data: { status: 'PENDING_APPROVAL' },
     });
     await expect(
       service.update(SUPPLIER_A_ID, LISTING_A_ID, { price: '10.00' }),
@@ -142,6 +142,69 @@ describe('SupplierListingsService integration', () => {
     await expect(
       prisma.listing.count({ where: { supplierId: SUPPLIER_A_ID } }),
     ).resolves.toBe(before);
+  });
+
+  it('persists rejection metadata and clears it across resubmit and approval', async () => {
+    await expect(
+      service.transitionSupplierListing(SUPPLIER_A_ID, LISTING_A_ID, 'submit'),
+    ).resolves.toMatchObject({
+      status: 'PENDING_APPROVAL',
+      rejectionReason: null,
+    });
+    await expect(
+      service.transitionAdminListing(
+        LISTING_A_ID,
+        'reject',
+        'Missing manufacturer evidence',
+      ),
+    ).resolves.toMatchObject({
+      status: 'REJECTED',
+      rejectionReason: 'Missing manufacturer evidence',
+    });
+    await expect(
+      service.update(SUPPLIER_A_ID, LISTING_A_ID, { price: '125.00' }),
+    ).resolves.toMatchObject({
+      status: 'REJECTED',
+      price: '125',
+      rejectionReason: 'Missing manufacturer evidence',
+    });
+    await expect(
+      service.transitionSupplierListing(SUPPLIER_A_ID, LISTING_A_ID, 'submit'),
+    ).resolves.toMatchObject({
+      status: 'PENDING_APPROVAL',
+      rejectionReason: null,
+    });
+    await expect(
+      service.transitionAdminListing(LISTING_A_ID, 'approve'),
+    ).resolves.toMatchObject({ status: 'ACTIVE', rejectionReason: null });
+  });
+
+  it('applies approval-sensitive edits and terminal archive transitions', async () => {
+    await prisma.listing.update({
+      where: { id: LISTING_A_ID },
+      data: { status: 'ACTIVE' },
+    });
+    await expect(
+      service.update(SUPPLIER_A_ID, LISTING_A_ID, { price: '110.00' }),
+    ).resolves.toMatchObject({ status: 'ACTIVE', price: '110' });
+    await expect(
+      service.transitionSupplierListing(SUPPLIER_A_ID, LISTING_A_ID, 'pause'),
+    ).resolves.toMatchObject({ status: 'PAUSED' });
+    await expect(
+      service.transitionSupplierListing(SUPPLIER_A_ID, LISTING_A_ID, 'resume'),
+    ).resolves.toMatchObject({ status: 'ACTIVE' });
+    await expect(
+      service.update(SUPPLIER_A_ID, LISTING_A_ID, { currency: 'USD' }),
+    ).resolves.toMatchObject({ status: 'PENDING_APPROVAL', currency: 'USD' });
+    await expect(
+      service.transitionSupplierListing(SUPPLIER_A_ID, LISTING_A_ID, 'archive'),
+    ).resolves.toMatchObject({ status: 'ARCHIVED' });
+    await expect(
+      service.transitionSupplierListing(SUPPLIER_A_ID, LISTING_A_ID, 'archive'),
+    ).rejects.toBeInstanceOf(ConflictException);
+    await expect(
+      service.update(SUPPLIER_A_ID, LISTING_A_ID, { price: '1.00' }),
+    ).rejects.toBeInstanceOf(ConflictException);
   });
 });
 

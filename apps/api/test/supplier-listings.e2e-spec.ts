@@ -201,11 +201,130 @@ describe('Supplier Listings API (e2e)', () => {
 
     await prisma.listing.update({
       where: { id: OWN_LISTING_ID },
-      data: { status: 'ACTIVE' },
+      data: { status: 'PENDING_APPROVAL' },
     });
     await owner
       .patch(`/api/v1/suppliers/${SUPPLIER_A_ID}/listings/${OWN_LISTING_ID}`)
       .send({ price: '10.00' })
+      .expect(409);
+  });
+
+  it('enforces Supplier submit and Admin-only rejection/approval lifecycle', async () => {
+    const owner = await authenticatedClient(
+      app,
+      prisma,
+      TEST_EMAILS[0],
+      UserRole.SUPPLIER_USER,
+      SUPPLIER_A_ID,
+    );
+    const support = await authenticatedClient(
+      app,
+      prisma,
+      TEST_EMAILS[2],
+      UserRole.SUPPORT_MANAGER,
+    );
+    const admin = await authenticatedClient(
+      app,
+      prisma,
+      TEST_EMAILS[3],
+      UserRole.ADMIN,
+    );
+
+    await owner
+      .post(
+        `/api/v1/suppliers/${SUPPLIER_A_ID}/listings/${OWN_LISTING_ID}/submit`,
+      )
+      .expect(201)
+      .expect((response) => {
+        expect(response.body).toMatchObject({
+          status: 'PENDING_APPROVAL',
+          rejectionReason: null,
+        });
+      });
+    await support
+      .post(`/api/v1/admin/listings/${OWN_LISTING_ID}/approve`)
+      .expect(403);
+    await admin
+      .post(`/api/v1/admin/listings/${OWN_LISTING_ID}/reject`)
+      .send({ reason: '   ' })
+      .expect(400);
+    await admin
+      .post(`/api/v1/admin/listings/${OWN_LISTING_ID}/reject`)
+      .send({ reason: '  Missing product evidence  ' })
+      .expect(201)
+      .expect((response) => {
+        expect(response.body).toMatchObject({
+          status: 'REJECTED',
+          rejectionReason: 'Missing product evidence',
+        });
+      });
+    await owner
+      .post(
+        `/api/v1/suppliers/${SUPPLIER_A_ID}/listings/${OWN_LISTING_ID}/submit`,
+      )
+      .expect(201)
+      .expect((response) => expect(response.body.rejectionReason).toBeNull());
+    await admin
+      .post(`/api/v1/admin/listings/${OWN_LISTING_ID}/approve`)
+      .expect(201)
+      .expect((response) => {
+        expect(response.body).toMatchObject({
+          status: 'ACTIVE',
+          rejectionReason: null,
+        });
+      });
+    await admin
+      .post(`/api/v1/admin/listings/${OWN_LISTING_ID}/approve`)
+      .expect(409);
+  });
+
+  it('keeps price-only edits published and archives a Listing out of public commerce', async () => {
+    const owner = await authenticatedClient(
+      app,
+      prisma,
+      TEST_EMAILS[0],
+      UserRole.SUPPLIER_USER,
+      SUPPLIER_A_ID,
+    );
+    await prisma.listing.update({
+      where: { id: OWN_LISTING_ID },
+      data: { status: 'ACTIVE', stockQuantity: 5 },
+    });
+
+    await owner
+      .patch(`/api/v1/suppliers/${SUPPLIER_A_ID}/listings/${OWN_LISTING_ID}`)
+      .send({ price: '125.00' })
+      .expect(200)
+      .expect((response) => expect(response.body.status).toBe('ACTIVE'));
+    await owner
+      .patch(`/api/v1/suppliers/${SUPPLIER_A_ID}/listings/${OWN_LISTING_ID}`)
+      .send({ condition: 'REMANUFACTURED' })
+      .expect(200)
+      .expect((response) =>
+        expect(response.body.status).toBe('PENDING_APPROVAL'),
+      );
+    await owner
+      .post(
+        `/api/v1/suppliers/${SUPPLIER_A_ID}/listings/${OWN_LISTING_ID}/archive`,
+      )
+      .expect(201)
+      .expect((response) => expect(response.body.status).toBe('ARCHIVED'));
+
+    await request(app.getHttpServer())
+      .get('/api/v1/catalog/products?q=SUP-E2E-A')
+      .expect(200)
+      .expect((response) => expect(response.body.data).toEqual([]));
+    await request(app.getHttpServer())
+      .get(`/api/v1/catalog/products/${PRODUCT_ID}`)
+      .expect(404);
+    await request(app.getHttpServer())
+      .post('/api/v1/cart/items')
+      .send({ listingId: OWN_LISTING_ID, quantity: 1 })
+      .expect(404);
+    await owner
+      .post(
+        `/api/v1/suppliers/${SUPPLIER_A_ID}/listings/${OWN_LISTING_ID}/archive`,
+      )
       .expect(409);
   });
 });

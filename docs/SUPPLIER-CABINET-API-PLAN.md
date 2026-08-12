@@ -232,23 +232,23 @@ git diff --check
 
 ### Tasks
 
-- [ ] Додати одну explicit Listing transition policy для supplier та Admin actions.
-- [ ] Реалізувати supplier submit, pause, resume й archive commands з ownership та expected-state checks.
-- [ ] Реалізувати Admin-only approve/reject commands; вимагати non-empty bounded `rejectionReason` для reject.
-- [ ] Додати `rejectionReason` через reviewed forward migration; очищувати його на resubmit/approval і виключити з public projections.
-- [ ] Зробити так, щоб edit ProductVariant, condition або currency скасовував approval і повертав approved/paused Listing у `PENDING_APPROVAL`; price edit не змінює publication status.
-- [ ] Використовувати conditional mutations, щоб concurrent або stale transitions повертали consistent conflict без silent overwrite.
-- [ ] Regression-test Catalog/PDP і Cart visibility: `DRAFT`, `PENDING_APPROVAL`, `PAUSED`, `REJECTED` і `ARCHIVED` не можуть стати public/purchasable.
-- [ ] Перевірити всі allowed/forbidden transitions, Supplier/Admin authority, reason lifecycle і SupportManager denial.
+- [x] Додати одну explicit Listing transition policy для supplier та Admin actions.
+- [x] Реалізувати supplier submit, pause, resume й archive commands з ownership та expected-state checks.
+- [x] Реалізувати Admin-only approve/reject commands; вимагати non-empty bounded `rejectionReason` для reject.
+- [x] Додати `rejectionReason` через reviewed forward migration; очищувати його на resubmit/approval і виключити з public projections.
+- [x] Зробити так, щоб edit ProductVariant, condition або currency скасовував approval і повертав approved/paused Listing у `PENDING_APPROVAL`; price edit не змінює publication status.
+- [x] Використовувати conditional mutations, щоб concurrent або stale transitions повертали consistent conflict без silent overwrite.
+- [x] Regression-test Catalog/PDP і Cart visibility: `DRAFT`, `PENDING_APPROVAL`, `PAUSED`, `REJECTED` і `ARCHIVED` не можуть стати public/purchasable.
+- [x] Перевірити всі allowed/forbidden transitions, Supplier/Admin authority, reason lifecycle і SupportManager denial.
 
 ### Definition of Done
 
-- [ ] Listing transitions відповідають погодженій state/actor matrix.
-- [ ] Лише Admin може approve або reject pending Listing.
-- [ ] Reject вимагає reason; resubmit очищує його.
-- [ ] Approval-sensitive edits повертають Listing у `PENDING_APPROVAL`.
-- [ ] Лише `ACTIVE` Listings потрапляють у Catalog/PDP і проходять Cart availability.
-- [ ] Stale або invalid transitions завершуються без partial updates.
+- [x] Listing transitions відповідають погодженій state/actor matrix.
+- [x] Лише Admin може approve або reject pending Listing.
+- [x] Reject вимагає reason; resubmit очищує його.
+- [x] Approval-sensitive edits повертають Listing у `PENDING_APPROVAL`.
+- [x] Лише `ACTIVE` Listings потрапляють у Catalog/PDP і проходять Cart availability.
+- [x] Stale або invalid transitions завершуються без partial updates.
 
 ### Validation
 
@@ -263,6 +263,29 @@ pnpm --filter api test:e2e
 pnpm --filter api build
 git diff --check
 ```
+
+### Implementation log
+
+**What changed**
+
+- Додано централізовану Listing transition policy для supplier submit/pause/resume/archive та Admin approve/reject actions.
+- Додано reviewed forward migration `20260812145409_add_listing_rejection_reason`, яка додає nullable `VARCHAR(500)` без rewrite existing rows.
+- Supplier edit policy дозволяє price-only update для `ACTIVE`/`PAUSED`, переводить material ProductVariant/condition/currency edits у `PENDING_APPROVAL` і блокує `PENDING_APPROVAL`/`ARCHIVED` edits.
+- Reject вимагає trimmed reason довжиною 1-500 символів; resubmit/approve очищує reason, а public Catalog/PDP projections його не читають.
+- Lifecycle mutations використовують conditional update за current status; invalid, repeated або stale action повертає conflict без partial write.
+- Додано unit, integration та e2e coverage для transition matrix, ownership/roles, rejection lifecycle, terminal archive і public Catalog/PDP/Cart exclusion.
+
+**Validation results**
+
+- `pnpm --filter api prisma:validate` - passed; Prisma schema valid.
+- `pnpm --filter api prisma:generate` - passed with Prisma Client `7.9.0`.
+- `pnpm --filter api prisma:migrate:deploy` - migration applied through guarded test setup; `auto_parts_dev` and `auto_parts_test` both have 10 current migrations.
+- `pnpm --filter api exec prisma migrate status` - passed for development database; schema up to date.
+- `pnpm --filter api test -- --runInBand` - passed: 17 suites, 107 tests.
+- `pnpm --filter api test:int` - passed against guarded `auto_parts_test`: 14 suites, 70 tests.
+- `pnpm --filter api test:e2e` - passed against guarded `auto_parts_test`: 13 suites, 52 tests.
+- `pnpm --filter api build` - passed during implementation step 1.
+- `git diff --check` - passed.
 
 ---
 
