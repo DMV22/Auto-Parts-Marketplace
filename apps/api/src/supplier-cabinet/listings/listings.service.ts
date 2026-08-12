@@ -6,9 +6,16 @@ import {
 import { Prisma } from '../../generated/prisma/client';
 import { ListingStatus } from '../../generated/prisma/enums';
 import { PrismaService } from '../../prisma/prisma.service';
+import {
+  resolveAdminListingTransition,
+  resolveSupplierListingTransition,
+  resolveSupplierListingUpdate,
+} from './listing-transition.policy';
 import type {
+  AdminListingAction,
   CreateSupplierListing,
   SupplierListingCursor,
+  SupplierListingAction,
   SupplierListingDto,
   SupplierListingsQuery,
   SupplierListingsResponse,
@@ -24,6 +31,7 @@ const LISTING_SELECT = {
   price: true,
   currency: true,
   stockQuantity: true,
+  rejectionReason: true,
   createdAt: true,
   updatedAt: true,
   productVariant: {
@@ -131,14 +139,7 @@ export class SupplierListingsService {
       select: { id: true, status: true },
     });
     if (!current) throw new NotFoundException('Listing not found');
-    if (
-      current.status !== ListingStatus.DRAFT &&
-      current.status !== ListingStatus.REJECTED
-    ) {
-      throw new ConflictException(
-        'Only draft or rejected listings can be edited',
-      );
-    }
+    const nextStatus = resolveSupplierListingUpdate(current.status, command);
     if (command.productVariantId) {
       const variant = await this.prisma.productVariant.findUnique({
         where: { id: command.productVariantId },
@@ -151,14 +152,71 @@ export class SupplierListingsService {
       where: {
         id: listingId,
         supplierId,
-        status: { in: [ListingStatus.DRAFT, ListingStatus.REJECTED] },
+        status: current.status,
       },
-      data: command,
+      data: { ...command, status: nextStatus },
     });
     if (result.count !== 1) {
       throw new ConflictException('Listing changed while it was being edited');
     }
     return this.get(supplierId, listingId);
+  }
+
+  async transitionSupplierListing(
+    supplierId: string,
+    listingId: string,
+    action: SupplierListingAction,
+  ): Promise<SupplierListingDto> {
+    const current = await this.prisma.listing.findFirst({
+      where: { id: listingId, supplierId },
+      select: { status: true },
+    });
+    if (!current) throw new NotFoundException('Listing not found');
+    const nextStatus = resolveSupplierListingTransition(current.status, action);
+    const result = await this.prisma.listing.updateMany({
+      where: { id: listingId, supplierId, status: current.status },
+      data: {
+        status: nextStatus,
+        rejectionReason: action === 'submit' ? null : undefined,
+      },
+    });
+    if (result.count !== 1) {
+      throw new ConflictException(
+        'Listing changed while it was being transitioned',
+      );
+    }
+    return this.get(supplierId, listingId);
+  }
+
+  async transitionAdminListing(
+    listingId: string,
+    action: AdminListingAction,
+    rejectionReason?: string,
+  ): Promise<SupplierListingDto> {
+    const current = await this.prisma.listing.findUnique({
+      where: { id: listingId },
+      select: { status: true },
+    });
+    if (!current) throw new NotFoundException('Listing not found');
+    const nextStatus = resolveAdminListingTransition(current.status, action);
+    const result = await this.prisma.listing.updateMany({
+      where: { id: listingId, status: current.status },
+      data: {
+        status: nextStatus,
+        rejectionReason: action === 'reject' ? rejectionReason : null,
+      },
+    });
+    if (result.count !== 1) {
+      throw new ConflictException(
+        'Listing changed while it was being reviewed',
+      );
+    }
+    const listing = await this.prisma.listing.findUnique({
+      where: { id: listingId },
+      select: LISTING_SELECT,
+    });
+    if (!listing) throw new NotFoundException('Listing not found');
+    return mapListing(listing);
   }
 }
 
@@ -219,6 +277,7 @@ function mapListing(listing: SelectedListing): SupplierListingDto {
     price: listing.price.toString(),
     currency: listing.currency,
     stockQuantity: listing.stockQuantity,
+    rejectionReason: listing.rejectionReason,
     createdAt: listing.createdAt.toISOString(),
     updatedAt: listing.updatedAt.toISOString(),
     productVariant: listing.productVariant,

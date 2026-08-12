@@ -1,6 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 import {
   CreateSupplierListingPipe,
+  RejectSupplierListingPipe,
   SupplierListingsQueryPipe,
   UpdateSupplierListingPipe,
 } from './listings.validation';
@@ -47,6 +48,23 @@ describe('supplier listing validation', () => {
     expect(() => pipe.transform({ stockQuantity: 10 })).toThrow(
       BadRequestException,
     );
+  });
+
+  it('normalizes a bounded Admin rejection reason', () => {
+    const pipe = new RejectSupplierListingPipe();
+
+    expect(pipe.transform({ reason: '  Missing compliance data  ' })).toEqual({
+      reason: 'Missing compliance data',
+    });
+    expect(() => pipe.transform({ reason: '   ' })).toThrow(
+      BadRequestException,
+    );
+    expect(() => pipe.transform({ reason: 'x'.repeat(501) })).toThrow(
+      BadRequestException,
+    );
+    expect(() =>
+      pipe.transform({ reason: 'Invalid', status: 'REJECTED' }),
+    ).toThrow(BadRequestException);
   });
 
   it('normalizes bounded filters and cursor pagination', () => {

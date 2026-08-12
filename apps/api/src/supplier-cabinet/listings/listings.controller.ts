@@ -19,6 +19,7 @@ import { SupplierListingsService } from './listings.service';
 import type {
   CreateSupplierListing,
   SupplierListingDto,
+  SupplierListingAction,
   SupplierListingsQuery,
   SupplierListingsResponse,
   UpdateSupplierListing,
@@ -73,5 +74,57 @@ export class SupplierListingsController {
     @Body(UpdateSupplierListingPipe) command: UpdateSupplierListing,
   ): Promise<SupplierListingDto> {
     return this.listings.update(supplierId, listingId, command);
+  }
+
+  @Post(':listingId/submit')
+  submit(
+    @Param('supplierId', new ParseUUIDPipe({ version: '4' }))
+    supplierId: string,
+    @Param('listingId', new ParseUUIDPipe({ version: '4' }))
+    listingId: string,
+  ): Promise<SupplierListingDto> {
+    return this.transition(supplierId, listingId, 'submit');
+  }
+
+  @Post(':listingId/pause')
+  pause(
+    @Param('supplierId', new ParseUUIDPipe({ version: '4' }))
+    supplierId: string,
+    @Param('listingId', new ParseUUIDPipe({ version: '4' }))
+    listingId: string,
+  ): Promise<SupplierListingDto> {
+    return this.transition(supplierId, listingId, 'pause');
+  }
+
+  @Post(':listingId/resume')
+  resume(
+    @Param('supplierId', new ParseUUIDPipe({ version: '4' }))
+    supplierId: string,
+    @Param('listingId', new ParseUUIDPipe({ version: '4' }))
+    listingId: string,
+  ): Promise<SupplierListingDto> {
+    return this.transition(supplierId, listingId, 'resume');
+  }
+
+  @Post(':listingId/archive')
+  archive(
+    @Param('supplierId', new ParseUUIDPipe({ version: '4' }))
+    supplierId: string,
+    @Param('listingId', new ParseUUIDPipe({ version: '4' }))
+    listingId: string,
+  ): Promise<SupplierListingDto> {
+    return this.transition(supplierId, listingId, 'archive');
+  }
+
+  private transition(
+    supplierId: string,
+    listingId: string,
+    action: SupplierListingAction,
+  ): Promise<SupplierListingDto> {
+    return this.listings.transitionSupplierListing(
+      supplierId,
+      listingId,
+      action,
+    );
   }
 }

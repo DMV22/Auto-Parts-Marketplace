@@ -29,6 +29,9 @@ export type CreateSupplierListing = {
   currency: string;
 };
 export type UpdateSupplierListing = Partial<CreateSupplierListing>;
+export type SupplierListingAction = 'submit' | 'pause' | 'resume' | 'archive';
+export type AdminListingAction = 'approve' | 'reject';
+export type RejectSupplierListing = { reason: string };
 export type SupplierListingDto = {
   id: string;
   supplierId: string;
@@ -37,6 +40,7 @@ export type SupplierListingDto = {
   price: string;
   currency: string;
   stockQuantity: number;
+  rejectionReason: string | null;
   createdAt: string;
   updatedAt: string;
   productVariant: {

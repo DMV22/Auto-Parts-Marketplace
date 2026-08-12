@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, PipeTransform } from '@nestjs/common';
 import { ListingCondition, ListingStatus } from '../../generated/prisma/enums';
 import type {
   CreateSupplierListing,
+  RejectSupplierListing,
   SupplierListingCursor,
   SupplierListingsQuery,
   SupplierListingSort,
@@ -63,6 +64,27 @@ export class UpdateSupplierListingPipe implements PipeTransform<
       throw new BadRequestException('At least one editable field is required');
     }
     return parseMutableFields(body);
+  }
+}
+
+@Injectable()
+export class RejectSupplierListingPipe implements PipeTransform<
+  unknown,
+  RejectSupplierListing
+> {
+  transform(value: unknown): RejectSupplierListing {
+    const body = requireRecord(value, 'Request body');
+    rejectUnknownKeys(body, new Set(['reason']));
+    if (typeof body.reason !== 'string') {
+      throw new BadRequestException('reason is required');
+    }
+    const reason = body.reason.trim();
+    if (!reason || reason.length > 500) {
+      throw new BadRequestException(
+        'reason must contain between 1 and 500 characters',
+      );
+    }
+    return { reason };
   }
 }
 
