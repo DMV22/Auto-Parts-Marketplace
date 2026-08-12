@@ -93,6 +93,7 @@ describe('Catalog and vehicle taxonomy persistence', () => {
         productVariantId: variant.id,
         vehicleGenerationId: generation.id,
         engineTypeId: engine.id,
+        effect: 'COMPATIBLE',
       },
     });
     const fitmentRule = await prisma.fitmentRule.findUniqueOrThrow({
@@ -183,6 +184,7 @@ describe('Catalog and vehicle taxonomy persistence', () => {
     const genericRule = {
       productVariantId: variant.id,
       vehicleGenerationId: generation.id,
+      effect: 'COMPATIBLE' as const,
     };
 
     await prisma.fitmentRule.create({ data: genericRule });
@@ -252,6 +254,7 @@ describe('Catalog and vehicle taxonomy persistence', () => {
           productVariantId: variant.id,
           vehicleGenerationId: g20.id,
           engineTypeId: g21Engine.id,
+          effect: 'COMPATIBLE',
         },
       }),
     ).rejects.toMatchObject({
@@ -294,6 +297,7 @@ describe('Catalog and vehicle taxonomy persistence', () => {
       data: {
         productVariantId: variant.id,
         vehicleGenerationId: generation.id,
+        effect: 'COMPATIBLE',
       },
     });
 
@@ -323,6 +327,7 @@ describe('Catalog and vehicle taxonomy persistence', () => {
       data: {
         productVariantId: secondVariant.id,
         vehicleGenerationId: generation.id,
+        effect: 'COMPATIBLE',
       },
     });
 

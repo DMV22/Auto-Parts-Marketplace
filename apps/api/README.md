@@ -1,6 +1,6 @@
 # Auto Parts Marketplace API
 
-NestJS 11 backend for Auto Parts Marketplace. It uses Prisma 7.9.0, PostgreSQL 16 and Better Auth 1.6.26. The implemented foundation includes catalog/vehicle compatibility persistence, session authentication, RBAC, supplier ownership and status-bearing commerce records. Public marketplace workflows are not implemented yet.
+NestJS 11 backend for Auto Parts Marketplace. It uses Prisma 7.9.0, PostgreSQL 16 and Better Auth 1.6.26. The implemented backend includes catalog/vehicle compatibility persistence, session authentication, RBAC, supplier ownership, customer garage and public fitment-aware catalog APIs. Commerce write workflows are not implemented yet.
 
 Run commands from the repository root with Node.js `>=22.12.0 <23` and pnpm 9.
 
@@ -43,13 +43,13 @@ The seed accepts only local `auto_parts_dev`, is safe to run repeatedly and crea
 ## Tests
 
 ```bash
-# Unit tests, including database URL guards and authorization rules
+# Unit tests, including validation, URL guards and fitment truth table
 pnpm --filter api test
 
-# PostgreSQL schema, migration and persistence integration tests
+# PostgreSQL persistence and application-service integration tests
 pnpm --filter api test:int
 
-# Better Auth, session, RBAC and ownership HTTP tests
+# Auth, taxonomy, garage, catalog and PDP HTTP tests
 pnpm --filter api test:e2e
 ```
 
@@ -66,4 +66,17 @@ git diff --check
 
 ## Current API boundary
 
-The Nest application exposes the Better Auth/session boundary and authorization infrastructure. Catalog, listing, cart, checkout, order, payment and return endpoints remain future milestones.
+Better Auth remains available under `/api/auth/*`. Product APIs use `/api/v1`:
+
+- public vehicle selector: `GET /api/v1/vehicles/years|makes|models|generations|engines`;
+- Customer-only garage: `GET|POST /api/v1/garage/vehicles`, `PUT /api/v1/garage/vehicles/:id/active`, `DELETE /api/v1/garage/vehicles/:id`;
+- public catalog: `GET /api/v1/catalog/products`;
+- public PDP: `GET /api/v1/catalog/products/:productId`.
+
+Catalog query parameters are allowlisted: `q`, category/brand IDs, price range with required `currency`, `inStock`, `condition`, vehicle context, pagination and sorting. Pagination defaults to 20 and is capped at 50. Supported sorts are `newest`, `name_asc`, `name_desc`, `price_asc` and `price_desc`.
+
+Catalog and PDP accept either explicit `year` + `generationId` + optional `engineTypeId`, or an owner-only `savedVehicleId`. PDP fitment results are `compatible`, `incompatible`, `unknown` or `caution`. Stable reason codes are `VEHICLE_NOT_SELECTED`, `EXACT_ENGINE_MATCH`, `EXACT_ENGINE_EXCLUSION`, `GENERATION_MATCH`, `GENERATION_EXCLUSION`, `ENGINE_REQUIRED` and `NO_FITMENT_DATA`.
+
+Public listings expose derived `inStock`, not exact stock quantity, and only public Supplier fields `{ id, name, slug }`. Invalid query/hierarchy returns `400`; missing or unavailable public resources return `404`; unauthenticated `savedVehicleId` access returns `401`, while missing and cross-owner saved vehicles share the same `404` response.
+
+Listing management, cart, checkout, order/payment processing and returns endpoints remain future milestones.
