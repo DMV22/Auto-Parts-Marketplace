@@ -9,6 +9,7 @@ import { OrdersModule } from './commerce/orders/orders.module';
 import { PaymentsModule } from './commerce/payments/payments.module';
 import { GarageModule } from './garage/garage.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { SupplierCabinetModule } from './supplier-cabinet/supplier-cabinet.module';
 import { VehicleTaxonomyModule } from './vehicle-taxonomy/vehicle-taxonomy.module';
 
 @Module({
@@ -22,6 +23,7 @@ import { VehicleTaxonomyModule } from './vehicle-taxonomy/vehicle-taxonomy.modul
     CheckoutModule,
     PaymentsModule,
     OrdersModule,
+    SupplierCabinetModule,
   ],
   controllers: [AppController],
   providers: [AppService],
