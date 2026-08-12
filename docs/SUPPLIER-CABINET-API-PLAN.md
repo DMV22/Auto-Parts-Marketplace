@@ -415,23 +415,23 @@ git diff --check
 
 ### Tasks
 
-- [ ] Провести clean guarded database rehearsal: застосувати всі committed migrations, згенерувати Prisma Client і запустити Supplier Cabinet integration/e2e suites з owned fixtures.
-- [ ] Запустити повний auth, catalog, commerce і Supplier Cabinet regression.
-- [ ] Переконатися, що жоден endpoint не обходить centralized session/RBAC/supplier ownership policy та не створює PrismaClient поза PrismaService.
-- [ ] Переглянути Listing і OrderItem queries через representative `EXPLAIN`; додавати index лише forward migration та лише за measured query-plan evidence.
-- [ ] Перевірити bounded pagination, allowlisted filters, deterministic sorting і explicit DTO projection у всіх collection endpoints.
-- [ ] Переконатися, що public Catalog/PDP/Cart приймають лише `ACTIVE` Listings, а commerce stock reservation залишається concurrency-safe.
-- [ ] Оновити relevant API documentation: supplier routes, role/ownership rules, Listing lifecycle, inventory conflict semantics та OrderItem privacy boundary.
-- [ ] Зафіксувати Milestone 10 handoff: Admin approval boundary, minimal rejection metadata, supplier-owned OrderItems і відкладені moderation audit, returns, CRM/OMS, shipping та payouts.
+- [x] Провести clean guarded database rehearsal: застосувати всі committed migrations, згенерувати Prisma Client і запустити Supplier Cabinet integration/e2e suites з owned fixtures.
+- [x] Запустити повний auth, catalog, commerce і Supplier Cabinet regression.
+- [x] Переконатися, що жоден endpoint не обходить centralized session/RBAC/supplier ownership policy та не створює PrismaClient поза PrismaService.
+- [x] Переглянути Listing і OrderItem queries через representative `EXPLAIN`; додавати index лише forward migration та лише за measured query-plan evidence.
+- [x] Перевірити bounded pagination, allowlisted filters, deterministic sorting і explicit DTO projection у всіх collection endpoints.
+- [x] Переконатися, що public Catalog/PDP/Cart приймають лише `ACTIVE` Listings, а commerce stock reservation залишається concurrency-safe.
+- [x] Оновити relevant API documentation: supplier routes, role/ownership rules, Listing lifecycle, inventory conflict semantics та OrderItem privacy boundary.
+- [x] Зафіксувати Milestone 10 handoff: Admin approval boundary, minimal rejection metadata, supplier-owned OrderItems і відкладені moderation audit, returns, CRM/OMS, shipping та payouts.
 
 ### Definition of Done
 
-- [ ] Clean migrated `auto_parts_test` проходить усі relevant suites без demo seed.
-- [ ] Supplier, Admin, SupportManager, inactive membership і foreign ownership поведінка покрита negative tests.
-- [ ] Concurrent stock tests доводять відсутність lost updates і negative inventory.
-- [ ] Public Catalog/PDP/Cart і Milestone 8 regressions залишаються green.
-- [ ] Query plans і pagination bounds перевірені для Listing та OrderItem collections.
-- [ ] Documentation і Milestone 10 handoff відповідають фактичній реалізації.
+- [x] Clean migrated `auto_parts_test` проходить усі relevant suites без demo seed.
+- [x] Supplier, Admin, SupportManager, inactive membership і foreign ownership поведінка покрита negative tests.
+- [x] Concurrent stock tests доводять відсутність lost updates і negative inventory.
+- [x] Public Catalog/PDP/Cart і Milestone 8 regressions залишаються green.
+- [x] Query plans і pagination bounds перевірені для Listing та OrderItem collections.
+- [x] Documentation і Milestone 10 handoff відповідають фактичній реалізації.
 
 ### Validation
 
@@ -448,6 +448,31 @@ pnpm check-types
 pnpm build
 git diff --check
 ```
+
+### Implementation log
+
+**Readiness results**
+
+- `auto_parts_test` schema було явно очищено після перевірки database name; усі 11 committed migrations успішно відтворили schema з нуля. Demo seed і live Stripe network не використовувалися.
+- Repository audit підтвердив один Nest `PrismaService`, centralized session/RBAC/supplier ownership guards, explicit Admin bypass та supplier predicates у Listing/OrderItem persistence queries.
+- Catalog/PDP/Cart зберігають єдиний `ACTIVE` Listing contract; checkout reservation/release і supplier stock commands використовують спільну `inventoryVersion` concurrency model.
+- Listing та OrderItem collections мають whitelist validation, page-size cap `50`, opaque deterministic cursors, unique `id` tie-breakers і explicit response projections.
+- Representative PostgreSQL `EXPLAIN` на clean low-cardinality test DB показав очікувані sequential scans і explicit sorts. Наявні indexes покривають supplier Listing filtering та OrderItem joins; measured evidence для нової index migration відсутній, тому schema не змінювалася.
+- Оновлено API README, current context та architecture; `AGENTS.md` залишається актуальним і не змінювався.
+
+**Validation results**
+
+- `pnpm --filter api prisma:generate` - passed with Prisma Client `7.9.0`.
+- Clean integration rehearsal - passed: 15 suites, 77 tests; 11 migrations applied from empty `auto_parts_test`.
+- `pnpm --filter api test:e2e` - passed: 14 suites, 56 tests; no pending test migrations.
+- `pnpm --filter api exec prisma migrate status` - passed for `auto_parts_dev`; database schema up to date with 11 migrations.
+- `git diff --check` - passed.
+
+**Milestone 10 handoff**
+
+- Зберегти Admin-only approval/rejection boundary і мінімальний `rejectionReason`; повний moderation audit/history реалізовувати окремо.
+- Supplier operational reads залишаються scoped до owned OrderItems; не розкривати full Order, customer/guest, address, payment або other-Supplier data.
+- Returns, internal notes, CRM/OMS, fulfillment/shipping і payouts мають будуватися поверх чинних ownership, immutable snapshot, Order lifecycle та privacy contracts без їх послаблення.
 
 ## Migration and rollback strategy
 
