@@ -20,6 +20,7 @@ import type {
   SupplierListingsQuery,
   SupplierListingsResponse,
   UpdateSupplierListing,
+  UpdateSupplierStock,
 } from './listings.types';
 import { encodeSupplierListingCursor } from './listings.validation';
 
@@ -31,6 +32,7 @@ const LISTING_SELECT = {
   price: true,
   currency: true,
   stockQuantity: true,
+  inventoryVersion: true,
   rejectionReason: true,
   createdAt: true,
   updatedAt: true,
@@ -218,6 +220,40 @@ export class SupplierListingsService {
     if (!listing) throw new NotFoundException('Listing not found');
     return mapListing(listing);
   }
+
+  async updateStock(
+    supplierId: string,
+    listingId: string,
+    command: UpdateSupplierStock,
+  ): Promise<SupplierListingDto> {
+    const current = await this.prisma.listing.findFirst({
+      where: { id: listingId, supplierId },
+      select: { status: true },
+    });
+    if (!current) throw new NotFoundException('Listing not found');
+    if (current.status === ListingStatus.ARCHIVED) {
+      throw new ConflictException('An archived listing stock cannot be edited');
+    }
+
+    const updated = await this.prisma.listing.updateMany({
+      where: {
+        id: listingId,
+        supplierId,
+        status: { not: ListingStatus.ARCHIVED },
+        inventoryVersion: command.expectedVersion,
+      },
+      data: {
+        stockQuantity: command.quantity,
+        inventoryVersion: { increment: 1 },
+      },
+    });
+    if (updated.count !== 1) {
+      throw new ConflictException(
+        'Listing inventory changed; refetch before retrying',
+      );
+    }
+    return this.get(supplierId, listingId);
+  }
 }
 
 function listingOrderBy(
@@ -277,6 +313,7 @@ function mapListing(listing: SelectedListing): SupplierListingDto {
     price: listing.price.toString(),
     currency: listing.currency,
     stockQuantity: listing.stockQuantity,
+    inventoryVersion: listing.inventoryVersion,
     rejectionReason: listing.rejectionReason,
     createdAt: listing.createdAt.toISOString(),
     updatedAt: listing.updatedAt.toISOString(),

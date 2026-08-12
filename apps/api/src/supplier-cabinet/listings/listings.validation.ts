@@ -7,6 +7,7 @@ import type {
   SupplierListingsQuery,
   SupplierListingSort,
   UpdateSupplierListing,
+  UpdateSupplierStock,
 } from './listings.types';
 
 const UUID_PATTERN =
@@ -85,6 +86,24 @@ export class RejectSupplierListingPipe implements PipeTransform<
       );
     }
     return { reason };
+  }
+}
+
+@Injectable()
+export class UpdateSupplierStockPipe implements PipeTransform<
+  unknown,
+  UpdateSupplierStock
+> {
+  transform(value: unknown): UpdateSupplierStock {
+    const body = requireRecord(value, 'Request body');
+    rejectUnknownKeys(body, new Set(['quantity', 'expectedVersion']));
+    return {
+      quantity: requiredDatabaseInteger(body.quantity, 'quantity'),
+      expectedVersion: requiredDatabaseInteger(
+        body.expectedVersion,
+        'expectedVersion',
+      ),
+    };
   }
 }
 
@@ -261,6 +280,20 @@ function optionalInteger(
     );
   }
   return parsed;
+}
+
+function requiredDatabaseInteger(value: unknown, field: string): number {
+  if (
+    typeof value !== 'number' ||
+    !Number.isSafeInteger(value) ||
+    value < 0 ||
+    value > 2_147_483_647
+  ) {
+    throw new BadRequestException(
+      `${field} must be an integer between 0 and 2147483647`,
+    );
+  }
+  return value;
 }
 
 function requireRecord(value: unknown, label: string): Record<string, unknown> {

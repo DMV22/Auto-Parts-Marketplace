@@ -6,6 +6,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -23,11 +24,13 @@ import type {
   SupplierListingsQuery,
   SupplierListingsResponse,
   UpdateSupplierListing,
+  UpdateSupplierStock,
 } from './listings.types';
 import {
   CreateSupplierListingPipe,
   SupplierListingsQueryPipe,
   UpdateSupplierListingPipe,
+  UpdateSupplierStockPipe,
 } from './listings.validation';
 
 @Controller('api/v1/suppliers/:supplierId/listings')
@@ -74,6 +77,17 @@ export class SupplierListingsController {
     @Body(UpdateSupplierListingPipe) command: UpdateSupplierListing,
   ): Promise<SupplierListingDto> {
     return this.listings.update(supplierId, listingId, command);
+  }
+
+  @Put(':listingId/stock')
+  updateStock(
+    @Param('supplierId', new ParseUUIDPipe({ version: '4' }))
+    supplierId: string,
+    @Param('listingId', new ParseUUIDPipe({ version: '4' }))
+    listingId: string,
+    @Body(UpdateSupplierStockPipe) command: UpdateSupplierStock,
+  ): Promise<SupplierListingDto> {
+    return this.listings.updateStock(supplierId, listingId, command);
   }
 
   @Post(':listingId/submit')

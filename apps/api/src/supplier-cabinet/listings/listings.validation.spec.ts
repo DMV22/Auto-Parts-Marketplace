@@ -2,6 +2,7 @@ import { BadRequestException } from '@nestjs/common';
 import {
   CreateSupplierListingPipe,
   RejectSupplierListingPipe,
+  UpdateSupplierStockPipe,
   SupplierListingsQueryPipe,
   UpdateSupplierListingPipe,
 } from './listings.validation';
@@ -64,6 +65,24 @@ describe('supplier listing validation', () => {
     );
     expect(() =>
       pipe.transform({ reason: 'Invalid', status: 'REJECTED' }),
+    ).toThrow(BadRequestException);
+  });
+
+  it('accepts only an absolute stock quantity and expected version', () => {
+    const pipe = new UpdateSupplierStockPipe();
+
+    expect(pipe.transform({ quantity: 12, expectedVersion: 7 })).toEqual({
+      quantity: 12,
+      expectedVersion: 7,
+    });
+    expect(() => pipe.transform({ quantity: -1, expectedVersion: 0 })).toThrow(
+      BadRequestException,
+    );
+    expect(() => pipe.transform({ quantity: 1, expectedVersion: -1 })).toThrow(
+      BadRequestException,
+    );
+    expect(() =>
+      pipe.transform({ quantity: 1, expectedVersion: 0, status: 'ACTIVE' }),
     ).toThrow(BadRequestException);
   });
 
