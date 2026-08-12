@@ -206,6 +206,76 @@ describe('SupplierListingsService integration', () => {
       service.update(SUPPLIER_A_ID, LISTING_A_ID, { price: '1.00' }),
     ).rejects.toBeInstanceOf(ConflictException);
   });
+
+  it('rejects stale and concurrent stock writes without losing the winner', async () => {
+    const results = await Promise.allSettled([
+      service.updateStock(SUPPLIER_A_ID, LISTING_A_ID, {
+        quantity: 12,
+        expectedVersion: 0,
+      }),
+      service.updateStock(SUPPLIER_A_ID, LISTING_A_ID, {
+        quantity: 8,
+        expectedVersion: 0,
+      }),
+    ]);
+
+    expect(results.filter(({ status }) => status === 'fulfilled')).toHaveLength(
+      1,
+    );
+    expect(results.filter(({ status }) => status === 'rejected')).toHaveLength(
+      1,
+    );
+    expect(results.find(({ status }) => status === 'rejected')).toMatchObject({
+      reason: expect.any(ConflictException),
+    });
+
+    const persisted = await prisma.listing.findUniqueOrThrow({
+      where: { id: LISTING_A_ID },
+      select: { stockQuantity: true, inventoryVersion: true },
+    });
+    expect([8, 12]).toContain(persisted.stockQuantity);
+    expect(persisted.inventoryVersion).toBe(1);
+
+    await expect(
+      service.updateStock(SUPPLIER_A_ID, LISTING_A_ID, {
+        quantity: 99,
+        expectedVersion: 0,
+      }),
+    ).rejects.toBeInstanceOf(ConflictException);
+    await expect(
+      prisma.listing.findUniqueOrThrow({ where: { id: LISTING_A_ID } }),
+    ).resolves.toMatchObject(persisted);
+  });
+
+  it('enforces stock ownership, archive policy and the database constraint', async () => {
+    await expect(
+      service.updateStock(SUPPLIER_A_ID, FOREIGN_LISTING_ID, {
+        quantity: 1,
+        expectedVersion: 0,
+      }),
+    ).rejects.toBeInstanceOf(NotFoundException);
+
+    await prisma.listing.update({
+      where: { id: LISTING_A_ID },
+      data: { status: 'ARCHIVED' },
+    });
+    await expect(
+      service.updateStock(SUPPLIER_A_ID, LISTING_A_ID, {
+        quantity: 1,
+        expectedVersion: 0,
+      }),
+    ).rejects.toBeInstanceOf(ConflictException);
+
+    await expect(
+      prisma.listing.update({
+        where: { id: LISTING_B_ID },
+        data: { stockQuantity: -1 },
+      }),
+    ).rejects.toThrow();
+    await expect(
+      prisma.listing.findUniqueOrThrow({ where: { id: LISTING_B_ID } }),
+    ).resolves.toMatchObject({ stockQuantity: 0, inventoryVersion: 0 });
+  });
 });
 
 async function createFixtures(prisma: PrismaService): Promise<void> {

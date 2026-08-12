@@ -176,6 +176,47 @@ describe('Supplier Listings API (e2e)', () => {
     await owner.get(`/api/v1/suppliers/${SUPPLIER_B_ID}/listings`).expect(403);
   });
 
+  it('updates absolute stock with optimistic concurrency and scoped errors', async () => {
+    const owner = await authenticatedClient(
+      app,
+      prisma,
+      TEST_EMAILS[0],
+      UserRole.SUPPLIER_USER,
+      SUPPLIER_A_ID,
+    );
+    const stockUrl = `/api/v1/suppliers/${SUPPLIER_A_ID}/listings/${OWN_LISTING_ID}/stock`;
+
+    await owner
+      .put(stockUrl)
+      .send({ quantity: 12, expectedVersion: 0 })
+      .expect(200)
+      .expect((response) => {
+        expect(response.body).toMatchObject({
+          id: OWN_LISTING_ID,
+          stockQuantity: 12,
+          inventoryVersion: 1,
+        });
+      });
+    await owner
+      .put(stockUrl)
+      .send({ quantity: 99, expectedVersion: 0 })
+      .expect(409);
+    await owner
+      .put(stockUrl)
+      .send({ quantity: -1, expectedVersion: 1 })
+      .expect(400);
+    await owner
+      .put(
+        `/api/v1/suppliers/${SUPPLIER_A_ID}/listings/${FOREIGN_LISTING_ID}/stock`,
+      )
+      .send({ quantity: 1, expectedVersion: 0 })
+      .expect(404);
+
+    await expect(
+      prisma.listing.findUniqueOrThrow({ where: { id: OWN_LISTING_ID } }),
+    ).resolves.toMatchObject({ stockQuantity: 12, inventoryVersion: 1 });
+  });
+
   it('rejects server-owned fields, malformed queries and non-editable listings', async () => {
     const owner = await authenticatedClient(
       app,

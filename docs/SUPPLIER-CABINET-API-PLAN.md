@@ -297,22 +297,22 @@ git diff --check
 
 ### Tasks
 
-- [ ] Додати `inventoryVersion Int @default(0)` і database-level non-negative stock constraint через нову forward migration; переглянути generated SQL перед commit.
-- [ ] Реалізувати owner-scoped stock command, який приймає лише `quantity` та `expectedVersion`.
-- [ ] Atomic update має перевіряти Listing id, Supplier id і current version, increment-ити version при успіху та повертати нові quantity/version.
-- [ ] Повертати `409 Conflict` для stale version і вимагати refetch перед retry.
-- [ ] Оновити checkout reservation і one-time compensation paths, щоб вони increment-или `inventoryVersion` у тій самій transaction, що й stock.
-- [ ] Зберегти правило, що stock визначається server-side і не може стати від’ємним під concurrent requests.
-- [ ] Додати integration tests для двох supplier writers, supplier-versus-checkout race, insufficient stock, compensation release, stale version і DB constraint.
+- [x] Додати `inventoryVersion Int @default(0)` і database-level non-negative stock constraint через нову forward migration; переглянути generated SQL перед commit.
+- [x] Реалізувати owner-scoped stock command, який приймає лише `quantity` та `expectedVersion`.
+- [x] Atomic update має перевіряти Listing id, Supplier id і current version, increment-ити version при успіху та повертати нові quantity/version.
+- [x] Повертати `409 Conflict` для stale version і вимагати refetch перед retry.
+- [x] Оновити checkout reservation і one-time compensation paths, щоб вони increment-или `inventoryVersion` у тій самій transaction, що й stock.
+- [x] Зберегти правило, що stock визначається server-side і не може стати від’ємним під concurrent requests.
+- [x] Додати integration tests для двох supplier writers, supplier-versus-checkout race, insufficient stock, compensation release, stale version і DB constraint.
 
 ### Definition of Done
 
-- [ ] Supplier stock update вимагає ownership і current `expectedVersion`.
-- [ ] Два конкурентні writes не можуть silently overwrite один одного.
-- [ ] `stockQuantity` не може стати від’ємним через API або direct Prisma write.
-- [ ] Checkout reservation/release increment-ить ту саму inventory version.
-- [ ] Stale writer отримує `409`, а stock не змінюється.
-- [ ] Existing Cart/Checkout payment і compensation tests залишаються green.
+- [x] Supplier stock update вимагає ownership і current `expectedVersion`.
+- [x] Два конкурентні writes не можуть silently overwrite один одного.
+- [x] `stockQuantity` не може стати від’ємним через API або direct Prisma write.
+- [x] Checkout reservation/release increment-ить ту саму inventory version.
+- [x] Stale writer отримує `409`, а stock не змінюється.
+- [x] Existing Cart/Checkout payment і compensation tests залишаються green.
 
 ### Validation
 
@@ -327,6 +327,27 @@ pnpm --filter api test:e2e
 pnpm --filter api build
 git diff --check
 ```
+
+### Implementation log
+
+**What changed**
+
+- Додано `Listing.inventoryVersion` і reviewed forward migration `20260812161527_add_listing_inventory_version_and_stock_check` з preflight-перевіркою existing rows та PostgreSQL `CHECK ("stockQuantity" >= 0)`.
+- Додано owner-scoped `PUT /api/v1/suppliers/:supplierId/listings/:listingId/stock` з absolute `quantity`, required `expectedVersion`, conditional mutation та `409 Conflict` для stale writer.
+- Checkout reservation, gateway-failure compensation та Stripe webhook release increment-ять `inventoryVersion` атомарно разом зі зміною stock.
+- Додано integration/e2e regression coverage для concurrent supplier writers, supplier-versus-checkout serialization, ownership, stale version, malformed/negative input, insufficient stock, one-time release та direct Prisma constraint violation.
+
+**Validation results**
+
+- `pnpm --filter api prisma:validate` - passed during implementation step 1; Prisma schema valid.
+- `pnpm --filter api prisma:generate` - passed during implementation step 1 with Prisma Client `7.9.0`.
+- `pnpm --filter api prisma:migrate:deploy` - passed for `auto_parts_dev` during step 1 and for guarded `auto_parts_test` during regression setup; 11 migrations current.
+- `pnpm --filter api exec prisma migrate status` - passed for development database during step 1; schema up to date.
+- `pnpm --filter api test` - passed: 17 suites, 108 tests.
+- `pnpm --filter api test:int` - passed against guarded `auto_parts_test`: 14 suites, 73 tests.
+- `pnpm --filter api test:e2e` - passed against guarded `auto_parts_test`: 13 suites, 53 tests.
+- `pnpm --filter api build` - passed during implementation step 1.
+- `git diff --check` - passed.
 
 ---
 
