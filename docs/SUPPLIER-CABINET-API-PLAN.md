@@ -176,23 +176,23 @@ Testing strategy:
 
 ### Tasks
 
-- [ ] Додати `SupplierCabinetModule` і focused Listing controller/service/DTO files у `apps/api/src/supplier-cabinet/`, зареєструвати module в AppModule.
-- [ ] Захистити supplier routes через session, SupplierUser role, active membership і централізовану supplier ownership policy; зберегти лише explicit Admin bypass.
-- [ ] Реалізувати owner-scoped list/detail/create/update для Listing.
-- [ ] Перевіряти, що `productVariantId` посилається на існуючий ProductVariant перед create або дозволеним edit.
-- [ ] Створювати Listing зі статусом `DRAFT`; ігнорувати або відхиляти client-supplied status, supplierId, timestamps та інші server-owned fields.
-- [ ] Додати allowlisted filters, bounded cursor pagination і deterministic sorting для Listing collections.
-- [ ] Повертати однаковий `404` для missing і foreign-owned Listing id.
-- [ ] Додати unit, integration та e2e tests для ownership, inactive membership, foreign Supplier, SupportManager denial, Admin bypass, invalid ProductVariant, DTO validation і pagination bounds.
+- [x] Додати `SupplierCabinetModule` і focused Listing controller/service/DTO files у `apps/api/src/supplier-cabinet/`, зареєструвати module в AppModule.
+- [x] Захистити supplier routes через session, SupplierUser role, active membership і централізовану supplier ownership policy; зберегти лише explicit Admin bypass.
+- [x] Реалізувати owner-scoped list/detail/create/update для Listing.
+- [x] Перевіряти, що `productVariantId` посилається на існуючий ProductVariant перед create або дозволеним edit.
+- [x] Створювати Listing зі статусом `DRAFT`; ігнорувати або відхиляти client-supplied status, supplierId, timestamps та інші server-owned fields.
+- [x] Додати allowlisted filters, bounded cursor pagination і deterministic sorting для Listing collections.
+- [x] Повертати однаковий `404` для missing і foreign-owned Listing id.
+- [x] Додати unit, integration та e2e tests для ownership, inactive membership, foreign Supplier, SupportManager denial, Admin bypass, invalid ProductVariant, DTO validation і pagination bounds.
 
 ### Definition of Done
 
-- [ ] Active SupplierUser може створювати та читати лише Listings свого Supplier.
-- [ ] Кожен новий Listing пов’язаний із валідним ProductVariant і починається як `DRAFT`.
-- [ ] Foreign-owned і missing Listings неможливо відрізнити за response.
-- [ ] SupportManager не може змінювати supplier data; Admin access перевірений явно.
-- [ ] Collection pagination bounded і deterministic.
-- [ ] Tests використовують ізольовані fixtures у guarded `auto_parts_test`.
+- [x] Active SupplierUser може створювати та читати лише Listings свого Supplier.
+- [x] Кожен новий Listing пов’язаний із валідним ProductVariant і починається як `DRAFT`.
+- [x] Foreign-owned і missing Listings неможливо відрізнити за response.
+- [x] SupportManager не може змінювати supplier data; Admin access перевірений явно.
+- [x] Collection pagination bounded і deterministic.
+- [x] Tests використовують ізольовані fixtures у guarded `auto_parts_test`.
 
 ### Validation
 
@@ -203,6 +203,24 @@ pnpm --filter api test:e2e
 pnpm --filter api build
 git diff --check
 ```
+
+### Implementation log
+
+**What changed**
+
+- Додано `SupplierCabinetModule` та owner-scoped Listing list/create/detail/update endpoints під `/api/v1/suppliers/:supplierId/listings`.
+- Додано whitelist create/update validation: server-owned status, supplier і stock fields відхиляються; новий Listing створюється як `DRAFT` із zero stock.
+- Додано filters за status/ProductVariant/condition, bounded opaque cursor pagination та deterministic updated/price sorting з `id` tie-breaker.
+- Persistence reads і mutations повторно scoped за `supplierId`; update дозволений лише для `DRAFT`/`REJECTED`, а missing/foreign-owned ids повертають однаковий `404`.
+- Додано unit, integration та e2e regression coverage для validation, ProductVariant relation, ownership, active membership, roles, Admin bypass і pagination.
+
+**Validation results**
+
+- `pnpm --filter api test -- --runInBand` - passed: 16 suites, 96 tests.
+- `pnpm --filter api test:int` - passed against guarded `auto_parts_test`: 14 suites, 68 tests; committed migrations current.
+- `pnpm --filter api test:e2e` - passed against guarded `auto_parts_test`: 13 suites, 50 tests; committed migrations current.
+- `pnpm --filter api build` - passed during implementation step 1.
+- `git diff --check` - passed.
 
 ---
 
