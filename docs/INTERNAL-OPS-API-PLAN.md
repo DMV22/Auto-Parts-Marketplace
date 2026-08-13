@@ -287,30 +287,54 @@ pnpm --filter api build
 
 ### Tasks
 
-- [ ] Додати Customer endpoint для створення/читання ReturnRequest власного delivered OrderItem.
-- [ ] Додати SupportManager endpoint для створення ReturnRequest від імені customer contact, включно з guest Order, з ActivityLog actor attribution.
-- [ ] Додати internal returns queue/detail з filters за status/date та bounded cursor pagination.
-- [ ] Реалізувати погоджені transitions через `ReturnTransitionPolicy`.
-- [ ] Реалізувати Customer cancel лише зі станів `REQUESTED`, `UNDER_REVIEW`, `APPROVED`.
-- [ ] Додати negative ownership, duplicate-open-return, invalid-state і role tests.
+- [x] Додати Customer endpoint для створення/читання ReturnRequest власного delivered OrderItem.
+- [x] Додати SupportManager endpoint для створення ReturnRequest від імені customer contact, включно з guest Order, з ActivityLog actor attribution.
+- [x] Додати internal returns queue/detail з filters за status/date та bounded cursor pagination.
+- [x] Реалізувати погоджені transitions через `ReturnTransitionPolicy`.
+- [x] Реалізувати Customer cancel лише зі станів `REQUESTED`, `UNDER_REVIEW`, `APPROVED`.
+- [x] Додати negative ownership, duplicate-open-return, invalid-state і role tests.
 
 ### Definition of Done
 
-- [ ] ReturnRequest створюється лише для delivered OrderItem.
-- [ ] Customer не може створити або прочитати ReturnRequest чужого OrderItem; Guest не має self-service endpoint.
-- [ ] Для одного OrderItem база й service не допускають більше одного unfinished ReturnRequest.
-- [ ] `REQUESTED -> UNDER_REVIEW -> APPROVED | REJECTED -> RECEIVED -> COMPLETED` і дозволений Customer cancel відповідають matrix.
-- [ ] Terminal states `REJECTED`, `COMPLETED`, `CANCELLED` не мають вихідних переходів.
-- [ ] Кожна create/transition action має атомарний ActivityLog без витоку internal metadata в customer response.
+- [x] ReturnRequest створюється лише для delivered OrderItem.
+- [x] Customer не може створити або прочитати ReturnRequest чужого OrderItem; Guest не має self-service endpoint.
+- [x] Для одного OrderItem база й service не допускають більше одного unfinished ReturnRequest.
+- [x] `REQUESTED -> UNDER_REVIEW -> APPROVED | REJECTED -> RECEIVED -> COMPLETED` і дозволений Customer cancel відповідають matrix.
+- [x] Terminal states `REJECTED`, `COMPLETED`, `CANCELLED` не мають вихідних переходів.
+- [x] Кожна create/transition action має атомарний ActivityLog без витоку internal metadata в customer response.
 
 ### Validation
 
 ```bash
 pnpm --filter api test -- --runInBand return
-pnpm --filter api test:int -- --runTestsByPath test/returns.int-spec.ts
-pnpm --filter api test:e2e -- --runTestsByPath test/returns.e2e-spec.ts
+pnpm --filter api test:int returns.int-spec.ts
+pnpm --filter api test:e2e returns.e2e-spec.ts
 pnpm --filter api build
 ```
+
+### Implementation log
+
+**What changed**
+
+- Додано customer-only create/read/cancel routes та SupportManager/Admin create, queue, detail і transition routes для ReturnRequest.
+- Ownership перевіряється server-side через `OrderItem -> Order -> customerId`; Guest не має self-service route, а SupplierUser не проходить internal RBAC boundary.
+- `ReturnsService` перевіряє delivered Order, unfinished-return invariant і current status усередині Prisma transactions.
+- Усі create/cancel/internal transition операції атомарно записують allowlisted `ActivityLog`; customer DTO не містить actor, audit, Note, payment або guest metadata.
+- Додано suite-owned fixtures, integration та e2e regressions для ownership, Guest/role denial, concurrency, pagination, lifecycle і terminal states.
+
+**Why**
+
+- Закрито погоджений Customer/Support Returns lifecycle без додавання refund, shipping або Supplier flows.
+- Service-level перевірки доповнюють partial unique database index і централізовану `ReturnTransitionPolicy`.
+- Internal queue/detail надають SupportManager лише потрібний operational context із bounded deterministic pagination.
+
+**Validation results — 2026-08-14**
+
+- Focused unit regression `return` — 2 suites, 18 tests пройдено.
+- `returns.int-spec.ts` — 5 tests пройдено на guarded `auto_parts_test`; committed migrations актуальні.
+- `returns.e2e-spec.ts` — 2 tests пройдено на guarded `auto_parts_test`; live Stripe/network і demo seed не використовувалися.
+- Targeted ESLint/Prettier і `pnpm --filter api build` — пройдено.
+- Schema, migrations і dependencies не змінювалися.
 
 ---
 
