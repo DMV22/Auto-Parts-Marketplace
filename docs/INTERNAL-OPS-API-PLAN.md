@@ -166,21 +166,21 @@ POST /api/v1/admin/moderation/listings/:listingId/pause
 
 ### Tasks
 
-- [ ] Оновити `schema.prisma`: `UNDER_REVIEW`, `INTERNAL_OPS`, Return actor/decision metadata, `Note`, `ActivityLog` і необхідні relations/indexes.
-- [ ] Створити одну або кілька логічно розділених forward migrations; не редагувати historical migrations.
-- [ ] Додати PostgreSQL constraints для Note target XOR і одного unfinished ReturnRequest на OrderItem.
-- [ ] Зафіксувати `OrderTransitionPolicy`, `ReturnTransitionPolicy` та moderation matrix як testable application policies.
-- [ ] Додати unit tests для allowed/forbidden/terminal transitions і role matrix.
-- [ ] Додати schema/migration integration tests, які виявляють enum/constraint/index drift.
+- [x] Оновити `schema.prisma`: `UNDER_REVIEW`, `INTERNAL_OPS`, Return actor/decision metadata, `Note`, `ActivityLog` і необхідні relations/indexes.
+- [x] Створити одну або кілька логічно розділених forward migrations; не редагувати historical migrations.
+- [x] Додати PostgreSQL constraints для Note target XOR і одного unfinished ReturnRequest на OrderItem.
+- [x] Зафіксувати `OrderTransitionPolicy`, `ReturnTransitionPolicy` та moderation matrix як testable application policies.
+- [x] Додати unit tests для allowed/forbidden/terminal transitions і role matrix.
+- [x] Додати schema/migration integration tests, які виявляють enum/constraint/index drift.
 
 ### Definition of Done
 
-- [ ] Чиста `auto_parts_test` відтворюється committed migrations без schema drift.
-- [ ] `UNDER_REVIEW` і `INTERNAL_OPS` доступні Prisma Client.
-- [ ] База відхиляє другу unfinished ReturnRequest для того самого OrderItem.
-- [ ] Note не може одночасно належати Order і ReturnRequest або не мати target.
-- [ ] Transition policies не дозволяють controller/service обійти погоджені state/role rules.
-- [ ] Historical migration files не змінені.
+- [x] Чиста `auto_parts_test` відтворюється committed migrations без schema drift.
+- [x] `UNDER_REVIEW` і `INTERNAL_OPS` доступні Prisma Client.
+- [x] База відхиляє другу unfinished ReturnRequest для того самого OrderItem.
+- [x] Note не може одночасно належати Order і ReturnRequest або не мати target.
+- [x] Transition policies не дозволяють controller/service обійти погоджені state/role rules.
+- [x] Historical migration files не змінені.
 
 ### Validation
 
@@ -189,9 +189,33 @@ pnpm --filter api prisma:validate
 pnpm --filter api prisma:generate
 pnpm --filter api prisma:migrate:deploy
 pnpm --filter api test -- --runInBand internal-ops
-pnpm --filter api test:int -- --runTestsByPath test/internal-ops-schema.int-spec.ts
+pnpm --filter api test:int internal-ops-schema.int-spec.ts
 pnpm --filter api build
 ```
+
+### Implementation log
+
+**What changed**
+
+- Додано `UNDER_REVIEW`, `INTERNAL_OPS`, actor/decision metadata, `Note`, `ActivityLog` і supplier-visible `moderationReason`.
+- Додано forward migration `20260813141720_add_internal_ops_persistence_baseline` з data preflight, Note XOR check і partial unique index для unfinished ReturnRequest.
+- Додано централізовані Order/Return policies та розширено наявну Listing moderation policy без endpoints або runtime workflows з 10.2-10.5.
+- Додано unit transition matrix tests і `internal-ops-schema.int-spec.ts` для behavioral PostgreSQL constraints та schema drift regression.
+
+**Why**
+
+- Persistence і policy contracts Milestone 10 тепер зафіксовані до реалізації internal OMS/Returns/Notes APIs.
+- Payment authority не змінена: internal Order policy не дозволяє встановити `PAID`.
+- Note/Return invariants захищені базою навіть за конкурентних записів.
+
+**Validation results — 2026-08-13**
+
+- `prisma:validate`, `prisma:generate`, `prisma:migrate:deploy` для dev/test — пройдено; 12 committed migrations, pending migrations відсутні.
+- Focused policy suites — 3 suites, 26 tests пройдено.
+- `commerce-status-schema.int-spec.ts` — 6 tests пройдено.
+- `internal-ops-schema.int-spec.ts` — 5 tests пройдено.
+- `pnpm --filter api build` — пройдено.
+- Prisma migrate diff — `No difference detected`; historical migration audit і `git diff --check` — пройдено.
 
 ---
 
