@@ -1,10 +1,12 @@
-import { ConflictException } from '@nestjs/common';
+import { ConflictException, ForbiddenException } from '@nestjs/common';
 import { ListingStatus } from '../../generated/prisma/enums';
 import {
   resolveAdminListingTransition,
+  resolveListingModerationTransition,
   resolveSupplierListingTransition,
   resolveSupplierListingUpdate,
 } from './listing-transition.policy';
+import { UserRole } from '../../generated/prisma/enums';
 
 describe('listing transition policy', () => {
   it.each([
@@ -19,6 +21,38 @@ describe('listing transition policy', () => {
       expect(resolveSupplierListingTransition(current, action)).toBe(expected);
     },
   );
+
+  it('allows only Admin to perform the moderation matrix', () => {
+    expect(
+      resolveListingModerationTransition(
+        ListingStatus.PENDING_APPROVAL,
+        'approve',
+        UserRole.ADMIN,
+      ),
+    ).toBe(ListingStatus.ACTIVE);
+    expect(
+      resolveListingModerationTransition(
+        ListingStatus.PENDING_APPROVAL,
+        'reject',
+        UserRole.ADMIN,
+      ),
+    ).toBe(ListingStatus.REJECTED);
+    expect(
+      resolveListingModerationTransition(
+        ListingStatus.ACTIVE,
+        'pause',
+        UserRole.ADMIN,
+      ),
+    ).toBe(ListingStatus.PAUSED);
+
+    expect(() =>
+      resolveListingModerationTransition(
+        ListingStatus.PENDING_APPROVAL,
+        'approve',
+        UserRole.SUPPORT_MANAGER,
+      ),
+    ).toThrow(ForbiddenException);
+  });
 
   it.each([
     [ListingStatus.PENDING_APPROVAL, 'approve', ListingStatus.ACTIVE],

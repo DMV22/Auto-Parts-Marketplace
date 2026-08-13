@@ -31,6 +31,7 @@ export type CreateSupplierListing = {
 export type UpdateSupplierListing = Partial<CreateSupplierListing>;
 export type SupplierListingAction = 'submit' | 'pause' | 'resume' | 'archive';
 export type AdminListingAction = 'approve' | 'reject';
+export type ListingModerationAction = AdminListingAction | 'pause';
 export type RejectSupplierListing = { reason: string };
 export type UpdateSupplierStock = {
   quantity: number;
