@@ -227,30 +227,55 @@ pnpm --filter api build
 
 ### Tasks
 
-- [ ] Додати `InternalOpsModule` і guarded `/api/v1/internal/orders` routes.
-- [ ] Реалізувати bounded queue з allowlisted filters за Order status, derived payment outcome і date range.
-- [ ] Реалізувати internal Order detail з items, public timeline і мінімально необхідним customer contact projection.
-- [ ] Реалізувати `PAID -> PROCESSING -> SHIPPED -> DELIVERED` через `OrderTransitionPolicy`.
-- [ ] Записувати `OrderStatusEvent(source=INTERNAL_OPS)` і `ActivityLog` атомарно з Order update.
-- [ ] Додати negative RBAC/privacy tests для Customer, SupplierUser і SupportManager forbidden mutations.
+- [x] Додати `InternalOpsModule` і guarded `/api/v1/internal/orders` routes.
+- [x] Реалізувати bounded queue з allowlisted filters за Order status, derived payment outcome і date range.
+- [x] Реалізувати internal Order detail з items, public timeline і мінімально необхідним customer contact projection.
+- [x] Реалізувати `PAID -> PROCESSING -> SHIPPED -> DELIVERED` через `OrderTransitionPolicy`.
+- [x] Записувати `OrderStatusEvent(source=INTERNAL_OPS)` і `ActivityLog` атомарно з Order update.
+- [x] Додати negative RBAC/privacy tests для Customer, SupplierUser і SupportManager forbidden mutations.
 
 ### Definition of Done
 
-- [ ] SupportManager/Admin бачать bounded deterministic Order queue/detail; інші ролі отримують non-disclosing denial.
-- [ ] SupportManager/Admin не можуть встановити `PAID`, cancel Order або змінити items, price, owner чи payment data.
-- [ ] Invalid, skipped, repeated і terminal transitions відхиляються без часткового запису.
-- [ ] Кожен успішний OMS transition створює рівно один OrderStatusEvent і ActivityLog у тій самій транзакції.
-- [ ] Internal DTO не містить PaymentEvent payload, Stripe secrets/metadata, guest hash або supplier-internal records.
-- [ ] Pagination bounded, filters allowlisted, sorting deterministic.
+- [x] SupportManager/Admin бачать bounded deterministic Order queue/detail; інші ролі отримують non-disclosing denial.
+- [x] SupportManager/Admin не можуть встановити `PAID`, cancel Order або змінити items, price, owner чи payment data.
+- [x] Invalid, skipped, repeated і terminal transitions відхиляються без часткового запису.
+- [x] Кожен успішний OMS transition створює рівно один OrderStatusEvent і ActivityLog у тій самій транзакції.
+- [x] Internal DTO не містить PaymentEvent payload, Stripe secrets/metadata, guest hash або supplier-internal records.
+- [x] Pagination bounded, filters allowlisted, sorting deterministic.
 
 ### Validation
 
 ```bash
 pnpm --filter api test -- --runInBand internal-ops
-pnpm --filter api test:int -- --runTestsByPath test/internal-orders.int-spec.ts
-pnpm --filter api test:e2e -- --runTestsByPath test/internal-orders.e2e-spec.ts
+pnpm --filter api test:int internal-orders.int-spec.ts
+pnpm --filter api test:e2e internal-orders.e2e-spec.ts
 pnpm --filter api build
 ```
+
+### Implementation log
+
+**What changed**
+
+- Додано guarded `InternalOpsModule` з queue, detail, shared public timeline та transition routes під `/api/v1/internal/orders`.
+- Queue використовує allowlisted `status`, derived `paymentOutcome`, date-range filters, bounded opaque cursor і `createdAt DESC, id DESC` sorting.
+- Queue повертає `customerType`/`customerName`; detail повертає Customer `id`/`name`/`email`, а для Guest — лише `{ type: "GUEST" }`.
+- OMS transition використовує `OrderTransitionPolicy` і в одній Prisma transaction виконує conditional Order update, `OrderStatusEvent(INTERNAL_OPS)` та `ActivityLog`.
+- Додано isolated integration/E2E fixtures і regression coverage для RBAC, privacy, filtering, pagination, timeline, atomicity та concurrent/invalid transitions.
+
+**Why**
+
+- SupportManager/Admin отримали мінімальний operational Order API без supplier access або зміни customer/guest ownership.
+- Internal DTO не розкриває raw PaymentEvent, Stripe metadata, guest hash, address чи supplier-internal дані.
+- Stripe webhook залишається єдиною authority для переходу в `PAID`; internal API дозволяє лише послідовні post-payment transitions.
+
+**Validation results — 2026-08-14**
+
+- Focused unit regression — 5 suites, 45 tests пройдено.
+- `internal-orders.int-spec.ts` — 5 tests пройдено.
+- `internal-orders.e2e-spec.ts` — 4 tests пройдено.
+- Existing `order-api.int-spec.ts` — 4 tests пройдено; `order-api.e2e-spec.ts` — 4 tests пройдено.
+- `pnpm --filter api build` і `git diff --check` — пройдено.
+- Schema/migrations/dependencies не змінювалися; demo seed і live Stripe/network не використовувалися.
 
 ---
 
