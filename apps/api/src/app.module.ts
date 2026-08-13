@@ -8,6 +8,7 @@ import { CheckoutModule } from './commerce/checkout/checkout.module';
 import { OrdersModule } from './commerce/orders/orders.module';
 import { PaymentsModule } from './commerce/payments/payments.module';
 import { GarageModule } from './garage/garage.module';
+import { InternalOpsModule } from './internal-ops/internal-ops.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { SupplierCabinetModule } from './supplier-cabinet/supplier-cabinet.module';
 import { VehicleTaxonomyModule } from './vehicle-taxonomy/vehicle-taxonomy.module';
@@ -24,6 +25,7 @@ import { VehicleTaxonomyModule } from './vehicle-taxonomy/vehicle-taxonomy.modul
     PaymentsModule,
     OrdersModule,
     SupplierCabinetModule,
+    InternalOpsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

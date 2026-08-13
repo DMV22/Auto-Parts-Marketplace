@@ -1,10 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '../../generated/prisma/client';
-import {
-  OrderStatus,
-  OrderStatusEventSource,
-} from '../../generated/prisma/enums';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { CommerceActor } from '../commerce.types';
 import type {
@@ -14,10 +10,10 @@ import type {
   OrderHistoryResponse,
   OrdersPaginationQuery,
   OrderTimelineItem,
-  OrderTimelineReasonCode,
   OrderTimelineResponse,
 } from './orders.types';
 import { encodeOrderCursor } from './orders.validation';
+import { projectOrderTimelineItem } from './order-timeline';
 
 const ORDER_HISTORY_SELECT = {
   id: true,
@@ -154,13 +150,7 @@ export class OrdersService {
     const page = events.slice(0, query.limit);
 
     return {
-      data: page.map((event) => ({
-        id: event.id,
-        previousStatus: event.fromStatus,
-        status: event.toStatus,
-        reasonCode: timelineReason(event),
-        occurredAt: event.createdAt.toISOString(),
-      })),
+      data: page.map(projectOrderTimelineItem),
       pageInfo: pageInfo(page, hasNextPage),
     };
   }
@@ -220,31 +210,6 @@ function emptyPage<T>(): {
   pageInfo: { nextCursor: null; hasNextPage: false };
 } {
   return { data: [], pageInfo: { nextCursor: null, hasNextPage: false } };
-}
-
-function timelineReason(event: {
-  fromStatus: OrderStatus | null;
-  toStatus: OrderStatus;
-  source: OrderStatusEventSource;
-  paymentEvent: { eventType: string } | null;
-}): OrderTimelineReasonCode {
-  if (event.fromStatus === null) return 'ORDER_CREATED';
-  if (event.toStatus === OrderStatus.PAID) return 'PAYMENT_CONFIRMED';
-  if (event.paymentEvent?.eventType === 'checkout.session.expired') {
-    return 'CHECKOUT_EXPIRED';
-  }
-  if (
-    event.paymentEvent?.eventType === 'checkout.session.async_payment_failed'
-  ) {
-    return 'PAYMENT_FAILED';
-  }
-  if (
-    event.toStatus === OrderStatus.CANCELLED &&
-    event.source === OrderStatusEventSource.SYSTEM
-  ) {
-    return 'CHECKOUT_FAILED';
-  }
-  return 'STATUS_UPDATED';
 }
 
 function orderNotFound(): NotFoundException {
