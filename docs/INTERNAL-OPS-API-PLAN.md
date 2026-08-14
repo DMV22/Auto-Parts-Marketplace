@@ -208,7 +208,7 @@ pnpm --filter api build
 - Payment authority не змінена: internal Order policy не дозволяє встановити `PAID`.
 - Note/Return invariants захищені базою навіть за конкурентних записів.
 
-**Validation results — 2026-08-13**
+**Validation results**
 
 - `prisma:validate`, `prisma:generate`, `prisma:migrate:deploy` для dev/test — пройдено; 12 committed migrations, pending migrations відсутні.
 - Focused policy suites — 3 suites, 26 tests пройдено.
@@ -268,7 +268,7 @@ pnpm --filter api build
 - Internal DTO не розкриває raw PaymentEvent, Stripe metadata, guest hash, address чи supplier-internal дані.
 - Stripe webhook залишається єдиною authority для переходу в `PAID`; internal API дозволяє лише послідовні post-payment transitions.
 
-**Validation results — 2026-08-14**
+**Validation results**
 
 - Focused unit regression — 5 suites, 45 tests пройдено.
 - `internal-orders.int-spec.ts` — 5 tests пройдено.
@@ -328,7 +328,7 @@ pnpm --filter api build
 - Service-level перевірки доповнюють partial unique database index і централізовану `ReturnTransitionPolicy`.
 - Internal queue/detail надають SupportManager лише потрібний operational context із bounded deterministic pagination.
 
-**Validation results — 2026-08-14**
+**Validation results**
 
 - Focused unit regression `return` — 2 suites, 18 tests пройдено.
 - `returns.int-spec.ts` — 5 tests пройдено на guarded `auto_parts_test`; committed migrations актуальні.
@@ -385,7 +385,7 @@ pnpm --filter api test -- --runInBand note activity && pnpm --filter api test:in
 - Append-only corrections і audited redaction зберігають хронологію, водночас tombstone projection прибирає sensitive text з API.
 - Scoped Support audit зменшує privilege surface; global oversight залишається лише Admin read-only capability.
 
-**Validation results — 2026-08-14**
+**Validation results**
 
 - Focused unit `note activity` — 2 suites, 17 tests пройдено.
 - `internal-notes-audit.int-spec.ts` — 3 tests пройдено на guarded `auto_parts_test`; 12 committed migrations актуальні.
@@ -403,21 +403,21 @@ pnpm --filter api test -- --runInBand note activity && pnpm --filter api test:in
 
 ### Tasks
 
-- [ ] Реалізувати Admin-only global Listing moderation queue з allowlisted filters і bounded pagination.
-- [ ] Перевикористати централізовану Listing transition policy для approve/reject і додати emergency pause з обов'язковою supplier-visible reason.
-- [ ] Записувати moderation ActivityLog атомарно; не дозволяти Admin редагувати supplier-owned Listing content.
-- [ ] Підтвердити, що Supplier API показує moderation result/reason, але не дозволяє змінити outcome.
-- [ ] Виконати clean-database rehearsal: migrations, focused integration/e2e regression, build і repository/query audit.
-- [ ] Оновити `CONTEXT.md`, `ARCHITECTURE.md`, API README та цей план лише за фактичними результатами реалізації.
+- [x] Реалізувати Admin-only global Listing moderation queue з allowlisted filters і bounded pagination.
+- [x] Перевикористати централізовану Listing transition policy для approve/reject і додати emergency pause з обов'язковою supplier-visible reason.
+- [x] Записувати moderation ActivityLog атомарно; не дозволяти Admin редагувати supplier-owned Listing content.
+- [x] Підтвердити, що Supplier API показує moderation result/reason, але не дозволяє змінити outcome.
+- [x] Виконати clean-database rehearsal: migrations, focused integration/e2e regression, build і repository/query audit.
+- [x] Оновити `CONTEXT.md`, `ARCHITECTURE.md`, API README та цей план лише за фактичними результатами реалізації.
 
 ### Definition of Done
 
-- [ ] Лише Admin може approve/reject/pause Listing через moderation API; SupportManager не має implicit moderation access.
-- [ ] Reject та emergency pause вимагають reason; Supplier бачить outcome/reason, але не internal audit.
-- [ ] Public Catalog/PDP/Cart продовжують повертати лише `ACTIVE` Listings.
-- [ ] Усі ключові Order, Return, Note/redaction і moderation actions мають ActivityLog.
-- [ ] Customer/Supplier privacy regressions, role matrix, ownership і transition tests проходять на guarded `auto_parts_test` без demo seed/live Stripe.
-- [ ] Чиста БД відтворюється committed migrations без drift; документація відповідає фактичному API.
+- [x] Лише Admin може approve/reject/pause Listing через moderation API; SupportManager не має implicit moderation access.
+- [x] Reject та emergency pause вимагають reason; Supplier бачить outcome/reason, але не internal audit.
+- [x] Public Catalog/PDP/Cart продовжують повертати лише `ACTIVE` Listings.
+- [x] Усі ключові Order, Return, Note/redaction і moderation actions мають ActivityLog.
+- [x] Customer/Supplier privacy regressions, role matrix, ownership і transition tests проходять на guarded `auto_parts_test` без demo seed/live Stripe.
+- [x] Чиста БД відтворюється committed migrations без drift; документація відповідає фактичному API.
 
 ### Validation
 
@@ -434,6 +434,27 @@ git diff --check
 ```
 
 Під час readiness gate повний набір команд запускається один раз. Повторювати вже успішні checks без зміни відповідного коду не потрібно; у plan log фіксуються точні команди та результати.
+
+### Implementation log
+
+#### What changed
+
+- Додано Admin-only moderation queue та canonical approve/reject/emergency-pause routes; попередні approve/reject routes залишено як сумісні aliases.
+- Listing moderation використовує централізовану transition policy, atomic conditional update та `ActivityLog` в одній транзакції.
+- Supplier projection повертає `moderationReason`; Supplier не може відновити Listing, призупинений Admin через emergency pause.
+- Додано focused integration/e2e fixtures для role matrix, pagination, audit atomicity, supplier visibility та `ACTIVE`-only Catalog/PDP/Cart regressions.
+- Оновлено context, architecture та API README відповідно до фактичного Internal Ops/moderation contract.
+
+#### Validation results
+
+- API build — пройдено.
+- Focused unit policy/validation — 2 suites, 22 tests пройдено.
+- Focused integration — 2 suites, 11 tests пройдено на guarded `auto_parts_test`; 12 migrations актуальні.
+- Focused moderation e2e — 1 suite, 3 tests пройдено без demo seed або live Stripe/network.
+- Clean rehearsal: усі 12 committed migrations застосовано до ізольованої `auto_parts_readiness_10_5`; після перевірки тимчасову БД видалено.
+- Query audit підтвердив bounded deterministic moderation query; на порожній test fixture PostgreSQL обирає `Seq Scan + Sort`, тому новий індекс без production-like cardinality не додавався.
+- Targeted ESLint завис без diagnostic output і був зупинений; build та компіляція тестів пройшли, остаточний whitespace audit виконано через `git diff --check`.
+- Schema, migrations і dependencies не змінювалися.
 
 ## Migration and rollback strategy
 

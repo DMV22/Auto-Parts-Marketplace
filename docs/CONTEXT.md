@@ -2,7 +2,7 @@
 
 ## Product
 
-Auto Parts Marketplace is an early-stage marketplace for automotive parts. The repository currently provides a reproducible backend foundation, public fitment-aware discovery API, owner-isolated Cart/Checkout/Order API and supplier-scoped Listing/inventory/OrderItem APIs; frontend-to-API integration and supplier fulfillment remain future work.
+Auto Parts Marketplace is an early-stage marketplace for automotive parts. The repository currently provides a reproducible backend foundation, public fitment-aware discovery API, owner-isolated commerce, Supplier Cabinet and Internal CRM/OMS APIs; frontend-to-API integration and supplier fulfillment remain future work.
 
 ## Current repository baseline
 
@@ -31,6 +31,7 @@ apps/api/src/auth/      Better Auth, session, RBAC and ownership boundary
 apps/api/src/catalog/   Public catalog/PDP queries and shared fitment policy
 apps/api/src/commerce/  Cart, Checkout, Payments and owner-only Orders boundaries
 apps/api/src/garage/    Customer-owned SavedVehicle API
+apps/api/src/internal-ops/  Internal OMS, Returns, Notes and ActivityLog APIs
 apps/api/src/prisma/    Single Nest Prisma provider and database guards
 apps/api/src/supplier-cabinet/  Supplier-owned Listing, inventory and OrderItem APIs
 apps/api/src/vehicle-taxonomy/  Public vehicle selector API
@@ -48,11 +49,11 @@ The canonical Prisma model contains:
 - catalog: `Category`, `Brand`, `Product`, `ProductVariant`;
 - vehicle taxonomy: `VehicleMake`, `VehicleModel`, `VehicleGeneration`, `EngineType`, `FitmentRule`;
 - identity and suppliers: `User`, `Session`, `Account`, `Verification`, `CustomerProfile`, `SavedVehicle`, `Address`, `Supplier`, `SupplierUser`;
-- commerce: `Listing`, `Cart`, `CartItem`, `Order`, `OrderItem`, `OrderStatusEvent`, `PaymentEvent`, `ReturnRequest`.
+- commerce/internal operations: `Listing`, `Cart`, `CartItem`, `Order`, `OrderItem`, `OrderStatusEvent`, `PaymentEvent`, `ReturnRequest`, `Note`, `ActivityLog`.
 
 Persisted roles are `CUSTOMER`, `SUPPLIER_USER`, `SUPPORT_MANAGER` and `ADMIN`; Guest is an unauthenticated state, not a database role. RBAC answers which action a role may perform, while supplier ownership requires an active membership matching the target Supplier.
 
-Commerce records have agreed status enums, defaults, foreign keys and idempotency constraints. Cart ownership, server-authoritative checkout, stock reservation, pending Orders, signed Stripe webhook transitions and owner-only Order reads are implemented. Supplier Cabinet adds supplier-scoped Listing CRUD, approval/publication actions, optimistic stock concurrency and privacy-safe OrderItem reads. Supplier fulfillment, shipping, payouts, refunds and returns workflows are not implemented.
+Commerce records have agreed status enums, defaults, foreign keys and idempotency constraints. Cart ownership, server-authoritative checkout, stock reservation, pending Orders, signed Stripe webhook transitions and owner-only Order reads are implemented. Supplier Cabinet adds supplier-scoped Listing CRUD, publication actions, optimistic stock concurrency and privacy-safe OrderItem reads. Internal Ops adds OMS Order transitions, Customer/Support returns, internal Notes/ActivityLog and audited Admin Listing moderation. Supplier fulfillment, shipping, payouts and refunds are not implemented.
 
 ## Implemented discovery API
 
@@ -75,10 +76,19 @@ Guest is not a role. The API issues an opaque HttpOnly cookie and stores only it
 ## Implemented Supplier Cabinet API
 
 - `/api/v1/suppliers/:supplierId/listings*` provides active-membership-scoped Listing CRUD, publication actions and absolute stock updates with `inventoryVersion` optimistic concurrency.
-- `/api/v1/admin/listings/:listingId/approve|reject` is the explicit Admin-only moderation boundary; SupportManager has no implicit access.
+- `/api/v1/admin/moderation/listings*` is the Admin-only global moderation boundary for queue, approve, reject and emergency pause; legacy approve/reject aliases remain supported. SupportManager has no implicit access.
 - `/api/v1/suppliers/:supplierId/order-items*` provides read-only supplier projections of owned OrderItems without full Order, identity, address, payment, Stripe or other-Supplier data.
 
 Supplier routes combine session, role and ownership guards with supplier predicates in every Prisma query. Only `ACTIVE` Listings enter Catalog/PDP/Cart. Stale stock updates return `409`; checkout reservation and compensation increment the same inventory version, while PostgreSQL enforces non-negative stock. Supplier collections use allowlisted filters, bounded cursor pagination and deterministic sorting.
+
+## Implemented Internal Ops API
+
+- `/api/v1/internal/orders*` provides SupportManager/Admin OMS reads, timeline and controlled non-payment transitions.
+- Customer-owned `/api/v1/orders/:orderId/items/:orderItemId/returns*` and SupportManager/Admin `/api/v1/internal/returns*` implement the centralized ReturnRequest lifecycle.
+- `/api/v1/internal/.../notes` and `/api/v1/internal/activity` expose internal-only append/redaction and audit projections; Customer and Supplier responses never include these records.
+- `/api/v1/admin/moderation/listings*` provides the audited Admin-only Listing queue and moderation transitions. Reject/emergency pause require a supplier-visible reason, and an emergency-paused Listing cannot be resumed by Supplier.
+
+Order, Return, Note/redaction and Listing moderation mutations append ActivityLog records in the same transaction as the state change. Payment status remains exclusively owned by the signature-verified Stripe webhook.
 
 ## Auth and persistence boundaries
 

@@ -7,6 +7,7 @@ import {
 } from '../src/commerce/checkout/checkout.gateway';
 import { CheckoutService } from '../src/commerce/checkout/checkout.service';
 import type { CommerceActor } from '../src/commerce/commerce.types';
+import { ActivityLogService } from '../src/internal-ops/activity-log.service';
 import { PrismaModule } from '../src/prisma/prisma.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { SupplierListingsService } from '../src/supplier-cabinet/listings/listings.service';
@@ -41,6 +42,7 @@ describe('CheckoutService integration', () => {
     moduleRef = await Test.createTestingModule({
       imports: [PrismaModule],
       providers: [
+        ActivityLogService,
         CheckoutService,
         SupplierListingsService,
         {
@@ -267,11 +269,10 @@ describe('CheckoutService integration', () => {
 
   it('serializes a supplier stock write with checkout reservation', async () => {
     const results = await Promise.allSettled([
-      supplierListings.updateStock(
-        CART_SUPPLIER_ID,
-        ACTIVE_LISTING_ID,
-        { quantity: 10, expectedVersion: 0 },
-      ),
+      supplierListings.updateStock(CART_SUPPLIER_ID, ACTIVE_LISTING_ID, {
+        quantity: 10,
+        expectedVersion: 0,
+      }),
       service.createSession(GUEST_ACTOR, REQUEST_ID),
     ]);
 
