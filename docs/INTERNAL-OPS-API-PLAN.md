@@ -346,31 +346,52 @@ pnpm --filter api build
 
 ### Tasks
 
-- [ ] Реалізувати SupportManager/Admin create/list Note для конкретного Order або ReturnRequest.
-- [ ] Заборонити update/hard delete; correction створювати новою Note з `correctsNoteId`.
-- [ ] Реалізувати Admin-only redaction з reason, tombstone semantics і ActivityLog без копіювання Note text.
-- [ ] Реалізувати scoped ActivityLog reads для SupportManager та global read-only audit для Admin.
-- [ ] Додати allowlisted filters за actor/action/resource/date, bounded pagination і deterministic sorting.
-- [ ] Додати regression tests, що Note/ActivityLog не з'являються в customer Order, Return або supplier OrderItem responses.
+- [x] Реалізувати SupportManager/Admin create/list Note для конкретного Order або ReturnRequest.
+- [x] Заборонити update/hard delete; correction створювати новою Note з `correctsNoteId`.
+- [x] Реалізувати Admin-only redaction з reason, tombstone semantics і ActivityLog без копіювання Note text.
+- [x] Реалізувати scoped ActivityLog reads для SupportManager та global read-only audit для Admin.
+- [x] Додати allowlisted filters за actor/action/resource/date, bounded pagination і deterministic sorting.
+- [x] Додати regression tests, що Note/ActivityLog не з'являються в customer Order, Return або supplier OrderItem responses.
 
 ### Definition of Done
 
-- [ ] Note прив'язана рівно до одного Order або ReturnRequest і має persisted author.
-- [ ] Note text не можна тихо змінити; correction зберігає окрему хронологію.
-- [ ] Лише Admin виконує audited redaction; hard delete API відсутній.
-- [ ] SupportManager бачить лише operational activity пов'язаних Order/Return; Admin має global read-only view.
-- [ ] Customer і SupplierUser не можуть читати Note або ActivityLog через прямі чи вкладені responses.
-- [ ] ActivityLog не містить Note body, payment payload, Stripe metadata, address або secrets.
+- [x] Note прив'язана рівно до одного Order або ReturnRequest і має persisted author.
+- [x] Note text не можна тихо змінити; correction зберігає окрему хронологію.
+- [x] Лише Admin виконує audited redaction; hard delete API відсутній.
+- [x] SupportManager бачить лише operational activity пов'язаних Order/Return; Admin має global read-only view.
+- [x] Customer і SupplierUser не можуть читати Note або ActivityLog через прямі чи вкладені responses.
+- [x] ActivityLog не містить Note body, payment payload, Stripe metadata, address або secrets.
 
 ### Validation
 
 ```bash
-pnpm --filter api test -- --runInBand note activity
-pnpm --filter api test:int -- --runTestsByPath test/internal-notes-audit.int-spec.ts
-pnpm --filter api test:e2e -- --runTestsByPath test/internal-notes-audit.e2e-spec.ts
-pnpm --filter api test:e2e -- --runTestsByPath test/order-api.e2e-spec.ts test/supplier-order-items.e2e-spec.ts
-pnpm --filter api build
+pnpm --filter api test -- --runInBand note activity && pnpm --filter api test:int internal-notes-audit.int-spec.ts && pnpm --filter api test:e2e internal-notes-audit.e2e-spec.ts && pnpm --filter api test:e2e order-api.e2e-spec.ts supplier-order-items.e2e-spec.ts && pnpm --filter api build
 ```
+
+### Implementation log
+
+**What changed**
+
+- Додано guarded Order/Return Note create/list routes, append-only corrections через same-target `correctsNoteId` і Admin-only redaction route.
+- Redaction зберігає original body у persistence, але всі подальші DTO повертають tombstone `body: null`, `isRedacted: true` та redaction metadata.
+- Додано read-only ActivityLog API з allowlisted actor/action/resource/date filters, bounded opaque cursor і `createdAt DESC, id DESC` sorting.
+- SupportManager audit reads вимагають scope конкретного `ORDER` або `RETURN_REQUEST`; Admin має explicit global read bypass.
+- Note create/correction/redaction та allowlisted audit record commit/rollback разом; ActivityLog metadata проєктує лише `noteId`/`correctsNoteId`, ніколи Note body.
+- Додано suite-owned integration/E2E fixtures і regressions для RBAC, corrections, redaction, audit scope та customer/supplier DTO privacy.
+
+**Why**
+
+- Закрито internal operational context без update/hard-delete Note API та без exposure у Customer/Supplier boundaries.
+- Append-only corrections і audited redaction зберігають хронологію, водночас tombstone projection прибирає sensitive text з API.
+- Scoped Support audit зменшує privilege surface; global oversight залишається лише Admin read-only capability.
+
+**Validation results — 2026-08-14**
+
+- Focused unit `note activity` — 2 suites, 17 tests пройдено.
+- `internal-notes-audit.int-spec.ts` — 3 tests пройдено на guarded `auto_parts_test`; 12 committed migrations актуальні.
+- `internal-notes-audit.e2e-spec.ts` — 3 tests пройдено на guarded `auto_parts_test`, включно з Customer Order/Return і Supplier OrderItem privacy regressions.
+- Targeted ESLint/Prettier, API build і `git diff --check` — пройдено.
+- Schema, migrations і dependencies не змінювалися; demo seed та live Stripe/network не використовувалися.
 
 ---
 
