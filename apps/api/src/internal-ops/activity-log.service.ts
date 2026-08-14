@@ -11,6 +11,7 @@ export type ActivityLogRecord = {
   previousStatus?: string | null;
   newStatus?: string | null;
   reason?: string | null;
+  metadata?: Prisma.InputJsonValue;
 };
 
 @Injectable()
