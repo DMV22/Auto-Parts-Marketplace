@@ -5,6 +5,6 @@ import { queryKeys } from "./query-keys";
 export function sessionQueryOptions() {
   return queryOptions({
     queryKey: queryKeys.auth.session,
-    queryFn: ({ signal }) => getCurrentSession(signal),
+    queryFn: ({ signal }) => getCurrentSession({ signal }),
   });
 }

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import { AppProviders } from "./providers";
+import { createSessionHydrationState } from "@/lib/auth/server-session";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -21,11 +22,13 @@ export const viewport: Viewport = {
   themeColor: "#ffffff",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const sessionState = await createSessionHydrationState();
+
   return (
     <html lang="uk">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
@@ -35,7 +38,7 @@ export default function RootLayout({
         >
           Перейти до основного вмісту
         </a>
-        <AppProviders>{children}</AppProviders>
+        <AppProviders sessionState={sessionState}>{children}</AppProviders>
       </body>
     </html>
   );

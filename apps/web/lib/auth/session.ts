@@ -27,10 +27,19 @@ const sessionSchema = z.object({
 export type AuthSession = z.infer<typeof sessionSchema>;
 export type UserRole = z.infer<typeof userRoleSchema>;
 
+export type CurrentSessionOptions = {
+  baseUrl?: string;
+  headers?: HeadersInit;
+  signal?: AbortSignal;
+};
+
 export async function getCurrentSession(
-  signal?: AbortSignal,
+  options: CurrentSessionOptions = {},
 ): Promise<AuthSession | null> {
-  const payload = await apiRequest<unknown>("/api/auth/get-session", { signal });
+  const payload = await apiRequest<unknown>("/api/auth/get-session", {
+    ...options,
+    cache: "no-store",
+  });
 
   if (payload === null) {
     return null;

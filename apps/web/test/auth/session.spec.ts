@@ -43,4 +43,23 @@ describe("getCurrentSession", () => {
       kind: "invalid_response",
     } satisfies Partial<AppError>);
   });
+
+  it("forwards the request cookie only through the server session boundary", async () => {
+    mockApi.use(
+      http.get("http://api.internal/api/auth/get-session", ({ request }) => {
+        expect(request.headers.get("cookie")).toBe(
+          "better-auth.session_token=opaque",
+        );
+        return HttpResponse.json(customerSessionResponseFixture);
+      }),
+    );
+
+    const session = await getCurrentSession({
+      baseUrl: "http://api.internal",
+      headers: { cookie: "better-auth.session_token=opaque" },
+    });
+
+    expect(session).toEqual(customerSessionProjectionFixture);
+    expect(session?.session).not.toHaveProperty("token");
+  });
 });
