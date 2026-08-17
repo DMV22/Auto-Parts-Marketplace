@@ -32,6 +32,7 @@ export async function apiRequest<T>(
   path: string,
   { body, baseUrl = "", headers: initialHeaders, ...init }: ApiRequestOptions = {},
 ): Promise<T> {
+  const url = requestUrl(path, baseUrl);
   const headers = new Headers(initialHeaders);
 
   headers.set("accept", "application/json");
@@ -43,14 +44,14 @@ export async function apiRequest<T>(
   let response: Response;
 
   try {
-    response = await fetch(requestUrl(path, baseUrl), {
+    response = await fetch(url, {
       ...init,
       body: body === undefined ? undefined : JSON.stringify(body),
       credentials: "include",
       headers,
     });
   } catch (error) {
-    if (isAbortError(error)) {
+    if (init.signal?.aborted || isAbortError(error)) {
       throw new AppError("Request was aborted", {
         kind: "aborted",
         cause: error,

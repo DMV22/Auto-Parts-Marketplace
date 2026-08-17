@@ -231,22 +231,22 @@ Frontend error adapter нормалізує Nest `{ statusCode, message, error }
 
 ### Tasks
 
-- [ ] Зафіксувати same-origin development/deployment topology для `/api/*`.
-- [ ] Додати Tailwind/shadcn/ui та базові design tokens у `apps/web`.
-- [ ] Додати TanStack Query, React Hook Form/Zod і test tooling лише після package review.
-- [ ] Створити typed API transport із `credentials`, abort support і error normalization.
-- [ ] Створити auth/session bootstrap без client token storage.
-- [ ] Зафіксувати DTO fixture naming і query-key conventions.
-- [ ] Відкрити/закрити backend dependencies G2, G3, G5 перед dependent screens.
-- [ ] Додати `test` і `test:e2e` scripts до `apps/web/package.json`.
+- [x] Зафіксувати same-origin development/deployment topology для `/api/*`.
+- [x] Додати Tailwind/shadcn/ui та базові design tokens у `apps/web`.
+- [x] Додати TanStack Query, Zod і test tooling після package review; React Hook Form відкладено до F1, де з'являються реальні форми.
+- [x] Створити typed API transport із `credentials`, abort support і error normalization.
+- [x] Створити auth/session bootstrap без client token storage.
+- [x] Зафіксувати DTO fixture naming і query-key conventions.
+- [x] Зафіксувати owner, contract і target milestone для backend dependencies G2, G3, G5.
+- [x] Додати `test` і `test:e2e` scripts до `apps/web/package.json`.
 
 ### Definition of Done
 
-- [ ] Browser може виконати credentialed get-session і guest cart request через погоджаний origin.
-- [ ] API errors 400/401/403/404/409/503 мають typed frontend representation.
-- [ ] Жоден session/guest token не потрапляє в local/session storage.
-- [ ] UI primitives, lint, typecheck, unit/component та E2E harness запускаються локально.
-- [ ] Blocking backend dependencies мають owner, contract і target milestone.
+- [x] Browser може виконати credentialed get-session і guest cart request через погоджаний origin.
+- [x] API errors 400/401/403/404/409/503 мають typed frontend representation.
+- [x] Жоден session/guest token не потрапляє в local/session storage.
+- [x] UI primitives, lint, typecheck, unit/component та E2E harness запускаються локально.
+- [x] Blocking backend dependencies мають owner, contract і target milestone.
 
 ### Testing
 
@@ -261,6 +261,43 @@ pnpm --filter web test
 pnpm --filter web test:e2e
 pnpm --filter web build
 ```
+
+### Backend gaps після F0
+
+| Gap | Класифікація | Owner / target | Зафіксований contract |
+|---|---|---|---|
+| G1 — browser transport | Closed | Frontend platform / F0 | Browser використовує relative `/api/*`; Next rewrite направляє запити до `API_INTERNAL_URL`; CORS не потрібен за same-origin topology |
+| G2 — active Supplier membership discovery | Blocking для F6 | Backend / до початку F6 | Owner-safe current membership response із `supplierId`, status і мінімальною Supplier projection |
+| G3 — catalog filter vocabulary | Blocking для повних filters у F3 | Backend / до відповідної частини F3 | Bounded deterministic filter-options endpoint або окремі brand/category collections |
+| G5 — supplier ProductVariant discovery | Blocking для F6 | Backend / до початку F6 | Read-only supplier-safe ProductVariant search/detail із bounded pagination |
+| G4 — Order recovery після Stripe redirect | Non-blocking для F0/F1 | Backend + Commerce frontend / до production closure F4 | Server-built success URL із `orderId` або owner-safe lookup за Checkout Session ID |
+
+### Implementation log
+
+#### What changed
+
+- Налаштовано same-origin Next rewrite для `/api/*` із server-only `API_INTERNAL_URL`.
+- Додано Tailwind CSS 4, app-local shadcn/ui, semantic tokens і мінімальний accessible platform shell.
+- Додано typed cookie-aware API client, `AppError`, Zod-validated safe session projection і TanStack Query boundary.
+- Додано Vitest, Testing Library, MSW та Playwright із guarded `auto_parts_test`, committed migrations і production build rehearsal.
+- Додано tests для API errors, abort/path contracts, session drift/token stripping, route visibility metadata, semantic shell, browser fetch proxy та backend-issued Guest Cart cookie.
+- Зафіксовано reusable DTO fixture naming convention; backend-only test secrets не передаються Next process.
+
+#### Validation results
+
+- `pnpm --filter web lint` — passed.
+- `pnpm --filter web check-types` — passed.
+- `pnpm --filter web test` — passed: 4 files, 16 tests.
+- `pnpm --filter web test:e2e` — passed: migrations current, production build passed, 2 Playwright tests passed.
+- `git diff --check` — passed; whitespace errors were not found.
+
+### Handoff to F1
+
+- Використовувати `apiRequest`, `AppError`, `sessionQueryOptions` і чинні query-key conventions; не створювати другий fetch/session layer.
+- Додати React Hook Form у F1 разом із першими sign-in/sign-up forms; Zod уже доступний для form view-model validation.
+- Local integrated auth має використовувати browser-visible `BETTER_AUTH_URL=http://localhost:3000`; Google callback проходить через `/api/auth/*` rewrite.
+- Session/guest cookies залишаються HttpOnly; F1 не копіює token або guest identity у browser storage.
+- F1 покриває email/password, Google redirect initiation, sign-out, inactive/anonymous states і safe post-auth navigation; supplier membership лишається dependency F6.
 
 ## Milestone F1 — Public shell and authentication
 
