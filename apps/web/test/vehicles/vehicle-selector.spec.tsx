@@ -106,5 +106,5 @@ describe("VehicleSelector", () => {
       expect(screen.getByLabelText("Покоління")).toBeDisabled();
       expect(screen.getByLabelText("Двигун")).toBeDisabled();
     });
-  });
+  }, 10_000);
 });

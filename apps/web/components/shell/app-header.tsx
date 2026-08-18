@@ -58,6 +58,12 @@ export function AppHeader() {
             </span>
           ) : session.data ? (
             <div className={styles.account}>
+              {session.data.user.role === "CUSTOMER" &&
+              session.data.user.isActive ? (
+                <Link className={styles.workspaceLink} href="/garage">
+                  Мій гараж
+                </Link>
+              ) : null}
               <span className={styles.identity}>
                 <strong>{session.data.user.name}</strong>
                 <span>{roleLabels[session.data.user.role]}</span>

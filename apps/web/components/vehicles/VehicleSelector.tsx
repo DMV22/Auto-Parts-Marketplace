@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import type { ChangeEvent, ReactNode } from "react";
+import { type ChangeEvent, type ReactNode, useId } from "react";
 import {
   engineTypesQueryOptions,
   vehicleGenerationsQueryOptions,
@@ -62,6 +62,7 @@ export function VehicleSelector({
   onChange,
   disabled = false,
 }: VehicleSelectorProps) {
+  const idPrefix = useId();
   const years = useQuery(vehicleYearsQueryOptions());
   const makes = useQuery(vehicleMakesQueryOptions(value.year));
   const models = useQuery(vehicleModelsQueryOptions(value.year, value.makeId));
@@ -92,7 +93,7 @@ export function VehicleSelector({
       <legend>Оберіть автомобіль</legend>
       <div className={styles.grid}>
         <SelectorField
-          id="vehicle-year"
+          id={`${idPrefix}-vehicle-year`}
           label="Рік"
           value={value.year?.toString() ?? ""}
           disabled={disabled || years.isPending || years.isError}
@@ -112,7 +113,7 @@ export function VehicleSelector({
         </SelectorField>
 
         <SelectorField
-          id="vehicle-make"
+          id={`${idPrefix}-vehicle-make`}
           label="Марка"
           value={value.makeId ?? ""}
           disabled={disabled || value.year === null || makes.isPending || makes.isError}
@@ -133,7 +134,7 @@ export function VehicleSelector({
         </SelectorField>
 
         <SelectorField
-          id="vehicle-model"
+          id={`${idPrefix}-vehicle-model`}
           label="Модель"
           value={value.modelId ?? ""}
           disabled={disabled || value.makeId === null || models.isPending || models.isError}
@@ -154,7 +155,7 @@ export function VehicleSelector({
         </SelectorField>
 
         <SelectorField
-          id="vehicle-generation"
+          id={`${idPrefix}-vehicle-generation`}
           label="Покоління"
           value={value.generationId ?? ""}
           disabled={
@@ -183,7 +184,7 @@ export function VehicleSelector({
         </SelectorField>
 
         <SelectorField
-          id="vehicle-engine"
+          id={`${idPrefix}-vehicle-engine`}
           label="Двигун"
           value={value.engineTypeId ?? ""}
           disabled={

@@ -35,20 +35,20 @@ Backend Milestones 6–10 сформували придатний для fronten
 
 ### Readiness matrix
 
-| Frontend domain | Backend endpoints/contracts | Status | Gaps / risks | Frontend readiness |
-|---|---|---|---|---|
-| Public auth | Better Auth `/api/auth/*`: email sign-up/sign-in, Google sign-in, sign-out, get-session, change-password | Реалізовано; cookie/session flows мають E2E coverage | Немає узгодженого same-origin proxy або credentialed CORS; немає forgot-password/email-verification flow | Ready після F0 transport decision |
-| Vehicle selector | `GET /api/v1/vehicles/years`, `/makes`, `/models`, `/generations`, `/engines` | Реалізовано й протестовано; hierarchy і query validation стабільні | Cascading selectors мають обробляти empty/stale selections | Ready |
-| Customer Garage | `GET/POST /api/v1/garage/vehicles`, `PUT /:id/active`, `DELETE /:id` | Реалізовано; Customer-only, owner-scoped | Не доступний Guest; це очікувана policy | Ready |
-| Public catalog | `GET /api/v1/catalog/products` із search, filters, vehicle context, bounded pagination і sorting | Реалізовано й протестовано | Немає collection endpoints для повного brand/category filter vocabulary | Partial; search/list ready, complete filters depend on gap G3 |
-| PDP + fitment | `GET /api/v1/catalog/products/:productId`; `compatible/incompatible/unknown/caution` + reason codes | Реалізовано; exact-engine precedence покрита тестами | Немає product media/image contract | Ready з placeholder media |
-| Customer/Guest Cart | `GET /api/v1/cart`, item create/update/delete, clear cart; backend-issued guest cookie | Реалізовано; live price/stock/status validation, owner isolation | Cookie flow потребує same-origin/credentials; guest cart не merge-иться після sign-in | Ready після F0; merge відсутній за контрактом |
-| Checkout | `POST /api/v1/checkout/session`; pending Order, reservation, `Idempotency-Key`, Stripe URL | Реалізовано; redirect не змінює payment status | Success URL повертає Stripe session id, а Orders API читає за order id; recovery після reload крихкий | Partial; demo-ready з sessionStorage workaround, production UX depends on G4 |
-| Customer Orders + Returns | Order history/detail/timeline; nested customer ReturnRequest routes | Реалізовано; owner-only, non-disclosing `404`, cursor pagination | Немає global “My Returns”; Guest не створює return самостійно | Ready для returns у Order detail; окремий Returns screen blocked by G6 |
-| Supplier Cabinet | Supplier Listing CRUD/lifecycle/inventory; supplier OrderItems | Реалізовано; active membership, Admin bypass, optimistic concurrency | Session не повертає `supplierId`; немає supplier-safe ProductVariant lookup | Blocked until G2 and G5 |
-| Internal OMS + Returns | Internal order queue/detail/transitions; returns queue/detail/transitions | Реалізовано; SupportManager/Admin RBAC, policies і audit atomicity | Висока щільність status/error states потребує централізованих frontend mappings | Ready |
-| Notes + ActivityLog | Internal note create/list/correct/redact; scoped/global activity reads | Реалізовано; internal-only DTO projections | Frontend не повинен кешувати або показувати internal data поза protected workspace | Ready |
-| Admin moderation | Moderation queue, approve/reject/emergency pause | Реалізовано; Admin-only, public ACTIVE-only invariant | SupportManager не має implicit access; UI має відображати це явно | Ready |
+| Frontend domain           | Backend endpoints/contracts                                                                              | Status                                                               | Gaps / risks                                                                                             | Frontend readiness                                                           |
+| ------------------------- | -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Public auth               | Better Auth `/api/auth/*`: email sign-up/sign-in, Google sign-in, sign-out, get-session, change-password | Реалізовано; cookie/session flows мають E2E coverage                 | Немає узгодженого same-origin proxy або credentialed CORS; немає forgot-password/email-verification flow | Ready після F0 transport decision                                            |
+| Vehicle selector          | `GET /api/v1/vehicles/years`, `/makes`, `/models`, `/generations`, `/engines`                            | Реалізовано й протестовано; hierarchy і query validation стабільні   | Cascading selectors мають обробляти empty/stale selections                                               | Ready                                                                        |
+| Customer Garage           | `GET/POST /api/v1/garage/vehicles`, `PUT /:id/active`, `DELETE /:id`                                     | Реалізовано; Customer-only, owner-scoped                             | Не доступний Guest; це очікувана policy                                                                  | Ready                                                                        |
+| Public catalog            | `GET /api/v1/catalog/products` із search, filters, vehicle context, bounded pagination і sorting         | Реалізовано й протестовано                                           | Немає collection endpoints для повного brand/category filter vocabulary                                  | Partial; search/list ready, complete filters depend on gap G3                |
+| PDP + fitment             | `GET /api/v1/catalog/products/:productId`; `compatible/incompatible/unknown/caution` + reason codes      | Реалізовано; exact-engine precedence покрита тестами                 | Немає product media/image contract                                                                       | Ready з placeholder media                                                    |
+| Customer/Guest Cart       | `GET /api/v1/cart`, item create/update/delete, clear cart; backend-issued guest cookie                   | Реалізовано; live price/stock/status validation, owner isolation     | Cookie flow потребує same-origin/credentials; guest cart не merge-иться після sign-in                    | Ready після F0; merge відсутній за контрактом                                |
+| Checkout                  | `POST /api/v1/checkout/session`; pending Order, reservation, `Idempotency-Key`, Stripe URL               | Реалізовано; redirect не змінює payment status                       | Success URL повертає Stripe session id, а Orders API читає за order id; recovery після reload крихкий    | Partial; demo-ready з sessionStorage workaround, production UX depends on G4 |
+| Customer Orders + Returns | Order history/detail/timeline; nested customer ReturnRequest routes                                      | Реалізовано; owner-only, non-disclosing `404`, cursor pagination     | Немає global “My Returns”; Guest не створює return самостійно                                            | Ready для returns у Order detail; окремий Returns screen blocked by G6       |
+| Supplier Cabinet          | Supplier Listing CRUD/lifecycle/inventory; supplier OrderItems                                           | Реалізовано; active membership, Admin bypass, optimistic concurrency | Session не повертає `supplierId`; немає supplier-safe ProductVariant lookup                              | Blocked until G2 and G5                                                      |
+| Internal OMS + Returns    | Internal order queue/detail/transitions; returns queue/detail/transitions                                | Реалізовано; SupportManager/Admin RBAC, policies і audit atomicity   | Висока щільність status/error states потребує централізованих frontend mappings                          | Ready                                                                        |
+| Notes + ActivityLog       | Internal note create/list/correct/redact; scoped/global activity reads                                   | Реалізовано; internal-only DTO projections                           | Frontend не повинен кешувати або показувати internal data поза protected workspace                       | Ready                                                                        |
+| Admin moderation          | Moderation queue, approve/reject/emergency pause                                                         | Реалізовано; Admin-only, public ACTIVE-only invariant                | SupportManager не має implicit access; UI має відображати це явно                                        | Ready                                                                        |
 
 ## Backend contract assumptions
 
@@ -67,25 +67,25 @@ Backend Milestones 6–10 сформували придатний для fronten
 
 ### Blocking gaps
 
-| ID | Gap | Impact | Required clarification/fix before dependent milestone |
-|---|---|---|---|
-| G1 | Відсутня browser transport policy: Nest не вмикає CORS, Next не має API rewrite/proxy | Cookie auth, Guest Cart та всі browser mutations не працюватимуть між `localhost:3000` і `localhost:3001` напряму | Зафіксувати same-origin baseline: Next rewrite/BFF proxy для `/api/*` у development і єдиний origin ingress у deployment. Альтернатива — explicit credentialed CORS allowlist + cookie policy в Nest |
-| G2 | Current session не містить active `SupplierUser` membership або `supplierId` | SupplierUser не знає, який route `/suppliers/:supplierId/*` відкривати | Додати owner-safe `GET /api/v1/me/supplier-membership` або погоджене розширення current-session projection |
-| G3 | Немає public brand/category collection/filter-options endpoint | Неможливо гарантовано побудувати повні dropdown filters із paginated catalog data | Додати bounded deterministic `GET /api/v1/catalog/filter-options` або окремі `/brands` і `/categories` endpoints |
-| G5 | Немає supplier-safe пошуку `ProductVariant`; public catalog показує лише variants із `ACTIVE` Listings | Supplier не може створити перший Listing для variant, якого немає у public result | Додати read-only supplier ProductVariant search/detail contract з bounded pagination |
+| ID  | Gap                                                                                                    | Impact                                                                                                            | Required clarification/fix before dependent milestone                                                                                                                                                |
+| --- | ------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| G1  | Відсутня browser transport policy: Nest не вмикає CORS, Next не має API rewrite/proxy                  | Cookie auth, Guest Cart та всі browser mutations не працюватимуть між `localhost:3000` і `localhost:3001` напряму | Зафіксувати same-origin baseline: Next rewrite/BFF proxy для `/api/*` у development і єдиний origin ingress у deployment. Альтернатива — explicit credentialed CORS allowlist + cookie policy в Nest |
+| G2  | Current session не містить active `SupplierUser` membership або `supplierId`                           | SupplierUser не знає, який route `/suppliers/:supplierId/*` відкривати                                            | Додати owner-safe `GET /api/v1/me/supplier-membership` або погоджене розширення current-session projection                                                                                           |
+| G3  | Немає public brand/category collection/filter-options endpoint                                         | Неможливо гарантовано побудувати повні dropdown filters із paginated catalog data                                 | Додати bounded deterministic `GET /api/v1/catalog/filter-options` або окремі `/brands` і `/categories` endpoints                                                                                     |
+| G5  | Немає supplier-safe пошуку `ProductVariant`; public catalog показує лише variants із `ACTIVE` Listings | Supplier не може створити перший Listing для variant, якого немає у public result                                 | Додати read-only supplier ProductVariant search/detail contract з bounded pagination                                                                                                                 |
 
 ### Non-blocking gaps and known limitations
 
-| ID | Gap / limitation | Frontend handling or recommended follow-up |
-|---|---|---|
-| G4 | Success redirect містить Stripe session id, але owner Orders API читає за `orderId` | Тимчасово зберігати лише non-sensitive `orderId` у `sessionStorage` до redirect; для надійного recovery backend має додати `orderId` у server-built redirect URL або owner-scoped checkout-session lookup |
-| G6 | Немає customer-wide Returns list/detail; customer routes вкладені в OrderItem | У першій версії показувати returns в Order detail; не створювати окрему “My Returns” сторінку без нового endpoint |
-| G7 | Guest не може самостійно створити ReturnRequest | Показати пояснення/support path; не маскувати це як тимчасову UI-помилку |
-| G8 | Product/PDP DTO не має media URLs | Використовувати доступний placeholder без вигаданих image fields; погодити media domain окремо |
-| G9 | Немає OpenAPI/generated frontend client або shared DTO package | Створити один ручний typed API boundary і contract fixtures; не розкидати `fetch`/response casts по компонентах |
-| G10 | Better Auth error shape і Nest error shape не уніфіковані | Нормалізувати transport errors у frontend API layer; UI працює з власним `AppError` union |
-| G11 | Немає frontend E2E fixture orchestration | У F0 погодити test-only setup для deterministic users/roles/data; не використовувати demo seed як передумову CI |
-| G12 | Forgot password та email verification не налаштовані | Не показувати ці UI actions у першій версії; винести в окрему auth requirement |
+| ID  | Gap / limitation                                                                    | Frontend handling or recommended follow-up                                                                                                                                                                |
+| --- | ----------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| G4  | Success redirect містить Stripe session id, але owner Orders API читає за `orderId` | Тимчасово зберігати лише non-sensitive `orderId` у `sessionStorage` до redirect; для надійного recovery backend має додати `orderId` у server-built redirect URL або owner-scoped checkout-session lookup |
+| G6  | Немає customer-wide Returns list/detail; customer routes вкладені в OrderItem       | У першій версії показувати returns в Order detail; не створювати окрему “My Returns” сторінку без нового endpoint                                                                                         |
+| G7  | Guest не може самостійно створити ReturnRequest                                     | Показати пояснення/support path; не маскувати це як тимчасову UI-помилку                                                                                                                                  |
+| G8  | Product/PDP DTO не має media URLs                                                   | Використовувати доступний placeholder без вигаданих image fields; погодити media domain окремо                                                                                                            |
+| G9  | Немає OpenAPI/generated frontend client або shared DTO package                      | Створити один ручний typed API boundary і contract fixtures; не розкидати `fetch`/response casts по компонентах                                                                                           |
+| G10 | Better Auth error shape і Nest error shape не уніфіковані                           | Нормалізувати transport errors у frontend API layer; UI працює з власним `AppError` union                                                                                                                 |
+| G11 | Немає frontend E2E fixture orchestration                                            | У F0 погодити test-only setup для deterministic users/roles/data; не використовувати demo seed як передумову CI                                                                                           |
+| G12 | Forgot password та email verification не налаштовані                                | Не показувати ці UI actions у першій версії; винести в окрему auth requirement                                                                                                                            |
 
 ## Frontend architecture
 
@@ -123,14 +123,14 @@ Feature folders володіють DTO mappings, query keys, form schemas і UI 
 
 ## Route groups and access model
 
-| Route group | Candidate routes | Access model |
-|---|---|---|
-| `(public)` | `/`, `/catalog`, `/products/[productId]`, `/sign-in`, `/sign-up`, `/checkout/success`, `/checkout/cancel` | Public; деякі screens адаптуються до optional session/vehicle context |
-| `(customer)` | `/garage`, `/orders`, `/orders/[orderId]` | Authenticated active `Customer`; backend guard залишається authority |
-| shared commerce | `/cart` | Authenticated Customer або Guest cookie context |
-| `(supplier)` | `/supplier/[supplierId]/listings`, `/inventory`, `/order-items` | Active `SupplierUser` membership; Admin bypass лише там, де він дозволений backend |
-| `(internal)` | `/internal/orders`, `/internal/returns`, `/internal/activity` | `SupportManager` або `Admin` відповідно до endpoint policy |
-| `(admin)` | `/admin/moderation` | `Admin` only |
+| Route group     | Candidate routes                                                                                          | Access model                                                                       |
+| --------------- | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `(public)`      | `/`, `/catalog`, `/products/[productId]`, `/sign-in`, `/sign-up`, `/checkout/success`, `/checkout/cancel` | Public; деякі screens адаптуються до optional session/vehicle context              |
+| `(customer)`    | `/garage`, `/orders`, `/orders/[orderId]`                                                                 | Authenticated active `Customer`; backend guard залишається authority               |
+| shared commerce | `/cart`                                                                                                   | Authenticated Customer або Guest cookie context                                    |
+| `(supplier)`    | `/supplier/[supplierId]/listings`, `/inventory`, `/order-items`                                           | Active `SupplierUser` membership; Admin bypass лише там, де він дозволений backend |
+| `(internal)`    | `/internal/orders`, `/internal/returns`, `/internal/activity`                                             | `SupportManager` або `Admin` відповідно до endpoint policy                         |
+| `(admin)`       | `/admin/moderation`                                                                                       | `Admin` only                                                                       |
 
 Route layouts можуть приховувати navigation і робити UX redirects, але кожен API request все одно проходить backend guards. `401`, `403` і non-disclosing `404` обробляються окремо.
 
@@ -264,13 +264,13 @@ pnpm --filter web build
 
 ### Backend gaps після F0
 
-| Gap | Класифікація | Owner / target | Зафіксований contract |
-|---|---|---|---|
-| G1 — browser transport | Closed | Frontend platform / F0 | Browser використовує relative `/api/*`; Next rewrite направляє запити до `API_INTERNAL_URL`; CORS не потрібен за same-origin topology |
-| G2 — active Supplier membership discovery | Blocking для F6 | Backend / до початку F6 | Owner-safe current membership response із `supplierId`, status і мінімальною Supplier projection |
-| G3 — catalog filter vocabulary | Blocking для повних filters у F3 | Backend / до відповідної частини F3 | Bounded deterministic filter-options endpoint або окремі brand/category collections |
-| G5 — supplier ProductVariant discovery | Blocking для F6 | Backend / до початку F6 | Read-only supplier-safe ProductVariant search/detail із bounded pagination |
-| G4 — Order recovery після Stripe redirect | Non-blocking для F0/F1 | Backend + Commerce frontend / до production closure F4 | Server-built success URL із `orderId` або owner-safe lookup за Checkout Session ID |
+| Gap                                       | Класифікація                     | Owner / target                                         | Зафіксований contract                                                                                                                 |
+| ----------------------------------------- | -------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
+| G1 — browser transport                    | Closed                           | Frontend platform / F0                                 | Browser використовує relative `/api/*`; Next rewrite направляє запити до `API_INTERNAL_URL`; CORS не потрібен за same-origin topology |
+| G2 — active Supplier membership discovery | Blocking для F6                  | Backend / до початку F6                                | Owner-safe current membership response із `supplierId`, status і мінімальною Supplier projection                                      |
+| G3 — catalog filter vocabulary            | Blocking для повних filters у F3 | Backend / до відповідної частини F3                    | Bounded deterministic filter-options endpoint або окремі brand/category collections                                                   |
+| G5 — supplier ProductVariant discovery    | Blocking для F6                  | Backend / до початку F6                                | Read-only supplier-safe ProductVariant search/detail із bounded pagination                                                            |
+| G4 — Order recovery після Stripe redirect | Non-blocking для F0/F1           | Backend + Commerce frontend / до production closure F4 | Server-built success URL із `orderId` або owner-safe lookup за Checkout Session ID                                                    |
 
 ### Implementation log
 
@@ -407,18 +407,18 @@ pnpm --filter web build
 
 ### Tasks
 
-- [ ] Реалізувати cascading queries зі скиданням downstream selections.
-- [ ] Валідувати complete generation/engine combination перед save.
-- [ ] Реалізувати garage list/create/set-active/delete.
-- [ ] Поширити active `savedVehicleId` у catalog/PDP query context.
-- [ ] Додати Guest CTA до sign-in замість persisted guest garage.
+- [x] Реалізувати cascading queries зі скиданням downstream selections.
+- [x] Валідувати complete generation/engine combination перед save.
+- [x] Реалізувати garage list/create/set-active/delete.
+- [x] Підготувати active `savedVehicleId` query context для catalog/PDP через спільний Garage cache helper; фактичне додавання до Catalog/PDP requests належить F3.
+- [x] Додати Guest CTA до sign-in замість persisted guest garage.
 
 ### Definition of Done
 
-- [ ] Selector не надсилає stale IDs після зміни Year/Make/Model.
-- [ ] Customer бачить і змінює лише власні vehicles.
-- [ ] Active vehicle відновлюється після refresh і впливає на наступні catalog requests.
-- [ ] Empty taxonomy/garage і ownership `404` мають визначені UI states.
+- [x] Selector не надсилає stale IDs після зміни Year/Make/Model.
+- [x] Customer бачить і змінює лише власні vehicles.
+- [x] Active vehicle відновлюється з Garage response після refresh і доступний F3 через `getActiveSavedVehicleId`.
+- [x] Empty taxonomy/garage і ownership `404` мають визначені UI states.
 
 ### Testing
 
@@ -433,6 +433,39 @@ pnpm --filter web test
 pnpm --filter web test:e2e
 pnpm --filter web build
 ```
+
+### Implementation log
+
+#### What changed
+
+- Додано typed і Zod-validated frontend contract для public vehicle taxonomy та Customer Garage API.
+- Реалізовано reusable Year → Make → Model → Generation → Engine selector із залежними TanStack Query запитами та гарантованим downstream reset.
+- Додано Customer-only `/garage` із list/create/activate/delete, exact engine policy, active marker, empty/error/permission states і підтвердженням видалення.
+- Guest отримує sign-in CTA з validated relative `returnTo`; session, vehicle ownership і active pointer залишаються backend-owned.
+- Додано `getActiveSavedVehicleId` як cache-derived handoff для F3 без передчасної реалізації Catalog/PDP requests.
+
+#### Validation results
+
+- Targeted F2 tests — passed: 3 files, 4 tests; перевірено downstream reset, selector loading/cascade та activate mutation із Garage query invalidation. Після виявленого timing flake `vehicle-selector.spec.tsx` отримав локальний `10s` timeout для п’яти послідовних mocked taxonomy requests і пройшов окремий regression run.
+- `pnpm --filter web test:e2e` — passed: committed migrations актуальні, production build успішний, 5 Playwright tests пройшли; F1 email session refresh/sign-out/sign-in locator scoped до header navigation після появи другого public sign-in CTA.
+- `pnpm --filter web lint` — passed без warnings після regression fixes.
+- `pnpm --filter web check-types` — passed; route types для `/`, `/garage`, `/sign-in` і `/sign-up` generated successfully.
+- `pnpm --filter web test` — passed; F2 Garage browser create/activate/delete flow залишається deferred до F8, а production build був перевірений усередині guarded E2E runner.
+
+#### Deferred E2E scenarios for F8
+
+- Customer створює exact SavedVehicle, refresh-ить `/garage` і бачить ту саму server-owned комплектацію.
+- Customer активує інший SavedVehicle, після refresh зберігається один active vehicle.
+- Customer підтверджує delete; active pointer очищається, а повторний/cross-owner `404` не розкриває ownership details.
+- Anonymous і non-Customer sessions отримують відповідні sign-in/permission states без persisted guest garage.
+- F3 Catalog/PDP requests використовують active `savedVehicleId` і коректно реагують на його видалення.
+
+### Handoff to F3
+
+- Використовувати `garageVehiclesQueryOptions`, `queryKeys.garage.vehicles` і `getActiveSavedVehicleId`; не створювати окремий active-vehicle client store.
+- Додавати `savedVehicleId` до Catalog/PDP request лише коли Garage response позначає vehicle як active; anonymous catalog залишається public.
+- Taxonomy DTO/query options і `VehicleSelector` є спільним read-only foundation; F3 не дублює cascade або response parsing.
+- `compatible`, `incompatible`, `unknown` і `caution` залишаються backend fitment contract; F2 не робить compatibility висновків.
 
 ## Milestone F3 — Public Catalog, PDP and fitment UX
 

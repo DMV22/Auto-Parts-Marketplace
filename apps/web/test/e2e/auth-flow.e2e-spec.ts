@@ -67,9 +67,12 @@ test("restores an email session after refresh and supports sign-out/sign-in", as
   await expect(page.getByText(CUSTOMER_NAME)).toBeVisible();
 
   await page.getByRole("button", { name: "Вийти" }).click();
-  await expect(page.getByRole("link", { name: "Увійти" })).toBeVisible();
+  const headerSignInLink = page
+    .getByLabel("Основна навігація")
+    .getByRole("link", { name: "Увійти" });
+  await expect(headerSignInLink).toBeVisible();
   await page.reload();
-  await expect(page.getByRole("link", { name: "Увійти" })).toBeVisible();
+  await expect(headerSignInLink).toBeVisible();
 
   await page.goto("/sign-in");
   await page.getByLabel("Email").fill(CUSTOMER_EMAIL);

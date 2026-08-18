@@ -2,6 +2,9 @@ export const queryKeys = {
   auth: {
     session: ["auth", "session"] as const,
   },
+  garage: {
+    vehicles: ["garage", "vehicles"] as const,
+  },
   vehicles: {
     taxonomy: {
       years: ["vehicles", "taxonomy", "years"] as const,

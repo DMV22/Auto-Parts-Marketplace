@@ -44,8 +44,18 @@
   color: var(--primary-foreground);
 }
 
+.workspaceLink {
+  border-radius: var(--radius-md);
+  padding: 0.45rem 0.7rem;
+  color: var(--foreground);
+  font-size: 0.875rem;
+  font-weight: 650;
+  text-decoration: none;
+}
+
 .brand:hover,
-.actions a:hover {
+.actions a:hover,
+.workspaceLink:hover {
   color: var(--primary);
 }
 
@@ -55,7 +65,8 @@
 }
 
 .brand:focus-visible,
-.actions a:focus-visible {
+.actions a:focus-visible,
+.workspaceLink:focus-visible {
   outline: 3px solid color-mix(in oklch, var(--ring) 50%, transparent);
   outline-offset: 3px;
 }
