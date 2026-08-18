@@ -59,15 +59,24 @@ enum OrderStatusEventSource {
   CHECKOUT
   STRIPE_WEBHOOK
   SYSTEM
+  INTERNAL_OPS
 }
 
 enum ReturnRequestStatus {
   REQUESTED
+  UNDER_REVIEW
   APPROVED
   REJECTED
   RECEIVED
   COMPLETED
   CANCELLED
+}
+
+enum ActivityResourceType {
+  ORDER
+  RETURN_REQUEST
+  LISTING
+  NOTE
 }
 
 model Category {
@@ -192,25 +201,30 @@ model FitmentRule {
 }
 
 model User {
-  id                   String           @id @default(uuid()) @db.Uuid
-  name                 String
-  email                String           @unique
-  emailVerified        Boolean          @default(false)
-  image                String?
-  role                 UserRole         @default(CUSTOMER)
-  isActive             Boolean          @default(true)
-  activeSavedVehicleId String?          @unique @db.Uuid
-  createdAt            DateTime         @default(now())
-  updatedAt            DateTime         @updatedAt
-  sessions             Session[]
-  accounts             Account[]
-  customerProfile      CustomerProfile?
-  savedVehicles        SavedVehicle[]   @relation("SavedVehicleOwner")
-  activeSavedVehicle   SavedVehicle?    @relation("ActiveSavedVehicle", fields: [activeSavedVehicleId], references: [id], onDelete: SetNull, onUpdate: Cascade)
-  addresses            Address[]
-  supplierUser         SupplierUser?
-  cart                 Cart?
-  orders               Order[]
+  id                    String           @id @default(uuid()) @db.Uuid
+  name                  String
+  email                 String           @unique
+  emailVerified         Boolean          @default(false)
+  image                 String?
+  role                  UserRole         @default(CUSTOMER)
+  isActive              Boolean          @default(true)
+  activeSavedVehicleId  String?          @unique @db.Uuid
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+  sessions              Session[]
+  accounts              Account[]
+  customerProfile       CustomerProfile?
+  savedVehicles         SavedVehicle[]   @relation("SavedVehicleOwner")
+  activeSavedVehicle    SavedVehicle?    @relation("ActiveSavedVehicle", fields: [activeSavedVehicleId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  addresses             Address[]
+  supplierUser          SupplierUser?
+  cart                  Cart?
+  orders                Order[]
+  createdReturnRequests ReturnRequest[]  @relation("ReturnRequestCreatedBy")
+  decidedReturnRequests ReturnRequest[]  @relation("ReturnRequestDecidedBy")
+  authoredNotes         Note[]           @relation("NoteAuthor")
+  redactedNotes         Note[]           @relation("NoteRedactedBy")
+  activityLogs          ActivityLog[]
 }
 
 model Session {
@@ -342,6 +356,7 @@ model Listing {
   stockQuantity    Int              @default(0)
   inventoryVersion Int              @default(0)
   rejectionReason  String?          @db.VarChar(500)
+  moderationReason String?          @db.VarChar(500)
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
   supplier         Supplier         @relation(fields: [supplierId], references: [id], onDelete: Restrict, onUpdate: Cascade)
@@ -401,6 +416,7 @@ model Order {
   items                      OrderItem[]
   paymentEvents              PaymentEvent[]
   statusEvents               OrderStatusEvent[]
+  notes                      Note[]
 
   @@index([customerId, status])
   @@index([guestTokenHash, status])
@@ -458,13 +474,68 @@ model OrderStatusEvent {
 }
 
 model ReturnRequest {
-  id          String              @id @default(uuid()) @db.Uuid
-  orderItemId String              @db.Uuid
-  status      ReturnRequestStatus @default(REQUESTED)
-  reason      String
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
-  orderItem   OrderItem           @relation(fields: [orderItemId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  id              String              @id @default(uuid()) @db.Uuid
+  orderItemId     String              @db.Uuid
+  createdByUserId String?             @db.Uuid
+  decidedByUserId String?             @db.Uuid
+  status          ReturnRequestStatus @default(REQUESTED)
+  reason          String
+  decisionReason  String?             @db.VarChar(500)
+  decidedAt       DateTime?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  orderItem       OrderItem           @relation(fields: [orderItemId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  createdBy       User?               @relation("ReturnRequestCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  decidedBy       User?               @relation("ReturnRequestDecidedBy", fields: [decidedByUserId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  notes           Note[]
 
   @@index([orderItemId, status])
+  @@index([status, createdAt, id])
+  @@index([createdByUserId])
+  @@index([decidedByUserId])
+}
+
+model Note {
+  id               String         @id @default(uuid()) @db.Uuid
+  orderId          String?        @db.Uuid
+  returnRequestId  String?        @db.Uuid
+  authorUserId     String         @db.Uuid
+  correctsNoteId   String?        @db.Uuid
+  body             String         @db.Text
+  redactedAt       DateTime?
+  redactedByUserId String?        @db.Uuid
+  redactionReason  String?        @db.VarChar(500)
+  createdAt        DateTime       @default(now())
+  order            Order?         @relation(fields: [orderId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  returnRequest    ReturnRequest? @relation(fields: [returnRequestId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  author           User           @relation("NoteAuthor", fields: [authorUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  corrects         Note?          @relation("NoteCorrections", fields: [correctsNoteId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  corrections      Note[]         @relation("NoteCorrections")
+  redactedBy       User?          @relation("NoteRedactedBy", fields: [redactedByUserId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([orderId, createdAt, id])
+  @@index([returnRequestId, createdAt, id])
+  @@index([authorUserId])
+  @@index([correctsNoteId])
+  @@index([redactedByUserId])
+}
+
+model ActivityLog {
+  id             String               @id @default(uuid()) @db.Uuid
+  actorUserId    String?              @db.Uuid
+  actorRole      UserRole?
+  resourceType   ActivityResourceType
+  resourceId     String               @db.Uuid
+  action         String               @db.VarChar(100)
+  previousStatus String?              @db.VarChar(50)
+  newStatus      String?              @db.VarChar(50)
+  reason         String?              @db.VarChar(500)
+  metadata       Json?
+  createdAt      DateTime             @default(now())
+  actor          User?                @relation(fields: [actorUserId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([resourceType, resourceId, createdAt, id])
+  @@index([actorUserId, createdAt, id])
+  @@index([action, createdAt, id])
+  @@index([createdAt, id])
 }

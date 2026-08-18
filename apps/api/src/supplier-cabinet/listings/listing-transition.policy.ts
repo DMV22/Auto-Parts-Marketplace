@@ -1,10 +1,13 @@
-import { ConflictException } from '@nestjs/common';
+import { ConflictException, ForbiddenException } from '@nestjs/common';
 import {
   ListingStatus,
   type ListingStatus as ListingStatusValue,
+  UserRole,
+  type UserRole as UserRoleValue,
 } from '../../generated/prisma/enums';
 import type {
   AdminListingAction,
+  ListingModerationAction,
   SupplierListingAction,
   UpdateSupplierListing,
 } from './listings.types';
@@ -36,8 +39,23 @@ export function resolveAdminListingTransition(
   current: ListingStatusValue,
   action: AdminListingAction,
 ): ListingStatusValue {
+  return resolveListingModerationTransition(current, action, UserRole.ADMIN);
+}
+
+export function resolveListingModerationTransition(
+  current: ListingStatusValue,
+  action: ListingModerationAction,
+  role: UserRoleValue,
+): ListingStatusValue {
+  if (role !== UserRole.ADMIN) {
+    throw new ForbiddenException('Only Admin can moderate Listings');
+  }
   if (current === ListingStatus.PENDING_APPROVAL) {
-    return action === 'approve' ? ListingStatus.ACTIVE : ListingStatus.REJECTED;
+    if (action === 'approve') return ListingStatus.ACTIVE;
+    if (action === 'reject') return ListingStatus.REJECTED;
+  }
+  if (current === ListingStatus.ACTIVE && action === 'pause') {
+    return ListingStatus.PAUSED;
   }
   return invalidTransition(current, action);
 }
