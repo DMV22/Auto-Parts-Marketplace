@@ -2,7 +2,7 @@
 
 ## Product
 
-Auto Parts Marketplace is an early-stage marketplace for automotive parts. The repository currently provides a reproducible backend foundation, public fitment-aware discovery API and owner-isolated Cart/Checkout/Order API; frontend-to-API integration and supplier fulfillment remain future work.
+Auto Parts Marketplace is an early-stage marketplace for automotive parts. The repository currently provides a reproducible backend foundation, public fitment-aware discovery API, owner-isolated Cart/Checkout/Order API and supplier-scoped Listing/inventory/OrderItem APIs; frontend-to-API integration and supplier fulfillment remain future work.
 
 ## Current repository baseline
 
@@ -32,6 +32,7 @@ apps/api/src/catalog/   Public catalog/PDP queries and shared fitment policy
 apps/api/src/commerce/  Cart, Checkout, Payments and owner-only Orders boundaries
 apps/api/src/garage/    Customer-owned SavedVehicle API
 apps/api/src/prisma/    Single Nest Prisma provider and database guards
+apps/api/src/supplier-cabinet/  Supplier-owned Listing, inventory and OrderItem APIs
 apps/api/src/vehicle-taxonomy/  Public vehicle selector API
 apps/api/test/          Integration/e2e suites and guarded test setup
 
@@ -51,7 +52,7 @@ The canonical Prisma model contains:
 
 Persisted roles are `CUSTOMER`, `SUPPLIER_USER`, `SUPPORT_MANAGER` and `ADMIN`; Guest is an unauthenticated state, not a database role. RBAC answers which action a role may perform, while supplier ownership requires an active membership matching the target Supplier.
 
-Commerce records have agreed status enums, defaults, foreign keys and idempotency constraints. Cart ownership, server-authoritative checkout, stock reservation, pending Orders, signed Stripe webhook transitions and owner-only Order reads are implemented. Supplier fulfillment, shipping, refunds and returns workflows are not implemented.
+Commerce records have agreed status enums, defaults, foreign keys and idempotency constraints. Cart ownership, server-authoritative checkout, stock reservation, pending Orders, signed Stripe webhook transitions and owner-only Order reads are implemented. Supplier Cabinet adds supplier-scoped Listing CRUD, approval/publication actions, optimistic stock concurrency and privacy-safe OrderItem reads. Supplier fulfillment, shipping, payouts, refunds and returns workflows are not implemented.
 
 ## Implemented discovery API
 
@@ -70,6 +71,14 @@ Catalog and PDP normalize explicit taxonomy context or an owner-only `savedVehic
 - `/api/v1/orders*` provides owner-only history, immutable detail and a public reason-coded timeline with bounded opaque-cursor pagination.
 
 Guest is not a role. The API issues an opaque HttpOnly cookie and stores only its SHA-256 hash for Cart/Order ownership. Customer sessions take precedence. Cross-owner and missing Orders share the same non-disclosing response. Redirects and read endpoints cannot mutate payment state; only a verified consistent webhook can set `PAID`.
+
+## Implemented Supplier Cabinet API
+
+- `/api/v1/suppliers/:supplierId/listings*` provides active-membership-scoped Listing CRUD, publication actions and absolute stock updates with `inventoryVersion` optimistic concurrency.
+- `/api/v1/admin/listings/:listingId/approve|reject` is the explicit Admin-only moderation boundary; SupportManager has no implicit access.
+- `/api/v1/suppliers/:supplierId/order-items*` provides read-only supplier projections of owned OrderItems without full Order, identity, address, payment, Stripe or other-Supplier data.
+
+Supplier routes combine session, role and ownership guards with supplier predicates in every Prisma query. Only `ACTIVE` Listings enter Catalog/PDP/Cart. Stale stock updates return `409`; checkout reservation and compensation increment the same inventory version, while PostgreSQL enforces non-negative stock. Supplier collections use allowlisted filters, bounded cursor pagination and deterministic sorting.
 
 ## Auth and persistence boundaries
 

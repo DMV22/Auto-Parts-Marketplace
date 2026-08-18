@@ -98,7 +98,7 @@ describe('WebhookService integration', () => {
     });
     await expect(
       prisma.listing.findUniqueOrThrow({ where: { id: ACTIVE_LISTING_ID } }),
-    ).resolves.toMatchObject({ stockQuantity: 3 });
+    ).resolves.toMatchObject({ stockQuantity: 3, inventoryVersion: 1 });
   });
 
   it('acknowledges a duplicate event without repeating side effects', async () => {
@@ -127,7 +127,7 @@ describe('WebhookService integration', () => {
     ).resolves.toBe(2);
     await expect(
       prisma.listing.findUniqueOrThrow({ where: { id: ACTIVE_LISTING_ID } }),
-    ).resolves.toMatchObject({ stockQuantity: 3 });
+    ).resolves.toMatchObject({ stockQuantity: 3, inventoryVersion: 1 });
   });
 
   it('records an unpaid completed session without trusting it as payment', async () => {
@@ -195,7 +195,7 @@ describe('WebhookService integration', () => {
     expect(order.statusEvents).toHaveLength(2);
     await expect(
       prisma.listing.findUniqueOrThrow({ where: { id: ACTIVE_LISTING_ID } }),
-    ).resolves.toMatchObject({ stockQuantity: 5 });
+    ).resolves.toMatchObject({ stockQuantity: 5, inventoryVersion: 2 });
   });
 
   it('records a late terminal event without reversing a paid order', async () => {
@@ -231,7 +231,7 @@ describe('WebhookService integration', () => {
     expect(order.statusEvents).toHaveLength(2);
     await expect(
       prisma.listing.findUniqueOrThrow({ where: { id: ACTIVE_LISTING_ID } }),
-    ).resolves.toMatchObject({ stockQuantity: 3 });
+    ).resolves.toMatchObject({ stockQuantity: 3, inventoryVersion: 1 });
   });
 
   it.each([

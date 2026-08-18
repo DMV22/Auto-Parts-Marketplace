@@ -67,7 +67,7 @@ pnpm --filter api test
 # PostgreSQL persistence and application-service integration tests
 pnpm --filter api test:int
 
-# Auth, taxonomy, garage, catalog, PDP and commerce HTTP tests
+# Auth, taxonomy, garage, catalog, PDP, commerce and Supplier Cabinet HTTP tests
 pnpm --filter api test:e2e
 ```
 
@@ -119,4 +119,24 @@ Only a signature-verified, metadata/session/currency/amount-consistent paid webh
 
 Order history and timeline use opaque cursor pagination (`limit` default 20, maximum 50). Order detail returns historical item snapshots, not current Listing price or stock. PaymentEvent payloads, guest hashes, Stripe identifiers and internal ownership fields are never part of public Order responses.
 
-Supplier listing management, fulfillment/shipping, refunds and returns remain future milestones.
+## Supplier Cabinet API boundary
+
+Supplier routes require an authenticated `SUPPLIER_USER` with an active membership matching `:supplierId`. `ADMIN` has an explicit bypass; `SUPPORT_MANAGER` does not receive supplier access. Guards enforce the route boundary and every persistence query repeats the supplier predicate. Missing and foreign-owned detail resources return the same non-disclosing `404`.
+
+Implemented routes:
+
+- `GET|POST /api/v1/suppliers/:supplierId/listings`;
+- `GET|PATCH /api/v1/suppliers/:supplierId/listings/:listingId`;
+- `POST /api/v1/suppliers/:supplierId/listings/:listingId/submit|pause|resume|archive`;
+- `PUT /api/v1/suppliers/:supplierId/listings/:listingId/stock`;
+- `POST /api/v1/admin/listings/:listingId/approve|reject`;
+- `GET /api/v1/suppliers/:supplierId/order-items`;
+- `GET /api/v1/suppliers/:supplierId/order-items/:orderItemId`.
+
+Listings follow the explicit `DRAFT → PENDING_APPROVAL → ACTIVE | REJECTED` publication flow, with `ACTIVE ↔ PAUSED` and terminal `ARCHIVED` actions. Only `ACTIVE` Listings are public or purchasable. Material ProductVariant/condition/currency edits require renewed approval; price and stock edits preserve publication status.
+
+Stock updates accept absolute `{ quantity, expectedVersion }`. Successful supplier updates and checkout reservation/release atomically increment `inventoryVersion`; stale writes return `409` and PostgreSQL prevents negative stock.
+
+Supplier OrderItem reads expose only immutable item snapshots, quantity/money and minimal public Order status/timestamps. They exclude full Orders, customer/guest identity, addresses, payment/webhook payloads, Stripe fields and other Suppliers' items. Collections use allowlisted filters, a maximum page size of 50 and opaque deterministic cursors.
+
+Fulfillment, shipping, payouts, refunds, returns, moderation history and CRM/OMS remain future milestones.

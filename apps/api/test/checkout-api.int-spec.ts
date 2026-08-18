@@ -9,6 +9,7 @@ import { CheckoutService } from '../src/commerce/checkout/checkout.service';
 import type { CommerceActor } from '../src/commerce/commerce.types';
 import { PrismaModule } from '../src/prisma/prisma.module';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { SupplierListingsService } from '../src/supplier-cabinet/listings/listings.service';
 import {
   ACTIVE_LISTING_ID,
   CART_PRODUCT_ID,
@@ -32,6 +33,7 @@ describe('CheckoutService integration', () => {
   let moduleRef: TestingModule;
   let prisma: PrismaService;
   let service: CheckoutService;
+  let supplierListings: SupplierListingsService;
   let gateway: FakeCheckoutGateway;
 
   beforeAll(async () => {
@@ -40,6 +42,7 @@ describe('CheckoutService integration', () => {
       imports: [PrismaModule],
       providers: [
         CheckoutService,
+        SupplierListingsService,
         {
           provide: CHECKOUT_GATEWAY,
           useValue: gateway satisfies CheckoutGateway,
@@ -49,6 +52,7 @@ describe('CheckoutService integration', () => {
     await moduleRef.init();
     prisma = moduleRef.get(PrismaService);
     service = moduleRef.get(CheckoutService);
+    supplierListings = moduleRef.get(SupplierListingsService);
   });
 
   beforeEach(async () => {
@@ -99,7 +103,7 @@ describe('CheckoutService integration', () => {
       expect(order.items[0].unitPrice.toFixed(2)).toBe('125.00');
       await expect(
         prisma.listing.findUniqueOrThrow({ where: { id: ACTIVE_LISTING_ID } }),
-      ).resolves.toMatchObject({ stockQuantity: 3 });
+      ).resolves.toMatchObject({ stockQuantity: 3, inventoryVersion: 1 });
     };
 
     await expect(
@@ -126,7 +130,7 @@ describe('CheckoutService integration', () => {
     await expect(prisma.order.count()).resolves.toBe(1);
     await expect(
       prisma.listing.findUniqueOrThrow({ where: { id: ACTIVE_LISTING_ID } }),
-    ).resolves.toMatchObject({ stockQuantity: 3 });
+    ).resolves.toMatchObject({ stockQuantity: 3, inventoryVersion: 1 });
 
     await prisma.cartItem.updateMany({
       where: { cart: { guestTokenHash: CHECKOUT_GUEST_HASH } },
@@ -150,7 +154,7 @@ describe('CheckoutService integration', () => {
     await expect(prisma.order.count()).resolves.toBe(1);
     await expect(
       prisma.listing.findUniqueOrThrow({ where: { id: ACTIVE_LISTING_ID } }),
-    ).resolves.toMatchObject({ stockQuantity: 3 });
+    ).resolves.toMatchObject({ stockQuantity: 3, inventoryVersion: 1 });
   });
 
   it('cancels and releases stock exactly once after a gateway failure', async () => {
@@ -161,7 +165,7 @@ describe('CheckoutService integration', () => {
     ).rejects.toBeInstanceOf(ServiceUnavailableException);
     await expect(
       prisma.listing.findUniqueOrThrow({ where: { id: ACTIVE_LISTING_ID } }),
-    ).resolves.toMatchObject({ stockQuantity: 5 });
+    ).resolves.toMatchObject({ stockQuantity: 5, inventoryVersion: 2 });
 
     const cancelled = await prisma.order.findUniqueOrThrow({
       where: { checkoutRequestId: REQUEST_ID },
@@ -191,7 +195,7 @@ describe('CheckoutService integration', () => {
     expect(gateway.calls).toHaveLength(1);
     await expect(
       prisma.listing.findUniqueOrThrow({ where: { id: ACTIVE_LISTING_ID } }),
-    ).resolves.toMatchObject({ stockQuantity: 5 });
+    ).resolves.toMatchObject({ stockQuantity: 5, inventoryVersion: 2 });
   });
 
   it('uses the current server Listing price for Order and provider snapshots', async () => {
@@ -257,8 +261,31 @@ describe('CheckoutService integration', () => {
     );
     await expect(
       prisma.listing.findUniqueOrThrow({ where: { id: ACTIVE_LISTING_ID } }),
-    ).resolves.toMatchObject({ stockQuantity: 2 });
+    ).resolves.toMatchObject({ stockQuantity: 2, inventoryVersion: 1 });
     await expect(prisma.order.count()).resolves.toBe(1);
+  });
+
+  it('serializes a supplier stock write with checkout reservation', async () => {
+    const results = await Promise.allSettled([
+      supplierListings.updateStock(
+        CART_SUPPLIER_ID,
+        ACTIVE_LISTING_ID,
+        { quantity: 10, expectedVersion: 0 },
+      ),
+      service.createSession(GUEST_ACTOR, REQUEST_ID),
+    ]);
+
+    expect(results[1].status).toBe('fulfilled');
+    const listing = await prisma.listing.findUniqueOrThrow({
+      where: { id: ACTIVE_LISTING_ID },
+      select: { stockQuantity: true, inventoryVersion: true },
+    });
+    if (results[0].status === 'fulfilled') {
+      expect(listing).toEqual({ stockQuantity: 8, inventoryVersion: 2 });
+    } else {
+      expect(results[0].reason).toBeInstanceOf(ConflictException);
+      expect(listing).toEqual({ stockQuantity: 3, inventoryVersion: 1 });
+    }
   });
 
   it('keeps OrderItem display and price snapshots immutable', async () => {

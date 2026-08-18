@@ -110,7 +110,10 @@ export class WebhookService {
           for (const item of order.items) {
             await transaction.listing.update({
               where: { id: item.listingId },
-              data: { stockQuantity: { increment: item.quantity } },
+              data: {
+                stockQuantity: { increment: item.quantity },
+                inventoryVersion: { increment: 1 },
+              },
             });
           }
           await transaction.orderStatusEvent.create({

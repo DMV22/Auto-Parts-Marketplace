@@ -176,7 +176,10 @@ export class CheckoutService {
               price: item.listing.price,
               stockQuantity: { gte: item.quantity },
             },
-            data: { stockQuantity: { decrement: item.quantity } },
+            data: {
+              stockQuantity: { decrement: item.quantity },
+              inventoryVersion: { increment: 1 },
+            },
           });
           if (reserved.count !== 1) {
             throw new ConflictException('Checkout stock changed');
@@ -250,7 +253,10 @@ export class CheckoutService {
         for (const item of items) {
           await transaction.listing.update({
             where: { id: item.listingId },
-            data: { stockQuantity: { increment: item.quantity } },
+            data: {
+              stockQuantity: { increment: item.quantity },
+              inventoryVersion: { increment: 1 },
+            },
           });
         }
         await transaction.orderStatusEvent.create({

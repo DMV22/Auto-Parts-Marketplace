@@ -4,7 +4,7 @@
 
 Auto Parts Marketplace is intended to let customers discover compatible automotive parts and suppliers manage marketplace inventory through a web application backed by a NestJS API and PostgreSQL.
 
-The repository currently implements the backend foundation, discovery API and accepted Milestone 8 commerce lifecycle, not complete marketplace workflows. Do not invent supplier fulfillment, shipping, refunds, moderation or return behavior without an accepted milestone.
+The repository currently implements the backend foundation, discovery API, accepted Milestone 8 commerce lifecycle and Milestone 9 Supplier Cabinet boundary, not complete marketplace workflows. Do not invent supplier fulfillment, shipping, refunds, moderation history or return behavior without an accepted milestone.
 
 ## Current system
 
@@ -14,7 +14,7 @@ The repository currently implements the backend foundation, discovery API and ac
 - Docker Compose — PostgreSQL 16 with `auto_parts_dev` and `auto_parts_test`, exposed on host port `5433`.
 - pnpm/Turborepo — workspace task graph, including `.next/**` and API `dist/**` build outputs.
 
-The committed migration chain implements catalog and vehicle taxonomy, identity/supplier ownership, and owner-aware commerce records. The API implements public taxonomy/catalog/PDP reads, Customer-owned garage operations, Customer/guest Cart and Checkout, signed Stripe webhook transitions, and owner-only Order reads. Regression coverage includes migrations, fitment semantics, catalog pagination, auth/session lifecycle, RBAC, commerce concurrency/idempotency and ownership.
+The committed migration chain implements catalog and vehicle taxonomy, identity/supplier ownership, owner-aware commerce records, Listing rejection metadata and inventory concurrency constraints. The API implements public taxonomy/catalog/PDP reads, Customer-owned garage operations, Customer/guest Cart and Checkout, signed Stripe webhook transitions, owner-only Order reads, and supplier-scoped Listing/inventory/OrderItem APIs. Regression coverage includes migrations, fitment semantics, catalog pagination, auth/session lifecycle, RBAC, commerce concurrency/idempotency, supplier isolation and ownership.
 
 ## Application boundaries
 
@@ -60,6 +60,16 @@ Public queries return only `ACTIVE` Listings and explicit projections. PDP expos
 
 `OrdersModule` exposes owner-only history, immutable detail and reason-coded timeline projections. Responses exclude PaymentEvent payloads, Stripe identifiers, guest hashes and internal membership data. Collections use bounded deterministic opaque-cursor pagination.
 
+## Supplier Cabinet boundary
+
+`SupplierCabinetModule` composes supplier Listing, inventory and OrderItem reads over the existing auth and Prisma boundaries. Supplier routes apply `SessionAuthGuard`, `RolesGuard`, `SupplierOwnershipGuard` and an active membership, then repeat `supplierId` in Prisma predicates as defense in depth. `ADMIN` bypass is explicit; `SUPPORT_MANAGER` has no implicit supplier access.
+
+Listing lifecycle rules are centralized: Supplier creates `DRAFT`, submits for approval, pauses/resumes approved records and archives owned Listings; only Admin approves or rejects pending records. Public Catalog/PDP/Cart continue to select only `ACTIVE` Listings. Material catalog edits require renewed approval, while price and inventory edits preserve publication status.
+
+Inventory writes use absolute quantity plus `expectedVersion`. Conditional updates prevent lost supplier writes, and checkout reservation/one-time release increments the same `inventoryVersion` in its stock transaction. A PostgreSQL check constraint prevents negative inventory.
+
+Supplier OrderItem endpoints are read-only projections scoped through `OrderItem → Listing → supplierId`. Explicit selects expose immutable product snapshots, quantity/money and minimal Order status/timestamps while excluding customer/guest identity, addresses, PaymentEvent/Stripe internals, full Orders and other Suppliers' items. Collections use allowlisted filters and bounded deterministic cursor pagination.
+
 ## Domain persistence
 
 ```text
@@ -84,8 +94,8 @@ Order/payment transitions are explicit application-service operations guarded by
 
 ## Not implemented
 
-- supplier listing-management endpoints;
-- order fulfillment, shipping and return workflows;
+- supplier fulfillment, shipping and return workflows;
+- payouts, refunds, moderation history and internal CRM/OMS workflows;
 - frontend-to-API integration;
 - production database, secret management, backups, monitoring and deployment architecture.
 
