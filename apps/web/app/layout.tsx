@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { AppProviders } from "./providers";
 import { createSessionHydrationState } from "@/lib/auth/server-session";
+import { AppHeader } from "@/components/shell/app-header";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -38,7 +39,10 @@ export default async function RootLayout({
         >
           Перейти до основного вмісту
         </a>
-        <AppProviders sessionState={sessionState}>{children}</AppProviders>
+        <AppProviders sessionState={sessionState}>
+          <AppHeader />
+          {children}
+        </AppProviders>
       </body>
     </html>
   );

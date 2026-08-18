@@ -5,7 +5,10 @@ test("serves the accessible platform shell through Next.js", async ({ page }) =>
 
   await expect(page.getByRole("main")).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Auto Parts Marketplace", level: 1 }),
+    page.getByRole("heading", {
+      name: "Запчастини, сумісні з вашим авто",
+      level: 1,
+    }),
   ).toBeVisible();
   await expect(
     page.getByRole("link", { name: "Перейти до основного вмісту" }),

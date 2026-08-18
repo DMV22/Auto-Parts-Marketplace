@@ -1,18 +1,25 @@
+import Link from "next/link";
+import styles from "./page.module.css";
+
 export default function Home() {
   return (
-    <main
-      id="main-content"
-      className="mx-auto flex min-h-svh max-w-3xl flex-col justify-center gap-4 px-6 py-16"
-    >
-      <p className="text-sm font-medium text-muted-foreground">
-        Frontend platform
-      </p>
-      <h1 className="text-balance text-3xl font-semibold tracking-tight">
-        Auto Parts Marketplace
-      </h1>
-      <p className="max-w-xl text-pretty text-muted-foreground">
-        Базова frontend-платформа готова до підключення продуктових сценаріїв.
-      </p>
+    <main id="main-content" className={styles.main}>
+      <section className={styles.content} aria-labelledby="home-title">
+        <p className={styles.eyebrow}>Fitment-aware marketplace</p>
+        <h1 id="home-title" className={styles.title}>
+          Запчастини, сумісні з вашим авто
+        </h1>
+        <p className={styles.description}>
+          Увійдіть або створіть Customer-акаунт. Каталог, гараж і покупки
+          підключатимуться наступними frontend milestones поверх готового API.
+        </p>
+        <div className={styles.actions}>
+          <Link className={styles.primary} href="/sign-up">
+            Створити акаунт
+          </Link>
+          <Link href="/sign-in">Увійти</Link>
+        </div>
+      </section>
     </main>
   );
 }

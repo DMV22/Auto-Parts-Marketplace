@@ -9,8 +9,19 @@ describe("frontend platform shell", () => {
 
     expect(screen.getByRole("main")).toBeInTheDocument();
     expect(
-      screen.getByRole("heading", { name: "Auto Parts Marketplace", level: 1 }),
+      screen.getByRole("heading", {
+        name: "Запчастини, сумісні з вашим авто",
+        level: 1,
+      }),
     ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Створити акаунт" })).toHaveAttribute(
+      "href",
+      "/sign-up",
+    );
+    expect(screen.getByRole("link", { name: "Увійти" })).toHaveAttribute(
+      "href",
+      "/sign-in",
+    );
   });
 
   it("provides an accessible app-local button primitive", () => {

@@ -325,19 +325,19 @@ pnpm --filter web build
 
 ### Tasks
 
-- [ ] Реалізувати current-session query та server/client hydration boundary.
-- [ ] Реалізувати sign-up/sign-in forms з Better Auth-compatible payloads.
-- [ ] Реалізувати Google redirect flow і callback recovery.
-- [ ] Реалізувати sign-out з query cache cleanup.
-- [ ] Додати active/inactive/unauthenticated states і safe `returnTo` handling.
-- [ ] Не показувати forgot-password/email-verification actions до появи backend contract.
+- [x] Реалізувати current-session query та server/client hydration boundary.
+- [x] Реалізувати sign-up/sign-in forms з Better Auth-compatible payloads.
+- [x] Реалізувати Google redirect flow і callback recovery.
+- [x] Реалізувати sign-out з query cache cleanup.
+- [x] Додати active/inactive/unauthenticated states і safe `returnTo` handling.
+- [x] Не показувати forgot-password/email-verification actions до появи backend contract.
 
 ### Definition of Done
 
-- [ ] Email sign-up/sign-in, Google sign-in і sign-out працюють через HttpOnly session cookie.
-- [ ] Refresh відновлює session без browser token storage.
-- [ ] Role-aware navigation не надає access, а лише покращує UX.
-- [ ] Auth errors мають accessible form/global feedback.
+- [x] Email sign-up/sign-in, Google sign-in і sign-out працюють через HttpOnly session cookie.
+- [x] Refresh відновлює session без browser token storage.
+- [x] Role-aware navigation не надає access, а лише покращує UX.
+- [x] Auth errors мають accessible form/global feedback.
 
 ### Testing
 
@@ -352,6 +352,34 @@ pnpm --filter web test
 pnpm --filter web test:e2e
 pnpm --filter web build
 ```
+
+### Implementation log
+
+#### What changed
+
+- Додано public shell із responsive header та session-aware anonymous, loading, unavailable, inactive й authenticated states.
+- Реалізовано email sign-up/sign-in через React Hook Form, Zod і Better Auth-compatible payloads; forgot-password/email-verification UI свідомо відсутній.
+- Реалізовано Google OAuth initiation через same-origin `/api/auth/*`; callback повертається на safe relative `returnTo` або `/`.
+- Додано server-side session preload із forwarding cookie до `API_INTERNAL_URL` та hydration лише frontend-safe session projection без token.
+- Sign-out очищає frontend query cache; role використовується лише для UX label, а не як authorization boundary.
+- Додано app-local shadcn form primitives, CSS Modules, accessible inline/global errors, focus states і reduced-motion-safe pending indicators.
+
+#### Validation results
+
+- `pnpm --filter web test` — passed: 8 files, 34 tests.
+- `pnpm --filter web test:e2e` — passed: production build, 5 Playwright tests, guarded `auto_parts_test`, no browser download; sign-out перевірено після reload, а anonymous protected-route denial повертає `401`.
+- Google browser E2E перевіряє redirect initiation до Google; зовнішній provider callback не автоматизується, а recovery спирається на backend Better Auth callback contract і повторне session hydration.
+- `pnpm --filter web check-types` — passed; route types для `/`, `/sign-in`, `/sign-up` generated successfully.
+- `pnpm --filter web lint` — passed без warnings.
+- `git diff --check` — passed; whitespace errors не знайдено.
+
+### Handoff to F2
+
+- Використовувати наявні `sessionQueryOptions`, `queryKeys.auth.session` та `AppHeader`; не створювати другий session store.
+- Customer Garage routes можуть передавати тільки validated relative `returnTo`; fallback залишається `/` до появи стабільних workspace landing routes.
+- Backend залишається єдиною authorization boundary; frontend role metadata керує лише видимістю navigation actions.
+- Нові screens продовжують CSS Module convention; глобальні tokens/reset залишаються в `app/globals.css`.
+- F2 не повинен додавати Supplier membership discovery або catalog behavior; це залежності наступних milestones.
 
 ## Milestone F2 — Vehicle selector and Customer Garage
 

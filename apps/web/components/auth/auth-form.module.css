@@ -1,0 +1,59 @@
+.card {
+  width: min(100%, 28rem);
+  box-shadow: 0 1.5rem 4rem color-mix(in oklch, var(--foreground) 8%, transparent);
+}
+
+.title {
+  font-size: 1.25rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.submit {
+  width: 100%;
+}
+
+.globalError {
+  border: 1px solid color-mix(in oklch, var(--destructive) 35%, transparent);
+  border-radius: var(--radius-md);
+  background: color-mix(in oklch, var(--destructive) 8%, transparent);
+  padding: 0.75rem;
+  color: var(--destructive);
+  font-size: 0.875rem;
+}
+
+.alternative {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.switchText {
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.switchLink {
+  color: var(--foreground);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.switchLink:hover {
+  color: var(--primary);
+}
+
+.switchLink:focus-visible {
+  border-radius: var(--radius-sm);
+  outline: 3px solid color-mix(in oklch, var(--ring) 50%, transparent);
+  outline-offset: 3px;
+}
