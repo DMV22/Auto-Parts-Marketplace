@@ -1,6 +1,8 @@
 import { BadRequestException, Injectable, PipeTransform } from '@nestjs/common';
 import { ListingCondition, ListingStatus } from '../../generated/prisma/enums';
 import type {
+  AdminModerationCursor,
+  AdminModerationQuery,
   CreateSupplierListing,
   RejectSupplierListing,
   SupplierListingCursor,
@@ -28,6 +30,15 @@ const QUERY_KEYS = new Set([
   'cursor',
   'pageSize',
   'sort',
+]);
+const MODERATION_QUERY_KEYS = new Set([
+  'status',
+  'condition',
+  'supplierId',
+  'createdFrom',
+  'createdTo',
+  'cursor',
+  'pageSize',
 ]);
 const SORTS = new Set<SupplierListingSort>([
   'updated_desc',
@@ -132,10 +143,71 @@ export class SupplierListingsQueryPipe implements PipeTransform<
   }
 }
 
+@Injectable()
+export class AdminModerationQueryPipe implements PipeTransform<
+  unknown,
+  AdminModerationQuery
+> {
+  transform(value: unknown): AdminModerationQuery {
+    const query = requireRecord(value, 'Query parameters');
+    rejectUnknownKeys(query, MODERATION_QUERY_KEYS, 'query parameter');
+    requireSingleStrings(query);
+    const createdFrom = optionalDate(query.createdFrom, 'createdFrom');
+    const createdTo = optionalDate(query.createdTo, 'createdTo');
+    if (createdFrom && createdTo && createdFrom > createdTo) {
+      throw new BadRequestException('createdFrom must not exceed createdTo');
+    }
+    return {
+      status:
+        optionalEnum(query.status, ListingStatus, 'status') ??
+        ListingStatus.PENDING_APPROVAL,
+      condition: optionalEnum(query.condition, ListingCondition, 'condition'),
+      supplierId: optionalUuid(query.supplierId, 'supplierId'),
+      createdFrom,
+      createdTo,
+      cursor: optionalModerationCursor(query.cursor),
+      pageSize: optionalInteger(query.pageSize, 'pageSize', 1, 50) ?? 20,
+    };
+  }
+}
+
 export function encodeSupplierListingCursor(
   cursor: SupplierListingCursor,
 ): string {
   return Buffer.from(JSON.stringify(cursor), 'utf8').toString('base64url');
+}
+
+export function encodeAdminModerationCursor(
+  cursor: AdminModerationCursor,
+): string {
+  return Buffer.from(
+    JSON.stringify({ id: cursor.id, updatedAt: cursor.updatedAt.toISOString() }),
+    'utf8',
+  ).toString('base64url');
+}
+
+function optionalModerationCursor(value: unknown): AdminModerationCursor | null {
+  if (value === undefined) return null;
+  if (typeof value !== 'string' || value.length === 0 || value.length > 1024) {
+    throw new BadRequestException('cursor is invalid');
+  }
+  try {
+    const decoded = JSON.parse(
+      Buffer.from(value, 'base64url').toString('utf8'),
+    ) as unknown;
+    if (!isRecord(decoded) || typeof decoded.id !== 'string') throw new Error();
+    const updatedAt = new Date(String(decoded.updatedAt));
+    if (
+      !UUID_PATTERN.test(decoded.id) ||
+      Number.isNaN(updatedAt.getTime()) ||
+      updatedAt.toISOString() !== decoded.updatedAt
+    ) {
+      throw new Error();
+    }
+    return { id: decoded.id, updatedAt };
+  } catch {
+    throw new BadRequestException('cursor is invalid');
+  }
 }
 
 function parseMutableFields(
@@ -230,6 +302,18 @@ function optionalSort(value: unknown): SupplierListingSort {
 
 function optionalUuid(value: unknown, field: string): string | null {
   return value === undefined ? null : requiredUuid(value, field);
+}
+
+function optionalDate(value: unknown, field: string): Date | null {
+  if (value === undefined) return null;
+  if (typeof value !== 'string') {
+    throw new BadRequestException(`${field} must be an ISO timestamp`);
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime()) || date.toISOString() !== value) {
+    throw new BadRequestException(`${field} must be an ISO timestamp`);
+  }
+  return date;
 }
 
 function requiredUuid(value: unknown, field: string): string {

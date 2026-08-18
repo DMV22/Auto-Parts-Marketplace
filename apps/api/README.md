@@ -129,7 +129,9 @@ Implemented routes:
 - `GET|PATCH /api/v1/suppliers/:supplierId/listings/:listingId`;
 - `POST /api/v1/suppliers/:supplierId/listings/:listingId/submit|pause|resume|archive`;
 - `PUT /api/v1/suppliers/:supplierId/listings/:listingId/stock`;
-- `POST /api/v1/admin/listings/:listingId/approve|reject`;
+- `GET /api/v1/admin/moderation/listings`;
+- `POST /api/v1/admin/moderation/listings/:listingId/approve|reject|pause`;
+- `POST /api/v1/admin/listings/:listingId/approve|reject` (compatibility aliases);
 - `GET /api/v1/suppliers/:supplierId/order-items`;
 - `GET /api/v1/suppliers/:supplierId/order-items/:orderItemId`.
 
@@ -139,4 +141,12 @@ Stock updates accept absolute `{ quantity, expectedVersion }`. Successful suppli
 
 Supplier OrderItem reads expose only immutable item snapshots, quantity/money and minimal public Order status/timestamps. They exclude full Orders, customer/guest identity, addresses, payment/webhook payloads, Stripe fields and other Suppliers' items. Collections use allowlisted filters, a maximum page size of 50 and opaque deterministic cursors.
 
-Fulfillment, shipping, payouts, refunds, returns, moderation history and CRM/OMS remain future milestones.
+## Internal Ops API boundary
+
+`SUPPORT_MANAGER` and `ADMIN` can use `/api/v1/internal/orders*`, `/api/v1/internal/returns*`, internal Order/Return Notes and `/api/v1/internal/activity`. Customer Return routes remain owner-scoped under `/api/v1/orders/:orderId/items/:orderItemId/returns*`. Payment status is never changed by Internal Ops; the verified Stripe webhook remains authoritative.
+
+Only `ADMIN` can use `/api/v1/admin/moderation/listings*`. Reject and emergency pause require `{ "reason": "..." }`; the reason is visible in the Supplier Listing projection, while ActivityLog remains internal-only. Supplier cannot resume an emergency-paused Listing. Queue/filter queries are allowlisted, bounded to 50 records and use opaque deterministic cursors.
+
+Internal Notes and ActivityLog never appear in Customer, Supplier, Catalog or commerce DTOs. Tests use suite-owned fixtures in guarded `auto_parts_test` and do not require demo seed or live Stripe.
+
+Fulfillment, shipping, payouts, refunds and frontend CRM/OMS dashboards remain future milestones.

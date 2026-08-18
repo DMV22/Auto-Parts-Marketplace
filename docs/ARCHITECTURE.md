@@ -4,7 +4,7 @@
 
 Auto Parts Marketplace is intended to let customers discover compatible automotive parts and suppliers manage marketplace inventory through a web application backed by a NestJS API and PostgreSQL.
 
-The repository currently implements the backend foundation, discovery API, accepted Milestone 8 commerce lifecycle and Milestone 9 Supplier Cabinet boundary, not complete marketplace workflows. Do not invent supplier fulfillment, shipping, refunds, moderation history or return behavior without an accepted milestone.
+The repository currently implements the backend foundation, discovery, commerce, Supplier Cabinet and accepted Milestone 10 Internal Ops boundaries, not complete marketplace workflows. Do not invent supplier fulfillment, shipping, refunds or external operational integrations without an accepted milestone.
 
 ## Current system
 
@@ -14,7 +14,7 @@ The repository currently implements the backend foundation, discovery API, accep
 - Docker Compose — PostgreSQL 16 with `auto_parts_dev` and `auto_parts_test`, exposed on host port `5433`.
 - pnpm/Turborepo — workspace task graph, including `.next/**` and API `dist/**` build outputs.
 
-The committed migration chain implements catalog and vehicle taxonomy, identity/supplier ownership, owner-aware commerce records, Listing rejection metadata and inventory concurrency constraints. The API implements public taxonomy/catalog/PDP reads, Customer-owned garage operations, Customer/guest Cart and Checkout, signed Stripe webhook transitions, owner-only Order reads, and supplier-scoped Listing/inventory/OrderItem APIs. Regression coverage includes migrations, fitment semantics, catalog pagination, auth/session lifecycle, RBAC, commerce concurrency/idempotency, supplier isolation and ownership.
+The committed migration chain implements catalog and vehicle taxonomy, identity/supplier ownership, owner-aware commerce, inventory constraints and Internal Ops persistence. The API implements public discovery, Customer/guest commerce, supplier-scoped Cabinet operations, internal OMS/Returns/Notes/audit and Admin Listing moderation. Regression coverage includes migrations, fitment, auth/RBAC, commerce idempotency, supplier isolation, internal privacy and transition policies.
 
 ## Application boundaries
 
@@ -70,6 +70,14 @@ Inventory writes use absolute quantity plus `expectedVersion`. Conditional updat
 
 Supplier OrderItem endpoints are read-only projections scoped through `OrderItem → Listing → supplierId`. Explicit selects expose immutable product snapshots, quantity/money and minimal Order status/timestamps while excluding customer/guest identity, addresses, PaymentEvent/Stripe internals, full Orders and other Suppliers' items. Collections use allowlisted filters and bounded deterministic cursor pagination.
 
+## Internal Ops boundary
+
+`InternalOpsModule` exposes SupportManager/Admin OMS Order reads and controlled transitions, Customer/Support ReturnRequest flows, internal Notes and ActivityLog reads. Central Order/Return policies own transition matrices; payment state remains outside this boundary and changes only through the verified Stripe webhook.
+
+Notes and ActivityLog are internal-only explicit projections. State changes and their audit record share one Prisma transaction. Customer and Supplier APIs never select internal notes, audit metadata, payment payloads or cross-owner identity.
+
+Admin Listing moderation reuses the centralized Listing transition policy. The global queue and approve/reject/emergency-pause routes require `ADMIN`; SupportManager receives no implicit moderation access. Reject and emergency pause require a supplier-visible reason, while Supplier cannot override an emergency pause. Catalog/PDP/Cart continue to expose only `ACTIVE` Listings.
+
 ## Domain persistence
 
 ```text
@@ -90,12 +98,12 @@ Order -> PaymentEvent (unique externalEventId)
 Order -> OrderStatusEvent
 ```
 
-Order/payment transitions are explicit application-service operations guarded by expected current state. Payment events and status timeline records are append-only; unique external event identity prevents repeated webhook side effects. Shipping, refunds and returns still have no runtime workflow.
+Order/payment transitions are explicit application-service operations guarded by expected current state. Payment events and status timeline records are append-only; unique external event identity prevents repeated webhook side effects. Shipping and refunds still have no runtime workflow.
 
 ## Not implemented
 
-- supplier fulfillment, shipping and return workflows;
-- payouts, refunds, moderation history and internal CRM/OMS workflows;
+- supplier fulfillment and shipping workflows;
+- payouts, refunds and external CRM/notification integrations;
 - frontend-to-API integration;
 - production database, secret management, backups, monitoring and deployment architecture.
 

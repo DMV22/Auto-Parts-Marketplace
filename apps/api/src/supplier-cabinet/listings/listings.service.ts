@@ -1,18 +1,26 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '../../generated/prisma/client';
-import { ListingStatus } from '../../generated/prisma/enums';
+import {
+  ActivityResourceType,
+  ListingStatus,
+  type UserRole,
+} from '../../generated/prisma/enums';
+import { ActivityLogService } from '../../internal-ops/activity-log.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
-  resolveAdminListingTransition,
+  resolveListingModerationTransition,
   resolveSupplierListingTransition,
   resolveSupplierListingUpdate,
 } from './listing-transition.policy';
 import type {
   AdminListingAction,
+  AdminModerationQuery,
+  AdminModerationResponse,
   CreateSupplierListing,
   SupplierListingCursor,
   SupplierListingAction,
@@ -22,7 +30,10 @@ import type {
   UpdateSupplierListing,
   UpdateSupplierStock,
 } from './listings.types';
-import { encodeSupplierListingCursor } from './listings.validation';
+import {
+  encodeAdminModerationCursor,
+  encodeSupplierListingCursor,
+} from './listings.validation';
 
 const LISTING_SELECT = {
   id: true,
@@ -34,6 +45,7 @@ const LISTING_SELECT = {
   stockQuantity: true,
   inventoryVersion: true,
   rejectionReason: true,
+  moderationReason: true,
   createdAt: true,
   updatedAt: true,
   productVariant: {
@@ -52,7 +64,67 @@ type SelectedListing = Prisma.ListingGetPayload<{
 
 @Injectable()
 export class SupplierListingsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly activityLog: ActivityLogService,
+  ) {}
+
+  async listModeration(
+    query: AdminModerationQuery,
+  ): Promise<AdminModerationResponse> {
+    const rows = await this.prisma.listing.findMany({
+      where: {
+        status: query.status,
+        condition: query.condition ?? undefined,
+        supplierId: query.supplierId ?? undefined,
+        createdAt:
+          query.createdFrom || query.createdTo
+            ? {
+                gte: query.createdFrom ?? undefined,
+                lte: query.createdTo ?? undefined,
+              }
+            : undefined,
+        AND: query.cursor
+          ? [
+              {
+                OR: [
+                  { updatedAt: { lt: query.cursor.updatedAt } },
+                  {
+                    updatedAt: query.cursor.updatedAt,
+                    id: { lt: query.cursor.id },
+                  },
+                ],
+              },
+            ]
+          : undefined,
+      },
+      orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+      take: query.pageSize + 1,
+      select: {
+        ...LISTING_SELECT,
+        supplier: { select: { id: true, name: true } },
+      },
+    });
+    const hasNextPage = rows.length > query.pageSize;
+    const page = hasNextPage ? rows.slice(0, query.pageSize) : rows;
+    const last = page.at(-1);
+    return {
+      data: page.map((listing) => ({
+        ...mapListing(listing),
+        supplier: listing.supplier,
+      })),
+      meta: {
+        pageSize: query.pageSize,
+        nextCursor:
+          hasNextPage && last
+            ? encodeAdminModerationCursor({
+                id: last.id,
+                updatedAt: last.updatedAt,
+              })
+            : null,
+      },
+    };
+  }
 
   async list(
     supplierId: string,
@@ -171,15 +243,18 @@ export class SupplierListingsService {
   ): Promise<SupplierListingDto> {
     const current = await this.prisma.listing.findFirst({
       where: { id: listingId, supplierId },
-      select: { status: true },
+      select: { status: true, moderationReason: true },
     });
     if (!current) throw new NotFoundException('Listing not found');
-    const nextStatus = resolveSupplierListingTransition(current.status, action);
+    const nextStatus = resolveSupplierListingTransition(current.status, action, {
+      moderationReason: current.moderationReason,
+    });
     const result = await this.prisma.listing.updateMany({
       where: { id: listingId, supplierId, status: current.status },
       data: {
         status: nextStatus,
         rejectionReason: action === 'submit' ? null : undefined,
+        moderationReason: action === 'submit' ? null : undefined,
       },
     });
     if (result.count !== 1) {
@@ -193,32 +268,53 @@ export class SupplierListingsService {
   async transitionAdminListing(
     listingId: string,
     action: AdminListingAction,
-    rejectionReason?: string,
+    reason: string | undefined,
+    actor: { id: string; role: UserRole },
   ): Promise<SupplierListingDto> {
-    const current = await this.prisma.listing.findUnique({
-      where: { id: listingId },
-      select: { status: true },
-    });
-    if (!current) throw new NotFoundException('Listing not found');
-    const nextStatus = resolveAdminListingTransition(current.status, action);
-    const result = await this.prisma.listing.updateMany({
-      where: { id: listingId, status: current.status },
-      data: {
-        status: nextStatus,
-        rejectionReason: action === 'reject' ? rejectionReason : null,
-      },
-    });
-    if (result.count !== 1) {
-      throw new ConflictException(
-        'Listing changed while it was being reviewed',
-      );
+    if ((action === 'reject' || action === 'pause') && !reason) {
+      throw new BadRequestException('reason is required');
     }
-    const listing = await this.prisma.listing.findUnique({
-      where: { id: listingId },
-      select: LISTING_SELECT,
+    return this.prisma.$transaction(async (transaction) => {
+      const current = await transaction.listing.findUnique({
+        where: { id: listingId },
+        select: { status: true },
+      });
+      if (!current) throw new NotFoundException('Listing not found');
+      const nextStatus = resolveListingModerationTransition(
+        current.status,
+        action,
+        actor.role,
+      );
+      const result = await transaction.listing.updateMany({
+        where: { id: listingId, status: current.status },
+        data: {
+          status: nextStatus,
+          rejectionReason: action === 'reject' ? reason : null,
+          moderationReason: action === 'pause' ? reason : null,
+        },
+      });
+      if (result.count !== 1) {
+        throw new ConflictException(
+          'Listing changed while it was being reviewed',
+        );
+      }
+      await this.activityLog.record(transaction, {
+        actorUserId: actor.id,
+        actorRole: actor.role,
+        resourceType: ActivityResourceType.LISTING,
+        resourceId: listingId,
+        action: moderationActivity(action),
+        previousStatus: current.status,
+        newStatus: nextStatus,
+        reason: reason ?? null,
+      });
+      const listing = await transaction.listing.findUnique({
+        where: { id: listingId },
+        select: LISTING_SELECT,
+      });
+      if (!listing) throw new NotFoundException('Listing not found');
+      return mapListing(listing);
     });
-    if (!listing) throw new NotFoundException('Listing not found');
-    return mapListing(listing);
   }
 
   async updateStock(
@@ -315,8 +411,20 @@ function mapListing(listing: SelectedListing): SupplierListingDto {
     stockQuantity: listing.stockQuantity,
     inventoryVersion: listing.inventoryVersion,
     rejectionReason: listing.rejectionReason,
+    moderationReason: listing.moderationReason,
     createdAt: listing.createdAt.toISOString(),
     updatedAt: listing.updatedAt.toISOString(),
     productVariant: listing.productVariant,
   };
+}
+
+function moderationActivity(action: AdminListingAction): string {
+  switch (action) {
+    case 'approve':
+      return 'LISTING_APPROVED';
+    case 'reject':
+      return 'LISTING_REJECTED';
+    case 'pause':
+      return 'LISTING_EMERGENCY_PAUSED';
+  }
 }

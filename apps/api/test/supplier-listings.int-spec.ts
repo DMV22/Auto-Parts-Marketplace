@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { ActivityLogService } from '../src/internal-ops/activity-log.service';
 import { PrismaModule } from '../src/prisma/prisma.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { SupplierListingsService } from '../src/supplier-cabinet/listings/listings.service';
@@ -15,6 +16,8 @@ const SUPPLIER_B_ID = '91000000-0000-4000-8000-000000000006';
 const LISTING_A_ID = '91000000-0000-4000-8000-000000000010';
 const LISTING_B_ID = '91000000-0000-4000-8000-000000000011';
 const FOREIGN_LISTING_ID = '91000000-0000-4000-8000-000000000012';
+const ADMIN_ID = '91000000-0000-4000-8000-000000000020';
+const ADMIN_ACTOR = { id: ADMIN_ID, role: 'ADMIN' as const };
 
 const BASE_QUERY: SupplierListingsQuery = {
   status: null,
@@ -33,7 +36,7 @@ describe('SupplierListingsService integration', () => {
   beforeAll(async () => {
     moduleRef = await Test.createTestingModule({
       imports: [PrismaModule],
-      providers: [SupplierListingsService],
+      providers: [ActivityLogService, SupplierListingsService],
     }).compile();
     await moduleRef.init();
     prisma = moduleRef.get(PrismaService);
@@ -156,6 +159,7 @@ describe('SupplierListingsService integration', () => {
         LISTING_A_ID,
         'reject',
         'Missing manufacturer evidence',
+        ADMIN_ACTOR,
       ),
     ).resolves.toMatchObject({
       status: 'REJECTED',
@@ -175,7 +179,12 @@ describe('SupplierListingsService integration', () => {
       rejectionReason: null,
     });
     await expect(
-      service.transitionAdminListing(LISTING_A_ID, 'approve'),
+      service.transitionAdminListing(
+        LISTING_A_ID,
+        'approve',
+        undefined,
+        ADMIN_ACTOR,
+      ),
     ).resolves.toMatchObject({ status: 'ACTIVE', rejectionReason: null });
   });
 
@@ -279,6 +288,15 @@ describe('SupplierListingsService integration', () => {
 });
 
 async function createFixtures(prisma: PrismaService): Promise<void> {
+  await prisma.user.create({
+    data: {
+      id: ADMIN_ID,
+      name: 'Supplier Listings Admin',
+      email: 'supplier-listings-admin@test.invalid',
+      emailVerified: true,
+      role: 'ADMIN',
+    },
+  });
   await prisma.brand.create({
     data: { id: BRAND_ID, name: 'Supplier Listings Integration Brand' },
   });
@@ -348,6 +366,9 @@ async function createFixtures(prisma: PrismaService): Promise<void> {
 }
 
 async function cleanFixtures(prisma: PrismaService): Promise<void> {
+  await prisma.activityLog.deleteMany({
+    where: { actorUserId: ADMIN_ID },
+  });
   await prisma.listing.deleteMany({
     where: { supplierId: { in: [SUPPLIER_A_ID, SUPPLIER_B_ID] } },
   });
@@ -356,4 +377,5 @@ async function cleanFixtures(prisma: PrismaService): Promise<void> {
   });
   await prisma.product.deleteMany({ where: { id: PRODUCT_ID } });
   await prisma.brand.deleteMany({ where: { id: BRAND_ID } });
+  await prisma.user.deleteMany({ where: { id: ADMIN_ID } });
 }

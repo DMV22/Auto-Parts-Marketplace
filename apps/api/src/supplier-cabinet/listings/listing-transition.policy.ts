@@ -15,6 +15,7 @@ import type {
 export function resolveSupplierListingTransition(
   current: ListingStatusValue,
   action: SupplierListingAction,
+  context: { moderationReason?: string | null } = {},
 ): ListingStatusValue {
   if (action === 'archive') {
     if (current === ListingStatus.ARCHIVED) invalidTransition(current, action);
@@ -30,6 +31,11 @@ export function resolveSupplierListingTransition(
     return ListingStatus.PAUSED;
   }
   if (action === 'resume' && current === ListingStatus.PAUSED) {
+    if (context.moderationReason) {
+      throw new ConflictException(
+        'An Admin-paused listing cannot be resumed by a Supplier',
+      );
+    }
     return ListingStatus.ACTIVE;
   }
   return invalidTransition(current, action);

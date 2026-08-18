@@ -30,9 +30,19 @@ export type CreateSupplierListing = {
 };
 export type UpdateSupplierListing = Partial<CreateSupplierListing>;
 export type SupplierListingAction = 'submit' | 'pause' | 'resume' | 'archive';
-export type AdminListingAction = 'approve' | 'reject';
-export type ListingModerationAction = AdminListingAction | 'pause';
+export type AdminListingAction = 'approve' | 'reject' | 'pause';
+export type ListingModerationAction = AdminListingAction;
 export type RejectSupplierListing = { reason: string };
+export type AdminModerationCursor = { id: string; updatedAt: Date };
+export type AdminModerationQuery = {
+  status: ListingStatus;
+  condition: ListingCondition | null;
+  supplierId: string | null;
+  createdFrom: Date | null;
+  createdTo: Date | null;
+  cursor: AdminModerationCursor | null;
+  pageSize: number;
+};
 export type UpdateSupplierStock = {
   quantity: number;
   expectedVersion: number;
@@ -47,6 +57,7 @@ export type SupplierListingDto = {
   stockQuantity: number;
   inventoryVersion: number;
   rejectionReason: string | null;
+  moderationReason: string | null;
   createdAt: string;
   updatedAt: string;
   productVariant: {
@@ -55,6 +66,13 @@ export type SupplierListingDto = {
     manufacturerPartNumber: string;
     oemNumber: string | null;
   };
+};
+export type AdminModerationListingDto = SupplierListingDto & {
+  supplier: { id: string; name: string };
+};
+export type AdminModerationResponse = {
+  data: AdminModerationListingDto[];
+  meta: { pageSize: number; nextCursor: string | null };
 };
 export type SupplierListingsResponse = {
   data: SupplierListingDto[];
