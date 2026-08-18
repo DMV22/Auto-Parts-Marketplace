@@ -27,7 +27,7 @@ describe('Commerce status persistence contract', () => {
     await moduleRef?.close();
   });
 
-  it('persists the agreed status vocabularies in transition order', async () => {
+  it('persists the agreed status vocabularies', async () => {
     const values = await prisma.$queryRaw<
       Array<{ enumName: string; enumValue: string }>
     >`
@@ -84,6 +84,7 @@ describe('Commerce status persistence contract', () => {
       'RECEIVED',
       'COMPLETED',
       'CANCELLED',
+      'UNDER_REVIEW',
     ]);
   });
 
