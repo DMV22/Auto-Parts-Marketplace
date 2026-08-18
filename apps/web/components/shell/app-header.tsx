@@ -44,9 +44,14 @@ export function AppHeader() {
   return (
     <header className={styles.header}>
       <nav className={styles.navigation} aria-label="Основна навігація">
-        <Link className={styles.brand} href="/">
-          Auto Parts Marketplace
-        </Link>
+        <div className={styles.primaryNavigation}>
+          <Link className={styles.brand} href="/">
+            Auto Parts Marketplace
+          </Link>
+          <Link className={styles.workspaceLink} href="/catalog">
+            Каталог
+          </Link>
+        </div>
         <div className={styles.sessionArea}>
           {session.isPending ? (
             <span role="status" className={styles.status}>

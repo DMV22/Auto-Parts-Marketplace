@@ -24,7 +24,8 @@
 
 .sessionArea,
 .actions,
-.account {
+.account,
+.primaryNavigation {
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -112,7 +113,8 @@
   }
 
   .sessionArea,
-  .account {
+  .account,
+  .primaryNavigation {
     width: 100%;
     justify-content: space-between;
   }

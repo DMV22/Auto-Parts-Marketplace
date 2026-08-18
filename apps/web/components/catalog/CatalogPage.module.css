@@ -1,0 +1,158 @@
+.main {
+  width: min(100% - 2rem, 80rem);
+  margin-inline: auto;
+  padding-block: clamp(2rem, 5vw, 4rem);
+}
+
+.header {
+  max-inline-size: 52rem;
+  margin-block-end: 1.5rem;
+}
+
+.header h1 {
+  margin-block: 0.35rem 0.75rem;
+  font-size: clamp(2rem, 6vw, 3.75rem);
+  letter-spacing: -0.045em;
+  line-height: 1;
+  text-wrap: balance;
+}
+
+.header>p:last-child,
+.resultsHeading p,
+.state,
+.vehicleContext {
+  color: var(--muted-foreground);
+  line-height: 1.6;
+}
+
+.eyebrow {
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.vehicleContext,
+.notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-block-end: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--muted);
+  padding: 0.8rem 1rem;
+}
+
+.vehicleContext a,
+.vehicleContext button,
+.notice button,
+.state button,
+.pagination button {
+  min-block-size: 2.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--background);
+  padding: 0.5rem 0.8rem;
+  color: var(--foreground);
+  font-weight: 700;
+  text-decoration: none;
+  touch-action: manipulation;
+}
+
+.vehicleContext a:focus-visible,
+.vehicleContext button:focus-visible,
+.notice button:focus-visible,
+.state button:focus-visible,
+.pagination button:focus-visible {
+  outline: 3px solid color-mix(in oklch, var(--ring) 50%, transparent);
+  outline-offset: 2px;
+}
+
+.notice {
+  border-color: color-mix(in oklch, var(--destructive) 35%, var(--border));
+  color: var(--foreground);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(15rem, 18rem) minmax(0, 1fr);
+  gap: 1.5rem;
+}
+
+.results {
+  min-inline-size: 0;
+}
+
+.resultsHeading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-block-end: 1rem;
+}
+
+.resultsHeading h2 {
+  font-size: 1.35rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.state {
+  display: grid;
+  justify-items: start;
+  gap: 0.75rem;
+  min-block-size: 12rem;
+  place-content: center;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-xl);
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-block-start: 1.5rem;
+}
+
+.pagination button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+@media (max-width: 64rem) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 48rem) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .vehicleContext,
+  .notice {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 34rem) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pagination {
+    align-items: stretch;
+    flex-direction: column;
+    text-align: center;
+  }
+}

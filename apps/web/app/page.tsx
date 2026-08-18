@@ -10,14 +10,15 @@ export default function Home() {
           Запчастини, сумісні з вашим авто
         </h1>
         <p className={styles.description}>
-          Увійдіть або створіть Customer-акаунт. Каталог, гараж і покупки
-          підключатимуться наступними frontend milestones поверх готового API.
+          Переглядайте публічний каталог і застосовуйте активне авто з гаража,
+          щоб бачити лише релевантні запчастини.
         </p>
         <div className={styles.actions}>
-          <Link className={styles.primary} href="/sign-up">
-            Створити акаунт
+          <Link className={styles.primary} href="/catalog">
+            Відкрити каталог
           </Link>
-          <Link href="/sign-in">Увійти</Link>
+          <Link href="/garage">Мій гараж</Link>
+          <Link href="/sign-up">Створити акаунт</Link>
         </div>
       </section>
     </main>
