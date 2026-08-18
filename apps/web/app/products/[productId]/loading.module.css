@@ -1,0 +1,8 @@
+.main {
+  display: grid;
+  min-block-size: 24rem;
+  inline-size: min(100% - 2rem, 76rem);
+  place-content: center;
+  margin-inline: auto;
+  color: var(--muted-foreground);
+}

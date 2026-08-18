@@ -5,6 +5,14 @@ import styles from "./CatalogPage.module.css";
 export function VehicleCatalogContext({
   model,
 }: Readonly<{ model: CatalogVehicleContextModel }>) {
+  if (model.kind === "loading") {
+    return (
+      <div className={styles.vehicleContext} role="status">
+        <p>Перевіряємо активне авто…</p>
+      </div>
+    );
+  }
+
   if (model.kind === "error") {
     return (
       <div className={styles.vehicleContext} role="status">

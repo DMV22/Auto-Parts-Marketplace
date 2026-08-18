@@ -18,9 +18,9 @@ describe("frontend platform shell", () => {
       "href",
       "/sign-up",
     );
-    expect(screen.getByRole("link", { name: "Увійти" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Відкрити каталог" })).toHaveAttribute(
       "href",
-      "/sign-in",
+      "/catalog",
     );
   });
 

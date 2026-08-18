@@ -8,6 +8,7 @@ import { garageVehiclesQueryOptions } from "@/lib/query/garage-queries";
 import { sessionQueryOptions } from "@/lib/query/session-query";
 
 export type CatalogVehicleContextModel =
+  | { kind: "loading" }
   | { kind: "error" }
   | { kind: "empty" }
   | {
@@ -34,7 +35,9 @@ export function useCatalogVehicleContext() {
   );
 
   let model: CatalogVehicleContextModel;
-  if (garage.isError) {
+  if (session.isPending || (isCustomer && garage.isPending)) {
+    model = { kind: "loading" };
+  } else if (garage.isError) {
     model = { kind: "error" };
   } else if (activeVehicle) {
     model = {

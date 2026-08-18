@@ -6,9 +6,11 @@ import {
 } from "./catalog-query";
 import {
   catalogFilterOptionsResponseSchema,
+  productDetailResponseSchema,
   catalogResponseSchema,
   type CatalogFilterOptionsResponse,
   type CatalogResponse,
+  type ProductDetailResponse,
 } from "./catalog-types";
 
 export async function getCatalogFilterOptions(
@@ -39,6 +41,29 @@ export async function getCatalogProducts(
   const result = catalogResponseSchema.safeParse(payload);
   if (!result.success) {
     throw invalidResponse("catalog", result.error.flatten());
+  }
+  return result.data;
+}
+
+export async function getProductDetail(
+  productId: string,
+  savedVehicleId: string | null,
+  options: { signal?: AbortSignal; baseUrl?: string } = {},
+): Promise<ProductDetailResponse> {
+  const params = new URLSearchParams();
+  if (savedVehicleId) params.set("savedVehicleId", savedVehicleId);
+  const suffix = params.size > 0 ? `?${params.toString()}` : "";
+  const payload = await apiRequest<unknown>(
+    `/api/v1/catalog/products/${encodeURIComponent(productId)}${suffix}`,
+    {
+      signal: options.signal,
+      baseUrl: options.baseUrl,
+      cache: "no-store",
+    },
+  );
+  const result = productDetailResponseSchema.safeParse(payload);
+  if (!result.success) {
+    throw invalidResponse("product detail", result.error.flatten());
   }
   return result.data;
 }

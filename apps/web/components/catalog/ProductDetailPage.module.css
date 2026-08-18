@@ -1,0 +1,49 @@
+.main {
+  display: grid;
+  gap: 1.5rem;
+  inline-size: min(100% - 2rem, 76rem);
+  margin-inline: auto;
+  padding-block: 1.25rem 3rem;
+}
+
+.backLink {
+  inline-size: fit-content;
+  color: var(--muted-foreground);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.backLink:hover {
+  color: var(--foreground);
+}
+
+.backLink:focus-visible,
+.pageState button:focus-visible {
+  border-radius: var(--radius-sm);
+  outline: 3px solid color-mix(in oklch, var(--ring) 50%, transparent);
+  outline-offset: 3px;
+}
+
+.pageState {
+  display: grid;
+  justify-items: start;
+  gap: 0.75rem;
+  min-block-size: 18rem;
+  align-content: center;
+  color: var(--muted-foreground);
+}
+
+.pageState button {
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--primary);
+  color: var(--primary-foreground);
+  padding: 0.6rem 0.9rem;
+  font: inherit;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.pageState button:hover {
+  opacity: 0.88;
+}

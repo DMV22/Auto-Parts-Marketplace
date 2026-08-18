@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { CatalogProduct } from "@/lib/catalog/catalog-types";
+import { formatMoney } from "@/lib/catalog/catalog-presentation";
 import { ProductMedia } from "./ProductMedia";
 import styles from "./ProductCard.module.css";
 
@@ -23,7 +24,7 @@ export function ProductCard({ product }: Readonly<{ product: CatalogProduct }>) 
         <div className={styles.commercial}>
           <p className={styles.price}>
             {product.minimumPrice
-              ? `від ${product.minimumPrice.amount} ${product.minimumPrice.currency}`
+              ? `від ${formatMoney(product.minimumPrice.amount, product.minimumPrice.currency)}`
               : "Оберіть валюту, щоб побачити ціну"}
           </p>
           <p>

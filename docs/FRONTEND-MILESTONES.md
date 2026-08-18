@@ -503,20 +503,20 @@ pnpm --filter web build
 
 ### Tasks
 
-- [ ] Серіалізувати лише documented catalog query params.
-- [ ] Реалізувати debounce search і URL navigation без in-memory filtering.
-- [ ] Реалізувати bounded pagination та deterministic sort options.
-- [ ] Показати лише backend-returned ACTIVE offers; не виводити власний availability guess.
-- [ ] Відобразити `compatible`, `incompatible`, `unknown`, `caution` і reason codes без false-positive language.
-- [ ] Додати PDP vehicle-context switch і placeholder media policy.
+- [x] Серіалізувати лише documented catalog query params.
+- [x] Реалізувати debounce search і URL navigation без in-memory filtering.
+- [x] Реалізувати bounded pagination та deterministic sort options.
+- [x] Показати лише backend-returned ACTIVE offers; не виводити власний availability guess.
+- [x] Відобразити `compatible`, `incompatible`, `unknown`, `caution` і reason codes без false-positive language.
+- [x] Додати PDP vehicle-context switch і placeholder media policy.
 
 ### Definition of Done
 
-- [ ] Catalog URL відтворює той самий query state після refresh/share.
-- [ ] Invalid filters мають recoverable error/reset flow.
-- [ ] Усі fitment statuses доступно відрізняються не лише кольором.
-- [ ] “No FitmentRule” показується як unknown, а не compatible.
-- [ ] Loading/empty/error states не приховують активні filters.
+- [x] Catalog URL відтворює той самий query state після refresh/share.
+- [x] Invalid filters мають recoverable error/reset flow.
+- [x] Усі fitment statuses доступно відрізняються не лише кольором.
+- [x] “No FitmentRule” показується як unknown, а не compatible.
+- [x] Loading/empty/error states не приховують активні filters.
 
 ### Testing
 
@@ -531,6 +531,42 @@ pnpm --filter web test
 pnpm --filter web test:e2e
 pnpm --filter web build
 ```
+
+### Implementation log (F3)
+
+- Реалізовано URL-driven `/catalog`: allowlisted search/Brand/Category/condition/stock/currency/price filters, deterministic sorting, bounded pagination і server-state loading/error/empty views.
+- Підключено public G3 filter-options contract; URL canonicalization, default currency та vocabulary recovery об’єднано в один pure resolution boundary.
+- Реалізовано `/products/[productId]` із server-prefetched public PDP, TanStack hydration, contract-validated DTO, public variant/listing projections, backend-owned availability та локальним placeholder замість вигаданих media fields.
+- Public product read більше не чекає client-side session → Garage waterfall; owner-specific fitment підвантажується окремим query key після визначення active SavedVehicle, а route-level loading boundary покриває початковий server read.
+- Active Garage vehicle передається в Catalog/PDP тільки як owner-validated `savedVehicleId`; PDP дозволяє тимчасово вимкнути vehicle context без зміни Garage.
+- Додано `FitmentBadge` і explanation copy для `compatible`, `incompatible`, `unknown`, `caution`; icon, текст і reason explanation не покладаються лише на колір, а `NO_FITMENT_DATA` не перетворюється на сумісність.
+
+### Validation results (F3)
+
+- `pnpm --filter web test -- catalog` — passed: 4 files, 6 tests.
+- `pnpm --filter web lint` — passed.
+- `pnpm --filter web check-types` — passed.
+- `git diff --check` — passed; наявні лише informational LF/CRLF warnings від Git на Windows.
+- Two-axis F3 changed-files review — Standards pass, Spec pass після усунення server-read waterfall, cross-product placeholder reuse та excessive live-region announcements.
+- Full Playwright E2E та production build не запускалися відповідно до обмеженої F3 test strategy; вони залишаються readiness-перевіркою F8.
+
+### G3/G8 dependency status
+
+- **G3 — Closed:** frontend використовує public `GET /api/v1/catalog/filter-options`; невідомі vocabulary values скидаються лише коли response не truncated.
+- **G8 — Deferred, non-blocking:** backend не повертає media URLs; Catalog/PDP показують явний локальний placeholder без synthetic product images.
+
+### Deferred E2E scenarios for F8
+
+- Refresh/share Catalog URL із search, filters, sort і pagination.
+- Catalog navigation до PDP та owner-validated active `savedVehicleId` після login/refresh.
+- PDP exact-engine override, generation fallback, `ENGINE_REQUIRED`, `NO_FITMENT_DATA` і vehicle-context toggle.
+- Public Catalog/PDP loading, empty, invalid-filter recovery, unavailable product і anonymous behavior.
+
+### F4 handoff
+
+- Product cards ведуть на `/products/[productId]`; PDP показує лише backend-returned public Listings і не створює локальної availability/price truth.
+- Для Cart F4 потрібно використовувати конкретний `listing.id` із PDP response та повторно покладатися на server-side Cart validation; fitment presentation не є дозволом на checkout.
+- Active vehicle залишається Garage-derived query context; session або guest identity не зберігаються у browser storage.
 
 ## Milestone F4 — Guest/Customer Cart and Stripe Checkout
 
@@ -827,7 +863,3 @@ git diff --check
 7. F6 — Supplier Cabinet.
 8. F7 — Internal OMS, Returns, Notes, Audit and Moderation.
 9. F8 — Frontend readiness gate.
-
-## Recommended first working branch
-
-`feature/frontend-platform-contract-foundation`

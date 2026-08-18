@@ -2,6 +2,7 @@ import { queryOptions } from "@tanstack/react-query";
 import {
   getCatalogFilterOptions,
   getCatalogProducts,
+  getProductDetail,
 } from "@/lib/catalog/catalog-api";
 import {
   type CatalogQueryState,
@@ -13,6 +14,19 @@ export function catalogFilterOptionsQueryOptions() {
   return queryOptions({
     queryKey: queryKeys.catalog.filterOptions,
     queryFn: ({ signal }) => getCatalogFilterOptions(signal),
+  });
+}
+
+export function productDetailQueryOptions(
+  productId: string,
+  savedVehicleId: string | null,
+) {
+  return queryOptions({
+    queryKey: queryKeys.catalog.productDetail(productId, savedVehicleId),
+    queryFn: ({ signal }) =>
+      getProductDetail(productId, savedVehicleId, { signal }),
+    placeholderData: (previousData, previousQuery) =>
+      previousQuery?.queryKey[2] === productId ? previousData : undefined,
   });
 }
 

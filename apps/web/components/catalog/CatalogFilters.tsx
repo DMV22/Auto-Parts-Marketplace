@@ -5,6 +5,7 @@ import type {
   ListingCondition,
 } from "@/lib/catalog/catalog-query";
 import type { CatalogFilterOptionsResponse } from "@/lib/catalog/catalog-types";
+import { conditionLabel } from "@/lib/catalog/catalog-presentation";
 import styles from "./CatalogFilters.module.css";
 
 type Props = {
@@ -96,9 +97,9 @@ export function CatalogFilters({
           onChange={select<ListingCondition>((condition) => actions.changeFilter({ condition }))}
         >
           <option value="">Будь-який</option>
-          <option value="NEW">Новий</option>
-          <option value="USED">Вживаний</option>
-          <option value="REMANUFACTURED">Відновлений</option>
+          <option value="NEW">{conditionLabel("NEW")}</option>
+          <option value="USED">{conditionLabel("USED")}</option>
+          <option value="REMANUFACTURED">{conditionLabel("REMANUFACTURED")}</option>
         </select>
       </label>
 

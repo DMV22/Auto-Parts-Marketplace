@@ -6,6 +6,8 @@ export const queryKeys = {
     filterOptions: ["catalog", "filter-options"] as const,
     products: (query: string, savedVehicleId: string | null) =>
       ["catalog", "products", query, savedVehicleId] as const,
+    productDetail: (productId: string, savedVehicleId: string | null) =>
+      ["catalog", "product-detail", productId, savedVehicleId] as const,
   },
   garage: {
     vehicles: ["garage", "vehicles"] as const,
