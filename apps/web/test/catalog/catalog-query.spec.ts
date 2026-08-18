@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   parseCatalogSearchParams,
+  resolveCatalogQuery,
   serializeCatalogQuery,
 } from "@/lib/catalog/catalog-query";
 
@@ -51,5 +52,32 @@ describe("catalog URL state", () => {
     ).toBe(
       "brandId=11111111-1111-4111-8111-111111111111&minPrice=100&maxPrice=500&currency=UAH&sort=price_desc",
     );
+  });
+
+  it("resolves vocabulary and the single default currency in one canonical state", () => {
+    const parsed = parseCatalogSearchParams(
+      new URLSearchParams(
+        "brandId=11111111-1111-4111-8111-111111111111&currency=USD&minPrice=100&sort=price_asc",
+      ),
+    );
+    const resolved = resolveCatalogQuery(parsed, {
+      data: {
+        brands: [],
+        categories: [],
+        currencies: [
+          { code: "UAH", minimumPrice: "80", maximumPrice: "500" },
+        ],
+      },
+      meta: { truncated: false },
+    });
+
+    expect(resolved.state).toMatchObject({
+      brandId: null,
+      currency: "UAH",
+      minPrice: null,
+      sort: "newest",
+    });
+    expect(resolved.searchParams.toString()).toBe("currency=UAH");
+    expect(resolved.wasNormalized).toBe(true);
   });
 });

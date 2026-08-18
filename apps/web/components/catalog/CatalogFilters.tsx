@@ -8,30 +8,29 @@ import type { CatalogFilterOptionsResponse } from "@/lib/catalog/catalog-types";
 import styles from "./CatalogFilters.module.css";
 
 type Props = {
-  state: CatalogQueryState;
-  searchDraft: string;
-  options: CatalogFilterOptionsResponse | undefined;
-  optionsPending: boolean;
-  optionsError: boolean;
-  onOptionsRetry: () => void;
-  onSearchChange: (value: string) => void;
-  onFilterChange: (update: Partial<CatalogQueryState>) => void;
-  onCurrencyChange: (currency: string | null) => void;
-  onReset: () => void;
+  model: {
+    state: CatalogQueryState;
+    searchDraft: string;
+  };
+  optionsState:
+    | { kind: "loading" }
+    | { kind: "error"; onRetry: () => void }
+    | { kind: "ready"; options: CatalogFilterOptionsResponse };
+  actions: {
+    changeSearch: (value: string) => void;
+    changeFilter: (update: Partial<CatalogQueryState>) => void;
+    changeCurrency: (currency: string | null) => void;
+    reset: () => void;
+  };
 };
 
 export function CatalogFilters({
-  state,
-  searchDraft,
-  options,
-  optionsPending,
-  optionsError,
-  onOptionsRetry,
-  onSearchChange,
-  onFilterChange,
-  onCurrencyChange,
-  onReset,
+  model,
+  optionsState,
+  actions,
 }: Readonly<Props>) {
+  const { state, searchDraft } = model;
+  const options = optionsState.kind === "ready" ? optionsState.options : undefined;
   const select =
     <T extends string>(handler: (value: T | null) => void) =>
       (event: ChangeEvent<HTMLSelectElement>) =>
@@ -41,7 +40,7 @@ export function CatalogFilters({
     <aside className={styles.panel} aria-labelledby="catalog-filters-title">
       <div className={styles.heading}>
         <h2 id="catalog-filters-title">Фільтри</h2>
-        <button type="button" onClick={onReset}>Скинути</button>
+        <button type="button" onClick={actions.reset}>Скинути</button>
       </div>
 
       <label className={styles.field}>
@@ -51,15 +50,15 @@ export function CatalogFilters({
           value={searchDraft}
           maxLength={120}
           placeholder="Назва, SKU або номер деталі"
-          onChange={(event) => onSearchChange(event.target.value)}
+          onChange={(event) => actions.changeSearch(event.target.value)}
         />
       </label>
 
-      {optionsPending ? <p role="status" className={styles.hint}>Завантажуємо доступні фільтри…</p> : null}
-      {optionsError ? (
+      {optionsState.kind === "loading" ? <p role="status" className={styles.hint}>Завантажуємо доступні фільтри…</p> : null}
+      {optionsState.kind === "error" ? (
         <div role="alert" className={styles.filterError}>
           <p>Не вдалося завантажити Brand, Category та currency filters.</p>
-          <button type="button" onClick={onOptionsRetry}>Спробувати ще раз</button>
+          <button type="button" onClick={optionsState.onRetry}>Спробувати ще раз</button>
         </div>
       ) : null}
       {options?.meta.truncated ? (
@@ -71,7 +70,7 @@ export function CatalogFilters({
         <select
           value={state.brandId ?? ""}
           disabled={!options}
-          onChange={select<string>((brandId) => onFilterChange({ brandId }))}
+          onChange={select<string>((brandId) => actions.changeFilter({ brandId }))}
         >
           <option value="">Усі бренди</option>
           {options?.data.brands.map((brand) => <option key={brand.id} value={brand.id}>{brand.name}</option>)}
@@ -83,7 +82,7 @@ export function CatalogFilters({
         <select
           value={state.categoryId ?? ""}
           disabled={!options}
-          onChange={select<string>((categoryId) => onFilterChange({ categoryId }))}
+          onChange={select<string>((categoryId) => actions.changeFilter({ categoryId }))}
         >
           <option value="">Усі категорії</option>
           {options?.data.categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
@@ -94,7 +93,7 @@ export function CatalogFilters({
         <span>Стан</span>
         <select
           value={state.condition ?? ""}
-          onChange={select<ListingCondition>((condition) => onFilterChange({ condition }))}
+          onChange={select<ListingCondition>((condition) => actions.changeFilter({ condition }))}
         >
           <option value="">Будь-який</option>
           <option value="NEW">Новий</option>
@@ -107,7 +106,7 @@ export function CatalogFilters({
         <span>Наявність</span>
         <select
           value={state.inStock === null ? "" : String(state.inStock)}
-          onChange={(event) => onFilterChange({ inStock: event.target.value === "" ? null : event.target.value === "true" })}
+          onChange={(event) => actions.changeFilter({ inStock: event.target.value === "" ? null : event.target.value === "true" })}
         >
           <option value="">Усі пропозиції</option>
           <option value="true">В наявності</option>
@@ -120,7 +119,7 @@ export function CatalogFilters({
         <select
           value={state.currency ?? ""}
           disabled={!options}
-          onChange={(event) => onCurrencyChange(event.target.value || null)}
+          onChange={(event) => actions.changeCurrency(event.target.value || null)}
         >
           <option value="">Оберіть валюту</option>
           {options?.data.currencies.map((currency) => <option key={currency.code} value={currency.code}>{currency.code}</option>)}
@@ -130,11 +129,11 @@ export function CatalogFilters({
       <div className={styles.priceFields}>
         <label className={styles.field}>
           <span>Ціна від</span>
-          <input inputMode="decimal" value={state.minPrice ?? ""} disabled={!state.currency} onChange={(event) => onFilterChange({ minPrice: event.target.value || null })} />
+          <input inputMode="decimal" value={state.minPrice ?? ""} disabled={!state.currency} onChange={(event) => actions.changeFilter({ minPrice: event.target.value || null })} />
         </label>
         <label className={styles.field}>
           <span>Ціна до</span>
-          <input inputMode="decimal" value={state.maxPrice ?? ""} disabled={!state.currency} onChange={(event) => onFilterChange({ maxPrice: event.target.value || null })} />
+          <input inputMode="decimal" value={state.maxPrice ?? ""} disabled={!state.currency} onChange={(event) => actions.changeFilter({ maxPrice: event.target.value || null })} />
         </label>
       </div>
       {state.currency ? (
@@ -147,7 +146,7 @@ export function CatalogFilters({
         <span>Сортування</span>
         <select
           value={state.sort}
-          onChange={select<CatalogSort>((sort) => onFilterChange({ sort: sort ?? "newest" }))}
+          onChange={select<CatalogSort>((sort) => actions.changeFilter({ sort: sort ?? "newest" }))}
         >
           <option value="newest">Спочатку нові</option>
           <option value="name_asc">Назва: А–Я</option>

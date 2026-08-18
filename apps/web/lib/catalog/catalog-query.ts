@@ -1,3 +1,5 @@
+import type { CatalogFilterOptionsResponse } from "./catalog-types";
+
 export const catalogSorts = [
   "newest",
   "name_asc",
@@ -26,6 +28,12 @@ export type CatalogQueryState = {
 };
 
 export type ParsedCatalogSearchParams = {
+  state: CatalogQueryState;
+  searchParams: URLSearchParams;
+  wasNormalized: boolean;
+};
+
+export type ResolvedCatalogQuery = {
   state: CatalogQueryState;
   searchParams: URLSearchParams;
   wasNormalized: boolean;
@@ -124,6 +132,58 @@ export function serializeCatalogQuery(
   set(params, "sort", state.sort === "newest" ? null : state.sort);
 
   return params;
+}
+
+export function resolveCatalogQuery(
+  parsed: ParsedCatalogSearchParams,
+  options: CatalogFilterOptionsResponse | undefined,
+): ResolvedCatalogQuery {
+  let state = parsed.state;
+
+  if (options && !options.meta.truncated) {
+    const update: Partial<CatalogQueryState> = {};
+
+    if (
+      state.brandId &&
+      !options.data.brands.some(({ id }) => id === state.brandId)
+    ) {
+      update.brandId = null;
+    }
+    if (
+      state.categoryId &&
+      !options.data.categories.some(({ id }) => id === state.categoryId)
+    ) {
+      update.categoryId = null;
+    }
+    if (
+      state.currency &&
+      !options.data.currencies.some(({ code }) => code === state.currency)
+    ) {
+      update.currency = null;
+      update.minPrice = null;
+      update.maxPrice = null;
+      if (state.sort.startsWith("price_")) update.sort = "newest";
+    }
+
+    if (Object.keys(update).length > 0) state = { ...state, ...update };
+  }
+
+  const onlyCurrency =
+    options?.data.currencies.length === 1
+      ? options.data.currencies[0]
+      : undefined;
+  if (!state.currency && onlyCurrency) {
+    state = { ...state, currency: onlyCurrency.code };
+  }
+
+  const searchParams = serializeCatalogQuery(state);
+  return {
+    state,
+    searchParams,
+    wasNormalized:
+      parsed.wasNormalized ||
+      parsed.searchParams.toString() !== searchParams.toString(),
+  };
 }
 
 export function withCatalogFilter(
