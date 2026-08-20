@@ -43,7 +43,7 @@ Backend Milestones 6–10 сформували придатний для fronten
 | Public catalog            | `GET /api/v1/catalog/products` із search, filters, vehicle context, bounded pagination і sorting         | Реалізовано й протестовано                                           | Немає collection endpoints для повного brand/category filter vocabulary                                  | Partial; search/list ready, complete filters depend on gap G3                |
 | PDP + fitment             | `GET /api/v1/catalog/products/:productId`; `compatible/incompatible/unknown/caution` + reason codes      | Реалізовано; exact-engine precedence покрита тестами                 | Немає product media/image contract                                                                       | Ready з placeholder media                                                    |
 | Customer/Guest Cart       | `GET /api/v1/cart`, item create/update/delete, clear cart; backend-issued guest cookie                   | Реалізовано; live price/stock/status validation, owner isolation     | Cookie flow потребує same-origin/credentials; guest cart не merge-иться після sign-in                    | Ready після F0; merge відсутній за контрактом                                |
-| Checkout                  | `POST /api/v1/checkout/session`; pending Order, reservation, `Idempotency-Key`, Stripe URL               | Реалізовано; redirect не змінює payment status                       | Success URL повертає Stripe session id, а Orders API читає за order id; recovery після reload крихкий    | Partial; demo-ready з sessionStorage workaround, production UX depends on G4 |
+| Checkout                  | `POST /api/v1/checkout/session`; pending Order, reservation, `Idempotency-Key`, Stripe URL               | Реалізовано; server-built success/cancel URLs містять `orderId`, redirect не змінює payment status      | Frontend має валідовувати URL `orderId` і читати owner-protected Order; webhook залишається status authority | Ready для F4 без browser-storage recovery workaround                        |
 | Customer Orders + Returns | Order history/detail/timeline; nested customer ReturnRequest routes                                      | Реалізовано; owner-only, non-disclosing `404`, cursor pagination     | Немає global “My Returns”; Guest не створює return самостійно                                            | Ready для returns у Order detail; окремий Returns screen blocked by G6       |
 | Supplier Cabinet          | Supplier Listing CRUD/lifecycle/inventory; supplier OrderItems                                           | Реалізовано; active membership, Admin bypass, optimistic concurrency | Session не повертає `supplierId`; немає supplier-safe ProductVariant lookup                              | Blocked until G2 and G5                                                      |
 | Internal OMS + Returns    | Internal order queue/detail/transitions; returns queue/detail/transitions                                | Реалізовано; SupportManager/Admin RBAC, policies і audit atomicity   | Висока щільність status/error states потребує централізованих frontend mappings                          | Ready                                                                        |
@@ -74,12 +74,12 @@ Backend Milestones 6–10 сформували придатний для fronten
 | G5  | Немає supplier-safe пошуку `ProductVariant`; public catalog показує лише variants із `ACTIVE` Listings | Supplier не може створити перший Listing для variant, якого немає у public result                                 | Додати read-only supplier ProductVariant search/detail contract з bounded pagination                                                                                                                 |
 
 - **G3 — Closed:** реалізовано bounded deterministic `GET /api/v1/catalog/filter-options` для public Brand, Category і currency price-range vocabulary поверх `ACTIVE` Listings.
+- **G4 — Closed:** Stripe adapter формує success/cancel URLs із `orderId`; success додатково містить literal `{CHECKOUT_SESSION_ID}`, тому frontend відновлює Order через owner-protected read API без `sessionStorage`.
 
 ### Non-blocking gaps and known limitations
 
 | ID  | Gap / limitation                                                                    | Frontend handling or recommended follow-up                                                                                                                                                                |
 | --- | ----------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| G4  | Success redirect містить Stripe session id, але owner Orders API читає за `orderId` | Тимчасово зберігати лише non-sensitive `orderId` у `sessionStorage` до redirect; для надійного recovery backend має додати `orderId` у server-built redirect URL або owner-scoped checkout-session lookup |
 | G6  | Немає customer-wide Returns list/detail; customer routes вкладені в OrderItem       | У першій версії показувати returns в Order detail; не створювати окрему “My Returns” сторінку без нового endpoint                                                                                         |
 | G7  | Guest не може самостійно створити ReturnRequest                                     | Показати пояснення/support path; не маскувати це як тимчасову UI-помилку                                                                                                                                  |
 | G8  | Product/PDP DTO не має media URLs                                                   | Використовувати доступний placeholder без вигаданих image fields; погодити media domain окремо                                                                                                            |
@@ -143,7 +143,7 @@ Route layouts можуть приховувати navigation і робити UX 
 - **Session:** тільки HttpOnly backend cookie. Current user отримується через `/api/auth/get-session`; sensitive session tokens не серіалізуються в browser storage.
 - **Guest cart:** тільки backend-issued HttpOnly cookie. Frontend не створює власний guest identity.
 - **Checkout attempt:** UUID `Idempotency-Key` генерується один раз на user action і перевикористовується для safe retry того самого attempt. Він не є session credential.
-- **Order recovery:** до закриття G4 допускається non-sensitive `orderId` у `sessionStorage`; payment status завжди перечитується з Orders API.
+- **Order recovery:** server-built success/cancel URLs містять `orderId`; frontend не зберігає його в browser storage, а payment status завжди перечитує з owner-protected Orders API.
 - **Mutations:** після успіху invalidation робиться за domain query keys. Blind optimistic updates не використовуються для stock, lifecycle transitions, payments або moderation.
 
 ## Error, loading and empty-state strategy
@@ -217,7 +217,7 @@ Frontend error adapter нормалізує Nest `{ statusCode, message, error }
 ### Backend dependencies
 
 - Decision і implementation для G1.
-- Узгоджені backend issues/contracts для G2, G3, G5; G4 має documented temporary/final resolution.
+- Узгоджені backend issues/contracts для G2, G3, G5; G4 закритий server-built success/cancel URL contract із `orderId`.
 
 ### Components/features
 
@@ -271,7 +271,7 @@ pnpm --filter web build
 | G2 — active Supplier membership discovery | Blocking для F6                  | Backend / до початку F6                                | Owner-safe current membership response із `supplierId`, status і мінімальною Supplier projection                                      |
 | G3 — catalog filter vocabulary            | Closed                           | Backend / prerequisite перед F3                        | Public `GET /api/v1/catalog/filter-options`; `ACTIVE`-only Brand/Category options і currency price ranges, cap `100`, `meta.truncated`  |
 | G5 — supplier ProductVariant discovery    | Blocking для F6                  | Backend / до початку F6                                | Read-only supplier-safe ProductVariant search/detail із bounded pagination                                                            |
-| G4 — Order recovery після Stripe redirect | Non-blocking для F0/F1           | Backend + Commerce frontend / до production closure F4 | Server-built success URL із `orderId` або owner-safe lookup за Checkout Session ID                                                    |
+| G4 — Order recovery після Stripe redirect | Closed                           | Backend Checkout + F4                                  | Server-built success/cancel URLs містять `orderId`; success також містить Stripe `session_id`, browser storage не потрібен             |
 
 ### Implementation log
 
@@ -581,7 +581,7 @@ pnpm --filter web build
 ### Backend dependencies
 
 - Cart і Checkout endpoints; guest cookie; G1.
-- G4 або documented temporary order recovery strategy.
+- G4 closed contract: server-built success/cancel URLs із `orderId`; success також містить Stripe `session_id`.
 
 ### Components/features
 
@@ -589,7 +589,7 @@ pnpm --filter web build
 
 ### State/data ownership
 
-- Cart/Order — server state; guest identity — HttpOnly cookie; checkout attempt key/order id — non-sensitive per-attempt recovery state.
+- Cart/Order — server state; guest identity — HttpOnly cookie; checkout attempt key — ephemeral mutation state; recovery `orderId` — validated URL state.
 
 ### Tasks
 
@@ -597,7 +597,7 @@ pnpm --filter web build
 - [ ] Показати backend availability issues та current price/currency без client recalculation authority.
 - [ ] Обробити Customer precedence і documented no-merge behavior після sign-in.
 - [ ] Генерувати один UUID `Idempotency-Key` на checkout attempt.
-- [ ] Зберегти recovery `orderId`, перейти лише на server-returned Stripe URL.
+- [ ] Перейти лише на server-returned Stripe URL і відновити Order із URL `orderId` без browser storage.
 - [ ] На success/cancel перечитувати Order status; не викликати status mutation.
 - [ ] Реалізувати bounded polling із timeout/manual refresh і 503 recovery.
 
