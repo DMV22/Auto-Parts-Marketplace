@@ -26,6 +26,10 @@
   gap: 0.2rem;
 }
 
+.commercial {
+  gap: 0.55rem;
+}
+
 .offers li span,
 .empty {
   color: var(--muted-foreground);

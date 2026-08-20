@@ -9,6 +9,9 @@ export const queryKeys = {
     productDetail: (productId: string, savedVehicleId: string | null) =>
       ["catalog", "product-detail", productId, savedVehicleId] as const,
   },
+  commerce: {
+    cart: (ownerKey: string) => ["commerce", "cart", ownerKey] as const,
+  },
   garage: {
     vehicles: ["garage", "vehicles"] as const,
   },

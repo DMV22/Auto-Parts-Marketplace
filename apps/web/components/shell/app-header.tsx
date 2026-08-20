@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { CartDrawer } from "@/components/cart/CartDrawer";
 import { signOut } from "@/lib/auth/auth-api";
 import type { UserRole } from "@/lib/auth/session";
 import { queryKeys } from "@/lib/query/query-keys";
@@ -51,6 +52,7 @@ export function AppHeader() {
           <Link className={styles.workspaceLink} href="/catalog">
             Каталог
           </Link>
+          <CartDrawer />
         </div>
         <div className={styles.sessionArea}>
           {session.isPending ? (

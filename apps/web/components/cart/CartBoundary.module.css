@@ -1,0 +1,78 @@
+.cart,
+.state {
+  display: grid;
+  gap: 1rem;
+}
+
+.items {
+  display: grid;
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-block-start: 1px solid var(--border);
+  padding-block-start: 1rem;
+}
+
+.summary h2,
+.summary p,
+.state h2,
+.state p {
+  margin: 0;
+}
+
+.summary h2,
+.state h2 {
+  font-size: 1rem;
+}
+
+.summary p,
+.state p {
+  color: var(--muted-foreground);
+}
+
+.summary > strong {
+  font-size: 1.15rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.footerActions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.primaryLink {
+  width: fit-content;
+  border-radius: var(--radius-md);
+  background: var(--primary);
+  padding: 0.6rem 0.9rem;
+  color: var(--primary-foreground);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.primaryLink:hover {
+  background: color-mix(in oklch, var(--primary) 86%, var(--background));
+}
+
+.primaryLink:focus-visible {
+  outline: 3px solid color-mix(in oklch, var(--ring) 50%, transparent);
+  outline-offset: 3px;
+}
+
+.error {
+  margin: 0;
+  color: var(--destructive);
+}
+
+.cart[data-compact] {
+  padding: 1rem;
+  overflow-y: auto;
+}

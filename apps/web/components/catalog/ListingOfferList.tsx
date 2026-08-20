@@ -1,5 +1,6 @@
 import type { ProductVariantDetail } from "@/lib/catalog/catalog-types";
 import { conditionLabel, formatMoney } from "@/lib/catalog/catalog-presentation";
+import { AddToCartButton } from "@/components/cart/AddToCartButton";
 import styles from "./ListingOfferList.module.css";
 
 type ListingOffer = ProductVariantDetail["listings"][number];
@@ -25,6 +26,10 @@ export function ListingOfferList({
                 <span data-stock={listing.inStock ? "available" : "unavailable"}>
                   {listing.inStock ? "В наявності" : "Немає в наявності"}
                 </span>
+                <AddToCartButton
+                  listingId={listing.id}
+                  inStock={listing.inStock}
+                />
               </div>
             </li>
           ))}
