@@ -593,21 +593,21 @@ pnpm --filter web build
 
 ### Tasks
 
-- [ ] Реалізувати Customer/Guest Cart reads і mutations із credentials.
-- [ ] Показати backend availability issues та current price/currency без client recalculation authority.
-- [ ] Обробити Customer precedence і documented no-merge behavior після sign-in.
-- [ ] Генерувати один UUID `Idempotency-Key` на checkout attempt.
-- [ ] Перейти лише на server-returned Stripe URL і відновити Order із URL `orderId` без browser storage.
-- [ ] На success/cancel перечитувати Order status; не викликати status mutation.
-- [ ] Реалізувати bounded polling із timeout/manual refresh і 503 recovery.
+- [x] Реалізувати Customer/Guest Cart reads і mutations із credentials.
+- [x] Показати backend availability issues та current price/currency без client recalculation authority.
+- [x] Обробити Customer precedence і documented no-merge behavior після sign-in.
+- [x] Генерувати один UUID `Idempotency-Key` на checkout attempt.
+- [x] Перейти лише на server-returned Stripe URL і відновити Order із URL `orderId` без browser storage.
+- [x] На success/cancel перечитувати Order status; не викликати status mutation.
+- [x] Реалізувати bounded polling із timeout/manual refresh і 503 recovery.
 
 ### Definition of Done
 
-- [ ] Guest Cart переживає refresh без localStorage token.
-- [ ] Cart stale listing/stock/currency conflicts мають actionable UI.
-- [ ] Double-click/retry не створює довільні checkout attempts.
-- [ ] Success page не показує “Paid” до підтвердження Orders API.
-- [ ] Cancel page зберігає зрозумілий шлях назад до cart/order.
+- [x] Guest Cart переживає refresh без localStorage token.
+- [x] Cart stale listing/stock/currency conflicts мають actionable UI.
+- [x] Double-click/retry не створює довільні checkout attempts.
+- [x] Success page не показує “Paid” до підтвердження Orders API.
+- [x] Cancel page зберігає зрозумілий шлях назад до cart/order.
 
 ### Testing
 
@@ -622,6 +622,43 @@ pnpm --filter web test
 pnpm --filter web test:e2e
 pnpm --filter web build
 ```
+
+### Implementation log (Milestone F4)
+
+#### What changed
+
+- Додано owner-aware Cart drawer і `/cart` для Guest та active Customer із backend-issued HttpOnly guest cookie, server-authoritative totals і actionable availability issues.
+- PDP додає до Cart лише фактичний `listingId`; reads і mutations використовують спільний typed API/query layer та замінюють cache тільки server response.
+- Додано checkout attempt boundary: один ephemeral UUID `Idempotency-Key`, synchronous double-submit guard, reuse лише після невизначеної network/abort помилки та новий key після explicit failure.
+- Browser переходить виключно на `checkoutSession.url`, повернений backend. `/checkout/success` і `/checkout/cancel` валідовують URL `orderId` та читають owner-protected Order без status mutation або browser storage.
+- `PENDING_PAYMENT` перевіряється bounded polling кожні 2 секунди до 30 секунд; після timeout/503 доступний manual refresh, а “Оплату підтверджено” показується лише для status, отриманого з Orders API.
+
+#### Validation results
+
+- Targeted F4 tests — passed: 5 files, 5 tests (`cart-presentation`, `cart-item`, `checkout-attempt`, `checkout-button`, `checkout-status`).
+- `pnpm --filter web lint` — passed.
+- `pnpm --filter web check-types` — passed; Next route types generated successfully.
+- `git diff --check` — passed; whitespace errors were not found.
+- Full web test suite, production build і Playwright E2E не запускалися відповідно до обмеженої F4 test strategy.
+
+#### G4 status
+
+- **Closed:** backend формує success/cancel URLs із `orderId`, success URL також містить Stripe `session_id`; frontend не зберігає recovery identifiers у `localStorage` або `sessionStorage`.
+
+#### Deferred E2E scenarios for F8
+
+- Guest Cart cookie survives reload; Customer precedence clears/ignores the prior guest context without cart merge.
+- ACTIVE Listing add/update/remove/clear, stale price/stock/currency conflict і unavailable checkout block.
+- Checkout double-click та uncertain retry reuse one attempt; Stripe redirect uses only the server URL.
+- Stripe success: `PENDING_PAYMENT` remains pending until a verified webhook, then polling observes `PAID`.
+- Stripe cancel, delayed webhook, 503/manual refresh, timeout and foreign/missing `orderId` recovery states.
+
+### Handoff to F5
+
+- Reuse `OrderDetail`, `getOrderDetail`, `orderDetailQueryOptions` and `queryKeys.commerce.order`; do not introduce a second Order detail contract.
+- F5 may add history/timeline query keys and route UI, while checkout return pages remain read-only projections of the same owner-protected Order.
+- Preserve non-disclosing `404`, immutable OrderItem snapshots and the rule that only verified Stripe webhooks establish payment state.
+- Guest identity remains an HttpOnly cookie; Customer/Guest Orders and Returns must not move owner identifiers into browser storage.
 
 ## Milestone F5 — Customer/Guest Orders and Returns
 

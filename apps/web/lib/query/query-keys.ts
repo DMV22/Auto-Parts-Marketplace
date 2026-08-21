@@ -11,6 +11,7 @@ export const queryKeys = {
   },
   commerce: {
     cart: (ownerKey: string) => ["commerce", "cart", ownerKey] as const,
+    order: (orderId: string) => ["commerce", "order", orderId] as const,
   },
   garage: {
     vehicles: ["garage", "vehicles"] as const,

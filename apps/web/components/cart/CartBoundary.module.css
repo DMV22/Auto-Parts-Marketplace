@@ -45,7 +45,9 @@
 
 .footerActions {
   display: flex;
-  justify-content: flex-end;
+  align-items: start;
+  justify-content: space-between;
+  gap: 1rem;
 }
 
 .primaryLink {
@@ -75,4 +77,11 @@
 .cart[data-compact] {
   padding: 1rem;
   overflow-y: auto;
+}
+
+@media (max-width: 40rem) {
+  .footerActions {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
 }

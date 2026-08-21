@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
+import { CheckoutButton } from "@/components/checkout/CheckoutButton";
 import { Button } from "@/components/ui/button";
 import {
   clearCart,
@@ -115,6 +116,7 @@ export function CartBoundary({ compact = false }: Readonly<{ compact?: boolean }
   }
 
   const clearFailure = clear.error ? presentCartError(clear.error) : null;
+  const checkoutBlocked = cart.data.items.some((item) => !item.available);
 
   return (
     <div className={styles.cart} data-compact={compact || undefined}>
@@ -171,6 +173,10 @@ export function CartBoundary({ compact = false }: Readonly<{ compact?: boolean }
         >
           {clear.isPending ? "Очищаємо…" : "Очистити кошик"}
         </Button>
+        <CheckoutButton
+          disabled={cartMutationPending || checkoutBlocked}
+          onConflict={refreshCart}
+        />
       </div>
     </div>
   );

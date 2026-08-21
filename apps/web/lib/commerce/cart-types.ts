@@ -1,7 +1,8 @@
 import { z } from "zod";
-
-const moneySchema = z.string().regex(/^(?:0|[1-9]\d*)\.\d{2}$/);
-const currencySchema = z.string().regex(/^[A-Z]{3}$/);
+import {
+  commerceCurrencySchema,
+  commerceMoneySchema,
+} from "./commerce-schemas";
 
 export const cartAvailabilityIssues = [
   "LISTING_UNAVAILABLE",
@@ -12,14 +13,14 @@ export const cartAvailabilityIssues = [
 const cartItemSchema = z.object({
   id: z.uuid(),
   quantity: z.number().int().positive(),
-  unitPrice: moneySchema,
-  lineTotal: moneySchema,
+  unitPrice: commerceMoneySchema,
+  lineTotal: commerceMoneySchema,
   available: z.boolean(),
   issues: z.array(z.enum(cartAvailabilityIssues)),
   listing: z.object({
     id: z.uuid(),
     condition: z.enum(["NEW", "USED", "REMANUFACTURED"]),
-    currency: currencySchema,
+    currency: commerceCurrencySchema,
     inStock: z.boolean(),
     productVariant: z.object({
       id: z.uuid(),
@@ -37,9 +38,9 @@ const cartItemSchema = z.object({
 export const cartResponseSchema = z.object({
   data: z.object({
     id: z.uuid().nullable(),
-    currency: currencySchema.nullable(),
+    currency: commerceCurrencySchema.nullable(),
     totalQuantity: z.number().int().nonnegative(),
-    totalAmount: moneySchema,
+    totalAmount: commerceMoneySchema,
     items: z.array(cartItemSchema),
   }),
 });
