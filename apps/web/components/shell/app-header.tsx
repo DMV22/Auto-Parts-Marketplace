@@ -53,6 +53,15 @@ export function AppHeader() {
             Каталог
           </Link>
           <CartDrawer />
+          {!session.isPending &&
+          !session.isError &&
+          (!session.data ||
+            (session.data.user.role === "CUSTOMER" &&
+              session.data.user.isActive)) ? (
+            <Link className={styles.workspaceLink} href="/orders">
+              Замовлення
+            </Link>
+          ) : null}
         </div>
         <div className={styles.sessionArea}>
           {session.isPending ? (

@@ -1,0 +1,209 @@
+.main {
+  width: min(100% - 2rem, 72rem);
+  margin-inline: auto;
+  padding-block: clamp(2rem, 6vw, 5rem);
+}
+
+.header {
+  display: grid;
+  gap: 0.75rem;
+  max-width: 48rem;
+  margin-bottom: 2rem;
+}
+
+.header h1,
+.header p,
+.header a,
+.workspace h2,
+.detailCard h2,
+.itemCard h3 {
+  margin: 0;
+}
+
+.eyebrow {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.workspace,
+.detailLayout {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.state,
+.inlineState,
+.detailCard,
+.orderCard {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+
+.state,
+.detailCard,
+.orderCard {
+  padding: clamp(1rem, 3vw, 1.5rem);
+}
+
+.state,
+.inlineState {
+  display: grid;
+  justify-items: start;
+  gap: 0.75rem;
+}
+
+.inlineState {
+  padding: 1rem;
+}
+
+.actions,
+.sectionHeading,
+.orderCardHeading,
+.timelineHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.orderList,
+.itemList,
+.timeline {
+  display: grid;
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.orderCard {
+  display: grid;
+  gap: 1rem;
+}
+
+.orderCardHeading > div {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.orderCardHeading strong,
+.orderCardHeading h2 {
+  overflow-wrap: anywhere;
+}
+
+.compactSummary,
+.itemTotals {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.compactSummary {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.compactSummary div,
+.itemTotals div {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.compactSummary dt,
+.itemTotals dt,
+.timeline time {
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+}
+
+.compactSummary dd,
+.itemTotals dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.statusBadge {
+  display: inline-flex;
+  width: fit-content;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  background: var(--muted);
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.statusBadge[data-tone="success"] {
+  background: color-mix(in oklch, var(--primary) 12%, var(--card));
+  color: var(--primary);
+}
+
+.statusBadge[data-tone="info"] {
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  color: var(--primary);
+}
+
+.statusBadge[data-tone="cancelled"] {
+  background: color-mix(in srgb, var(--destructive) 12%, transparent);
+  color: var(--destructive);
+}
+
+.detailCard {
+  display: grid;
+  gap: 1rem;
+}
+
+.orderTotal {
+  margin: 0;
+  font-size: 1.125rem;
+}
+
+.itemCard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+  padding-block: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.itemCard:first-child {
+  border-top: 0;
+}
+
+.itemCard p {
+  margin: 0.35rem 0 0;
+  color: var(--muted-foreground);
+}
+
+.itemTotals {
+  grid-template-columns: repeat(3, auto);
+}
+
+.timelineEvent {
+  position: relative;
+  display: grid;
+  grid-template-columns: 0.75rem minmax(0, 1fr);
+  gap: 0.75rem;
+}
+
+.timelineMarker {
+  width: 0.65rem;
+  height: 0.65rem;
+  margin-top: 0.35rem;
+  border-radius: 50%;
+  background: var(--primary);
+}
+
+@media (max-width: 42rem) {
+  .compactSummary,
+  .itemCard,
+  .itemTotals {
+    grid-template-columns: 1fr;
+  }
+}
