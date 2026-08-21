@@ -27,8 +27,8 @@ export function OrdersAccessBoundary({ children }: Readonly<{ children: ReactNod
   }
 
   if (
-    session.data?.user.isActive &&
-    session.data.user.role !== "CUSTOMER"
+    session.data &&
+    (!session.data.user.isActive || session.data.user.role !== "CUSTOMER")
   ) {
     return (
       <section className={styles.state} aria-labelledby="orders-denied">

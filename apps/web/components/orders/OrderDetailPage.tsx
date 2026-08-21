@@ -17,6 +17,7 @@ import { OrderItemSnapshotCard } from "./OrderItemSnapshotCard";
 import { OrdersAccessBoundary } from "./OrdersAccessBoundary";
 import { OrderStatusBadge } from "./OrderStatusBadge";
 import { OrderTimeline } from "./OrderTimeline";
+import { ReturnItemPanel } from "./ReturnItemPanel";
 import styles from "./orders.module.css";
 
 export function OrderDetailPage({ orderId }: Readonly<{ orderId: string }>) {
@@ -89,6 +90,13 @@ function OrderDetailWorkspace({ orderId }: Readonly<{ orderId: string }>) {
               key={item.id}
               item={item}
               currency={order.data.currency}
+              returnContent={
+                <ReturnItemPanel
+                  orderId={order.data.orderId}
+                  orderItemId={item.id}
+                  orderStatus={order.data.status}
+                />
+              }
             />
           ))}
         </ul>

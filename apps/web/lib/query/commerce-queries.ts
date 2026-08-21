@@ -1,4 +1,4 @@
-import { queryOptions } from "@tanstack/react-query";
+import { queryOptions, type QueryClient } from "@tanstack/react-query";
 import { getCart } from "@/lib/commerce/cart-api";
 import type { CartOwnerKey } from "@/lib/commerce/cart-owner";
 import {
@@ -6,6 +6,7 @@ import {
   getOrderHistory,
   getOrderTimeline,
 } from "@/lib/commerce/order-api";
+import { getCustomerReturns } from "@/lib/commerce/return-api";
 import { queryKeys } from "./query-keys";
 
 export function cartQueryOptions(ownerKey: CartOwnerKey | null) {
@@ -44,5 +45,30 @@ export function orderTimelineQueryOptions(
     queryFn: ({ signal }) => getOrderTimeline(orderId, cursor, signal),
     retry: false,
     staleTime: 10_000,
+  });
+}
+
+export function customerReturnsQueryOptions(
+  orderId: string,
+  orderItemId: string,
+  enabled: boolean,
+) {
+  return queryOptions({
+    queryKey: queryKeys.commerce.returns(orderId, orderItemId),
+    queryFn: ({ signal }) =>
+      getCustomerReturns(orderId, orderItemId, signal),
+    enabled,
+    retry: false,
+    staleTime: 10_000,
+  });
+}
+
+export function invalidateReturnState(
+  queryClient: QueryClient,
+  orderId: string,
+  orderItemId: string,
+) {
+  return queryClient.invalidateQueries({
+    queryKey: queryKeys.commerce.returns(orderId, orderItemId),
   });
 }

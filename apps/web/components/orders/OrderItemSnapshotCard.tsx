@@ -1,12 +1,18 @@
 import { formatMoney } from "@/lib/catalog/catalog-presentation";
 import type { OrderItemSnapshot } from "@/lib/commerce/order-types";
 import { presentOrderItemSnapshot } from "@/lib/commerce/order-presentation";
+import type { ReactNode } from "react";
 import styles from "./orders.module.css";
 
 export function OrderItemSnapshotCard({
   currency,
   item,
-}: Readonly<{ currency: string; item: OrderItemSnapshot }>) {
+  returnContent,
+}: Readonly<{
+  currency: string;
+  item: OrderItemSnapshot;
+  returnContent?: ReactNode;
+}>) {
   const snapshot = presentOrderItemSnapshot(item);
 
   return (
@@ -37,6 +43,9 @@ export function OrderItemSnapshotCard({
           <dd>{formatMoney(item.lineTotal, currency)}</dd>
         </div>
       </dl>
+      {returnContent ? (
+        <div className={styles.returnSlot}>{returnContent}</div>
+      ) : null}
     </li>
   );
 }

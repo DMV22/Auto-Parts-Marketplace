@@ -16,6 +16,8 @@ export const queryKeys = {
     order: (orderId: string) => ["commerce", "order", orderId] as const,
     orderTimeline: (orderId: string, cursor: string | null) =>
       ["commerce", "order-timeline", orderId, cursor] as const,
+    returns: (orderId: string, orderItemId: string) =>
+      ["commerce", "returns", orderId, orderItemId] as const,
   },
   garage: {
     vehicles: ["garage", "vehicles"] as const,
