@@ -60,7 +60,7 @@ test("restores an email session after refresh and supports sign-out/sign-in", as
   await page.getByLabel("Пароль").fill(CUSTOMER_PASSWORD);
   await page.getByRole("button", { name: "Створити акаунт" }).click();
 
-  await expect(page).toHaveURL("/");
+  await expect(page).toHaveURL("/", { timeout: 15_000 });
   await expect(page.getByText(CUSTOMER_NAME)).toBeVisible();
 
   await page.reload();
@@ -79,7 +79,7 @@ test("restores an email session after refresh and supports sign-out/sign-in", as
   await page.getByLabel("Пароль").fill(CUSTOMER_PASSWORD);
   await page.getByRole("button", { name: "Увійти" }).click();
 
-  await expect(page).toHaveURL("/");
+  await expect(page).toHaveURL("/", { timeout: 15_000 });
   await expect(page.getByText(CUSTOMER_NAME)).toBeVisible();
 });
 

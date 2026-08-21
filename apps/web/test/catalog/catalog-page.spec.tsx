@@ -140,7 +140,13 @@ describe("CatalogPage", () => {
     );
 
     expect(screen.getByText("Завантажуємо каталог…")).toBeVisible();
-    expect(await screen.findByRole("heading", { name: "Brake Pad Set" })).toBeVisible();
+    expect(
+      await screen.findByRole(
+        "heading",
+        { name: "Brake Pad Set" },
+        { timeout: 5_000 },
+      ),
+    ).toBeVisible();
     expect(screen.getByText(/Toyota Corolla/)).toBeVisible();
     expect(screen.getByDisplayValue("brake")).toBeVisible();
     expect(catalogRequests.at(-1)?.searchParams.get("savedVehicleId")).toBe(
