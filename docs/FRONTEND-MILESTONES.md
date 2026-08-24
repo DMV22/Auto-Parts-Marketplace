@@ -45,7 +45,7 @@ Backend Milestones 6–10 сформували придатний для fronten
 | Customer/Guest Cart       | `GET /api/v1/cart`, item create/update/delete, clear cart; backend-issued guest cookie                   | Реалізовано; live price/stock/status validation, owner isolation                                   | Cookie flow потребує same-origin/credentials; guest cart не merge-иться після sign-in                        | Ready після F0; merge відсутній за контрактом                          |
 | Checkout                  | `POST /api/v1/checkout/session`; pending Order, reservation, `Idempotency-Key`, Stripe URL               | Реалізовано; server-built success/cancel URLs містять `orderId`, redirect не змінює payment status | Frontend має валідовувати URL `orderId` і читати owner-protected Order; webhook залишається status authority | Ready для F4 без browser-storage recovery workaround                   |
 | Customer Orders + Returns | Order history/detail/timeline; nested customer ReturnRequest routes                                      | Реалізовано; owner-only, non-disclosing `404`, cursor pagination                                   | Немає global “My Returns”; Guest не створює return самостійно                                                | Ready для returns у Order detail; окремий Returns screen blocked by G6 |
-| Supplier Cabinet          | Supplier Listing CRUD/lifecycle/inventory; supplier OrderItems                                           | Реалізовано; active membership, Admin bypass, optimistic concurrency                               | Session не повертає `supplierId`; немає supplier-safe ProductVariant lookup                                  | Blocked until G2 and G5                                                |
+| Supplier Cabinet          | Supplier Listing CRUD/lifecycle/inventory; supplier OrderItems; current membership і ProductVariant discovery | Реалізовано; active membership, Admin bypass, optimistic concurrency; G2/G5 закриті                 | Frontend workspace ще не реалізований                                                                        | Ready для F6                                                           |
 | Internal OMS + Returns    | Internal order queue/detail/transitions; returns queue/detail/transitions                                | Реалізовано; SupportManager/Admin RBAC, policies і audit atomicity                                 | Висока щільність status/error states потребує централізованих frontend mappings                              | Ready                                                                  |
 | Notes + ActivityLog       | Internal note create/list/correct/redact; scoped/global activity reads                                   | Реалізовано; internal-only DTO projections                                                         | Frontend не повинен кешувати або показувати internal data поза protected workspace                           | Ready                                                                  |
 | Admin moderation          | Moderation queue, approve/reject/emergency pause                                                         | Реалізовано; Admin-only, public ACTIVE-only invariant                                              | SupportManager не має implicit access; UI має відображати це явно                                            | Ready                                                                  |
@@ -70,11 +70,11 @@ Backend Milestones 6–10 сформували придатний для fronten
 | ID  | Gap                                                                                                    | Impact                                                                                                            | Required clarification/fix before dependent milestone                                                                                                                                                |
 | --- | ------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | G1  | Відсутня browser transport policy: Nest не вмикає CORS, Next не має API rewrite/proxy                  | Cookie auth, Guest Cart та всі browser mutations не працюватимуть між `localhost:3000` і `localhost:3001` напряму | Зафіксувати same-origin baseline: Next rewrite/BFF proxy для `/api/*` у development і єдиний origin ingress у deployment. Альтернатива — explicit credentialed CORS allowlist + cookie policy в Nest |
-| G2  | Current session не містить active `SupplierUser` membership або `supplierId`                           | SupplierUser не знає, який route `/suppliers/:supplierId/*` відкривати                                            | Додати owner-safe `GET /api/v1/me/supplier-membership` або погоджене розширення current-session projection                                                                                           |
-| G5  | Немає supplier-safe пошуку `ProductVariant`; public catalog показує лише variants із `ACTIVE` Listings | Supplier не може створити перший Listing для variant, якого немає у public result                                 | Додати read-only supplier ProductVariant search/detail contract з bounded pagination                                                                                                                 |
 
 - **G3 — Closed:** реалізовано bounded deterministic `GET /api/v1/catalog/filter-options` для public Brand, Category і currency price-range vocabulary поверх `ACTIVE` Listings.
 - **G4 — Closed:** Stripe adapter формує success/cancel URLs із `orderId`; success додатково містить literal `{CHECKOUT_SESSION_ID}`, тому frontend відновлює Order через owner-protected read API без `sessionStorage`.
+- **G2 — Closed:** `GET /api/v1/me/supplier-membership` повертає owner-safe active/inactive membership поточного session user або `data: null`; Admin не отримує synthetic membership.
+- **G5 — Closed:** supplier-scoped `GET /api/v1/suppliers/:supplierId/product-variants` і `GET /:productVariantId` надають guarded canonical ProductVariant discovery з bounded opaque cursor pagination.
 
 ### Non-blocking gaps and known limitations
 
@@ -749,7 +749,7 @@ pnpm --filter web build
 
 - Orders/Returns query keys і DTO належать customer/guest commerce boundary та не повинні повторно використовуватися для supplier projections.
 - Supplier workspace має використовувати supplier-safe OrderItem DTO без повного Order, customer identity або payment metadata.
-- Перед F6 необхідно закрити blocking gaps G2 (verified supplier membership/supplierId) і G5 (supplier-safe ProductVariant lookup).
+- G2/G5 закриті: workspace bootstrap використовує current membership endpoint, а Listing create/edit — supplier-scoped ProductVariant lookup.
 - Зберегти backend authority, non-disclosing ownership errors і відсутність owner identifiers у browser storage.
 
 ## Milestone F6 — Supplier Cabinet
@@ -767,7 +767,17 @@ pnpm --filter web build
 ### Backend dependencies
 
 - Supplier Cabinet endpoints і guards.
-- Blocking G2 та G5 мають бути закриті.
+- G2: `GET /api/v1/me/supplier-membership` повертає `{ data: { status, supplier: { id, name, slug } } | null }`; endpoint вимагає session, але не створює synthetic Admin membership.
+- G5 list: `GET /api/v1/suppliers/:supplierId/product-variants?q=&limit=&cursor=`; `q` шукає Product name/SKU/manufacturer/OEM, `limit` має діапазон `1–50`, cursor opaque і прив'язаний до query.
+- G5 detail: `GET /api/v1/suppliers/:supplierId/product-variants/:productVariantId`; list/detail використовують `SessionAuthGuard`, `RolesGuard`, `SupplierOwnershipGuard`, active membership та explicit Admin bypass.
+- ProductVariant DTO містить variant identifiers і мінімальні Product/Brand/Category projections; Listings, stock, supplier/customer/payment data не повертаються.
+
+### Backend prerequisites implementation log
+
+- Додано current Supplier membership boundary у `AuthModule` без зміни Better Auth session projection.
+- Додано read-only ProductVariant discovery у `SupplierCabinetModule` з whitelist query validation, deterministic `Product.name ASC, sku ASC, id ASC` sorting і non-disclosing detail `404`.
+- G2/G5 не потребували schema, migration, dependency або ProductVariant write API змін.
+- Targeted validation passed: integration — 1 suite/3 tests; E2E — 1 suite/2 tests; API build passed; full API lint passed без errors, після усунення однієї test warning scoped lint пройшов без diagnostics.
 
 ### Components/features
 
