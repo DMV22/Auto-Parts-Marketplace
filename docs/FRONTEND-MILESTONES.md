@@ -71,8 +71,9 @@ Backend Milestones 6–10 сформували придатний для fronten
 | --- | ------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | G1  | Відсутня browser transport policy: Nest не вмикає CORS, Next не має API rewrite/proxy                  | Cookie auth, Guest Cart та всі browser mutations не працюватимуть між `localhost:3000` і `localhost:3001` напряму | Зафіксувати same-origin baseline: Next rewrite/BFF proxy для `/api/*` у development і єдиний origin ingress у deployment. Альтернатива — explicit credentialed CORS allowlist + cookie policy в Nest |
 | G2  | Current session не містить active `SupplierUser` membership або `supplierId`                           | SupplierUser не знає, який route `/suppliers/:supplierId/*` відкривати                                            | Додати owner-safe `GET /api/v1/me/supplier-membership` або погоджене розширення current-session projection                                                                                           |
-| G3  | Немає public brand/category collection/filter-options endpoint                                         | Неможливо гарантовано побудувати повні dropdown filters із paginated catalog data                                 | Додати bounded deterministic `GET /api/v1/catalog/filter-options` або окремі `/brands` і `/categories` endpoints                                                                                     |
 | G5  | Немає supplier-safe пошуку `ProductVariant`; public catalog показує лише variants із `ACTIVE` Listings | Supplier не може створити перший Listing для variant, якого немає у public result                                 | Додати read-only supplier ProductVariant search/detail contract з bounded pagination                                                                                                                 |
+
+- **G3 — Closed:** реалізовано bounded deterministic `GET /api/v1/catalog/filter-options` для public Brand, Category і currency price-range vocabulary поверх `ACTIVE` Listings.
 
 ### Non-blocking gaps and known limitations
 
@@ -268,7 +269,7 @@ pnpm --filter web build
 | ----------------------------------------- | -------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
 | G1 — browser transport                    | Closed                           | Frontend platform / F0                                 | Browser використовує relative `/api/*`; Next rewrite направляє запити до `API_INTERNAL_URL`; CORS не потрібен за same-origin topology |
 | G2 — active Supplier membership discovery | Blocking для F6                  | Backend / до початку F6                                | Owner-safe current membership response із `supplierId`, status і мінімальною Supplier projection                                      |
-| G3 — catalog filter vocabulary            | Blocking для повних filters у F3 | Backend / до відповідної частини F3                    | Bounded deterministic filter-options endpoint або окремі brand/category collections                                                   |
+| G3 — catalog filter vocabulary            | Closed                           | Backend / prerequisite перед F3                        | Public `GET /api/v1/catalog/filter-options`; `ACTIVE`-only Brand/Category options і currency price ranges, cap `100`, `meta.truncated`  |
 | G5 — supplier ProductVariant discovery    | Blocking для F6                  | Backend / до початку F6                                | Read-only supplier-safe ProductVariant search/detail із bounded pagination                                                            |
 | G4 — Order recovery після Stripe redirect | Non-blocking для F0/F1           | Backend + Commerce frontend / до production closure F4 | Server-built success URL із `orderId` або owner-safe lookup за Checkout Session ID                                                    |
 
@@ -482,7 +483,15 @@ pnpm --filter web build
 
 - Catalog list/PDP endpoints.
 - Vehicle selector/garage context.
-- G3 для повних brand/category controls; G8 допускає placeholder media.
+- G3 закрито public filter-options contract; G8 допускає placeholder media.
+
+### G3 contract handoff
+
+- `GET /api/v1/catalog/filter-options` є public read-only endpoint без query parameters.
+- Response містить `data.brands[]` і `data.categories[]` як `{ id, name }`, а `data.currencies[]` як `{ code, minimumPrice, maximumPrice }`; Decimal prices серіалізуються рядками.
+- Vocabulary і price ranges будуються лише з `ACTIVE` Listings; out-of-stock `ACTIVE` Listings залишаються частиною public options.
+- Collections мають deterministic sorting і server cap `100`; `meta.truncated = true`, якщо хоча б одна collection має більше значень.
+- Targeted validation: unit `1/1`, integration `2/2`, E2E `1/1` — passed; E2E підтверджує anonymous access і відхилення query parameters.
 
 ### Components/features
 
