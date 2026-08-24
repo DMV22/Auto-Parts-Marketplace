@@ -1,0 +1,9 @@
+.main {
+  display: grid;
+  min-height: calc(100svh - 4rem);
+  place-items: center;
+  padding: clamp(2rem, 7vw, 5rem) 1rem;
+  background:
+    radial-gradient(circle at top left, color-mix(in oklch, var(--primary) 8%, transparent), transparent 30rem),
+    var(--background);
+}
