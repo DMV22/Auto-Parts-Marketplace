@@ -85,6 +85,13 @@ export function AppHeader() {
               session.data.user.isActive ? (
                 <SupplierWorkspaceLink className={styles.workspaceLink} />
               ) : null}
+              {(session.data.user.role === "SUPPORT_MANAGER" ||
+                session.data.user.role === "ADMIN") &&
+              session.data.user.isActive ? (
+                <Link className={styles.workspaceLink} href="/internal/orders">
+                  Internal Ops
+                </Link>
+              ) : null}
               <span className={styles.identity}>
                 <strong>{session.data.user.name}</strong>
                 <span>{roleLabels[session.data.user.role]}</span>
