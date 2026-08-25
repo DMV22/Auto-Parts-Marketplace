@@ -22,6 +22,23 @@ export const queryKeys = {
   garage: {
     vehicles: ["garage", "vehicles"] as const,
   },
+  supplier: {
+    membership: ["supplier", "membership"] as const,
+    variants: (supplierId: string, query: string, cursor: string | null) =>
+      ["supplier", supplierId, "variants", query, cursor] as const,
+    variant: (supplierId: string, variantId: string) =>
+      ["supplier", supplierId, "variant", variantId] as const,
+    listings: (supplierId: string, query: string) =>
+      ["supplier", supplierId, "listings", query] as const,
+    listingsRoot: (supplierId: string) =>
+      ["supplier", supplierId, "listings"] as const,
+    listing: (supplierId: string, listingId: string) =>
+      ["supplier", supplierId, "listing", listingId] as const,
+    orderItems: (supplierId: string, query: string) =>
+      ["supplier", supplierId, "order-items", query] as const,
+    orderItem: (supplierId: string, orderItemId: string) =>
+      ["supplier", supplierId, "order-item", orderItemId] as const,
+  },
   vehicles: {
     taxonomy: {
       years: ["vehicles", "taxonomy", "years"] as const,

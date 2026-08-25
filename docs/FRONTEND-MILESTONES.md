@@ -789,21 +789,21 @@ pnpm --filter web build
 
 ### Tasks
 
-- [ ] Bootstrap supplier workspace з active membership, не з user-entered `supplierId`.
-- [ ] Реалізувати ProductVariant lookup для Listing create/edit через погоджений endpoint.
-- [ ] Реалізувати listing filters/cursor/sorting і server-owned fields.
-- [ ] Реалізувати submit/pause/resume/archive та показ moderation outcome.
-- [ ] Реалізувати inventory update з `expectedVersion`.
-- [ ] При `409` refetch актуального listing, показати conflict і explicit retry.
-- [ ] Реалізувати supplier OrderItem projections без повного Order/customer/payment data.
+- [x] Bootstrap supplier workspace з active membership, не з user-entered `supplierId`.
+- [x] Реалізувати ProductVariant lookup для Listing create/edit через погоджений endpoint.
+- [x] Реалізувати listing filters/cursor/sorting і server-owned fields.
+- [x] Реалізувати submit/pause/resume/archive та показ moderation outcome.
+- [x] Реалізувати inventory update з `expectedVersion`.
+- [x] При `409` refetch актуального listing, показати conflict і explicit retry.
+- [x] Реалізувати supplier OrderItem projections без повного Order/customer/payment data.
 
 ### Definition of Done
 
-- [ ] Inactive/foreign SupplierUser не бачить workspace data; Admin bypass відповідає backend policy.
-- [ ] Listing form не приймає client-owned supplier/status/timestamp fields.
-- [ ] Non-ACTIVE listing state не трактується як public visibility.
-- [ ] Concurrent inventory edit не перезаписує новішу версію мовчки.
-- [ ] Supplier response UI не містить customer identity, address або payment metadata.
+- [x] Inactive/foreign SupplierUser не бачить workspace data; Admin bypass відповідає backend policy.
+- [x] Listing form не приймає client-owned supplier/status/timestamp fields.
+- [x] Non-ACTIVE listing state не трактується як public visibility.
+- [x] Concurrent inventory edit не перезаписує новішу версію мовчки.
+- [x] Supplier response UI не містить customer identity, address або payment metadata.
 
 ### Testing
 
@@ -818,6 +818,34 @@ pnpm --filter web test
 pnpm --filter web test:e2e
 pnpm --filter web build
 ```
+
+### Implementation log
+
+- Додано membership-scoped `/supplier/[supplierId]` layout із SupplierUser ownership states, inactive/foreign denial та direct-route Admin mode без synthetic membership.
+- Реалізовано Listings list/create/detail/edit, bounded filters/cursor navigation, lifecycle actions, moderation outcome та explicit non-ACTIVE visibility state.
+- Реалізовано supplier-scoped ProductVariant remote lookup із cursor navigation та detail validation, inventory update з authoritative `inventoryVersion` і `409 → invalidate/refetch detail/list → explicit retry` UX.
+- Реалізовано supplier-only OrderItem list/detail із allowlisted filters, cursor navigation та DTO, який не містить customer, address, payment або full Order data.
+- Додано role-aware Supplier entry у header; session, membership, supplier resources і inventory залишаються TanStack Query server state без browser storage.
+
+#### Validation results
+
+- Targeted F6 tests — passed: 5 files, 6 tests; lifecycle/error mapping, paged ProductVariant validation/partial PATCH, inventory conflict/refetch/retry, supplier-safe OrderItem projection, inactive і foreign membership states.
+- `pnpm --filter web lint` — passed, 0 warnings.
+- `pnpm --filter web check-types` — passed; Next route types generated successfully.
+- Full web suite, production build і Playwright E2E не запускалися відповідно до обмеженої F6 strategy.
+
+#### Deferred E2E scenarios for F8
+
+- SupplierUser automatic workspace navigation через G2, inactive/foreign denial і direct-route Admin bypass.
+- ProductVariant search/detail, Listing create/edit та submit/approve/pause/resume/archive із public ACTIVE-only regression.
+- Два конкурентні stock writers і supplier-versus-checkout race: `409`, refetch, актуальний version і контрольований retry.
+- Supplier OrderItem filters/cursor/detail для multi-supplier Order без customer/address/payment leakage.
+
+### Handoff to F7
+
+- Supplier query keys, DTO та workspace routes належать supplier boundary; Internal Ops не повинні повторно використовувати supplier-safe OrderItem projection як global Order DTO.
+- F7 зберігає centralized backend RBAC/policies, non-disclosing errors і окремі internal Notes/ActivityLog contracts.
+- Admin Supplier bypass залишається direct-route capability; це не заміна Admin moderation queue або Supplier directory.
 
 ## Milestone F7 — Internal OMS, Returns, Notes, Audit and Moderation
 
