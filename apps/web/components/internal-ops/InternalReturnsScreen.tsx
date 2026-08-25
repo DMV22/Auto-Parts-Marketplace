@@ -9,7 +9,7 @@ import {
   formatInternalDate,
   presentReturnStatus,
 } from "@/lib/internal-ops/internal-ops-presentation";
-import { localDateTimeToIso, toDateTimeLocal } from "@/lib/internal-ops/internal-ops-route-query";
+import { internalCursorHref, localDateTimeToIso, toDateTimeLocal } from "@/lib/internal-ops/internal-ops-route-query";
 import type { InternalReturnsQuery, ReturnRequestStatus } from "@/lib/internal-ops/internal-ops-types";
 import { internalReturnsQueryOptions } from "@/lib/query/internal-ops-queries";
 import { ReturnStatusBadge } from "./InternalStatusBadge";
@@ -49,15 +49,9 @@ export function InternalReturnsScreen({ query }: { query: InternalReturnsQuery }
         <Button type="submit">Застосувати</Button>
       </form>
       {returns.data.data.length === 0 ? <div className={styles.state}>ReturnRequest за цими фільтрами немає.</div> : (
-        <div className={styles.tableWrapper}><table className={styles.table}><thead><tr><th scope="col">Return</th><th scope="col">Товар</th><th scope="col">Статус</th><th scope="col">Причина</th><th scope="col">Дата</th><th scope="col">Дія</th></tr></thead><tbody>{returns.data.data.map((item) => <tr key={item.id}><td translate="no">{item.id}</td><td>{item.productName ?? "Snapshot товару"}<br /><span className={styles.meta}>{item.sku ?? "SKU недоступний"}</span></td><td><ReturnStatusBadge status={item.status} /></td><td>{item.reason}</td><td>{formatInternalDate(item.createdAt)}</td><td><Link href={`/internal/returns/${item.id}`}>Деталі</Link></td></tr>)}</tbody></table></div>
+        <div className={styles.tableWrapper}><table className={styles.table}><caption className="sr-only">Internal Ops — черга повернень</caption><thead><tr><th scope="col">Return</th><th scope="col">Товар</th><th scope="col">Статус</th><th scope="col">Причина</th><th scope="col">Дата</th><th scope="col">Дія</th></tr></thead><tbody>{returns.data.data.map((item) => <tr key={item.id}><td translate="no">{item.id}</td><td>{item.productName ?? "Snapshot товару"}<br /><span className={styles.meta}>{item.sku ?? "SKU недоступний"}</span></td><td><ReturnStatusBadge status={item.status} /></td><td>{item.reason}</td><td>{formatInternalDate(item.createdAt)}</td><td><Link href={`/internal/returns/${item.id}`}>Деталі</Link></td></tr>)}</tbody></table></div>
       )}
-      {returns.data.pageInfo.nextCursor ? <div className={styles.pagination}><Link href={returnsNextHref(query, returns.data.pageInfo.nextCursor)}>Наступна сторінка</Link></div> : null}
+      {returns.data.pageInfo.nextCursor ? <div className={styles.pagination}><Link href={internalCursorHref("/internal/returns", query, returns.data.pageInfo.nextCursor, "limit")}>Наступна сторінка</Link></div> : null}
     </section>
   );
-}
-
-function returnsNextHref(query: InternalReturnsQuery, cursor: string) {
-  const search = new URLSearchParams();
-  Object.entries({ ...query, cursor, limit: undefined }).forEach(([key, value]) => { if (value !== undefined) search.set(key, String(value)); });
-  return `/internal/returns?${search}`;
 }

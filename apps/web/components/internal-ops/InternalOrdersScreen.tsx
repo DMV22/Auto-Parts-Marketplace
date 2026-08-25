@@ -12,6 +12,7 @@ import {
 } from "@/lib/internal-ops/internal-ops-presentation";
 import {
   localDateTimeToIso,
+  internalCursorHref,
   toDateTimeLocal,
 } from "@/lib/internal-ops/internal-ops-route-query";
 import type { InternalOrdersQuery } from "@/lib/internal-ops/internal-ops-types";
@@ -92,6 +93,7 @@ export function InternalOrdersScreen({ query }: { query: InternalOrdersQuery }) 
       ) : (
         <div className={styles.tableWrapper}>
           <table className={styles.table}>
+            <caption className="sr-only">Internal OMS — черга замовлень</caption>
             <thead>
               <tr>
                 <th scope="col">Замовлення</th>
@@ -121,7 +123,7 @@ export function InternalOrdersScreen({ query }: { query: InternalOrdersQuery }) 
       )}
       {orders.data.pageInfo.nextCursor ? (
         <div className={styles.pagination}>
-          <Link href={ordersNextHref(query, orders.data.pageInfo.nextCursor)}>Наступна сторінка</Link>
+          <Link href={internalCursorHref("/internal/orders", query, orders.data.pageInfo.nextCursor, "limit")}>Наступна сторінка</Link>
         </div>
       ) : null}
     </section>
@@ -143,12 +145,4 @@ function setText(search: URLSearchParams, key: string, value: FormDataEntryValue
 
 function setOptional(search: URLSearchParams, key: string, value: string | undefined) {
   if (value) search.set(key, value);
-}
-
-function ordersNextHref(query: InternalOrdersQuery, cursor: string) {
-  const search = new URLSearchParams();
-  Object.entries({ ...query, cursor, limit: undefined }).forEach(([key, value]) => {
-    if (value !== undefined) search.set(key, String(value));
-  });
-  return `/internal/orders?${search}`;
 }

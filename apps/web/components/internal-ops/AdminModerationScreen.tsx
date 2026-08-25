@@ -3,12 +3,18 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/catalog/catalog-presentation";
 import { moderateListing } from "@/lib/internal-ops/internal-ops-api";
 import { formatInternalDate, internalMutationError } from "@/lib/internal-ops/internal-ops-presentation";
-import { localDateTimeToIso, toDateTimeLocal } from "@/lib/internal-ops/internal-ops-route-query";
+import { internalCursorHref, localDateTimeToIso, toDateTimeLocal } from "@/lib/internal-ops/internal-ops-route-query";
 import type { ModerationQuery } from "@/lib/internal-ops/internal-ops-types";
 import { moderationQueryOptions } from "@/lib/query/internal-ops-queries";
 import { queryKeys } from "@/lib/query/query-keys";
@@ -48,7 +54,7 @@ export function AdminModerationScreen({ query }: { query: ModerationQuery }) {
         <Button type="submit">Застосувати</Button>
       </form>
       {queue.data.data.length === 0 ? <div className={styles.state}>Listings за цими фільтрами відсутні.</div> : <ul className={styles.list}>{queue.data.data.map((listing) => <li key={listing.id}><ModerationCard listing={listing} /></li>)}</ul>}
-      {queue.data.meta.nextCursor ? <div className={styles.pagination}><Link href={moderationNextHref(query, queue.data.meta.nextCursor)}>Наступна сторінка</Link></div> : null}
+      {queue.data.meta.nextCursor ? <div className={styles.pagination}><Link href={internalCursorHref("/admin/moderation", query, queue.data.meta.nextCursor, "pageSize")}>Наступна сторінка</Link></div> : null}
     </section>
   );
 }
@@ -56,7 +62,14 @@ export function AdminModerationScreen({ query }: { query: ModerationQuery }) {
 function ModerationCard({ listing }: { listing: SupplierListing & { supplier: { id: string; name: string } } }) {
   const [action, setAction] = useState<"reject" | "pause" | null>(null);
   const [reason, setReason] = useState("");
+  const confirmationId = useId();
+  const reasonRef = useRef<HTMLTextAreaElement>(null);
+  const rejectTriggerRef = useRef<HTMLButtonElement>(null);
+  const pauseTriggerRef = useRef<HTMLButtonElement>(null);
   const queryClient = useQueryClient();
+  useEffect(() => {
+    if (action) reasonRef.current?.focus();
+  }, [action]);
   const mutation = useMutation({
     mutationFn: (selected: "approve" | "reject" | "pause") => moderateListing(listing.id, selected, reason.trim() || undefined),
     onSuccess: async (updated) => {
@@ -73,24 +86,24 @@ function ModerationCard({ listing }: { listing: SupplierListing & { supplier: { 
   });
   const canDecide = listing.status === "PENDING_APPROVAL";
   const canPause = listing.status === "ACTIVE";
+  function cancelConfirmation() {
+    const trigger = action === "reject" ? rejectTriggerRef : pauseTriggerRef;
+    setAction(null);
+    setReason("");
+    requestAnimationFrame(() => trigger.current?.focus());
+  }
   return (
     <article className={styles.moderationCard}>
       <div className={styles.toolbar}><div><strong>{listing.productVariant.sku}</strong><p className={styles.meta}>{listing.supplier.name}</p></div><span className={styles.badge}>{listing.status}</span></div>
       <dl className={styles.summary}><div><dt>Listing</dt><dd translate="no">{listing.id}</dd></div><div><dt>Supplier</dt><dd translate="no">{listing.supplierId}</dd></div><div><dt>Ціна</dt><dd>{formatMoney(listing.price, listing.currency)}</dd></div><div><dt>Створено</dt><dd>{formatInternalDate(listing.createdAt)}</dd></div></dl>
       <div className={styles.actions}>
         {canDecide ? <Button type="button" disabled={mutation.isPending} onClick={() => mutation.mutate("approve")}>Approve</Button> : null}
-        {canDecide ? <Button type="button" variant="destructive" onClick={() => setAction("reject")}>Reject…</Button> : null}
-        {canPause ? <Button type="button" variant="destructive" onClick={() => setAction("pause")}>Emergency pause…</Button> : null}
+        {canDecide ? <Button ref={rejectTriggerRef} type="button" variant="destructive" aria-expanded={action === "reject"} aria-controls={confirmationId} onClick={() => setAction("reject")}>Reject…</Button> : null}
+        {canPause ? <Button ref={pauseTriggerRef} type="button" variant="destructive" aria-expanded={action === "pause"} aria-controls={confirmationId} onClick={() => setAction("pause")}>Emergency pause…</Button> : null}
       </div>
-      {action ? <div className={styles.confirmation}><div className={styles.field}><label htmlFor={`moderation-reason-${listing.id}`}>{action === "reject" ? "Supplier-visible rejection reason" : "Supplier-visible pause reason"}</label><textarea id={`moderation-reason-${listing.id}`} value={reason} maxLength={500} autoComplete="off" onChange={(event) => setReason(event.target.value)} /></div><div className={styles.actions}><Button type="button" variant="destructive" disabled={!reason.trim() || mutation.isPending} onClick={() => mutation.mutate(action)}>{mutation.isPending ? "Застосовуємо…" : `Підтвердити ${action}`}</Button><Button type="button" variant="outline" onClick={() => setAction(null)}>Скасувати</Button></div></div> : null}
+      {action ? <div id={confirmationId} className={styles.confirmation} role="group" aria-label={action === "reject" ? "Підтвердження відхилення Listing" : "Підтвердження emergency pause"}><div className={styles.field}><label htmlFor={`moderation-reason-${listing.id}`}>{action === "reject" ? "Supplier-visible rejection reason" : "Supplier-visible pause reason"}</label><textarea ref={reasonRef} id={`moderation-reason-${listing.id}`} value={reason} maxLength={500} autoComplete="off" onChange={(event) => setReason(event.target.value)} /></div><div className={styles.actions}><Button type="button" variant="destructive" disabled={!reason.trim() || mutation.isPending} onClick={() => mutation.mutate(action)}>{mutation.isPending ? "Застосовуємо…" : `Підтвердити ${action}`}</Button><Button type="button" variant="outline" onClick={cancelConfirmation}>Скасувати</Button></div></div> : null}
       {mutation.error ? <p className={styles.error} role="alert">{internalMutationError(mutation.error)}</p> : null}
       {mutation.isSuccess ? <p className={styles.success} aria-live="polite">Moderation outcome підтверджено backend; public catalog cache позначено stale.</p> : null}
     </article>
   );
-}
-
-function moderationNextHref(query: ModerationQuery, cursor: string) {
-  const search = new URLSearchParams();
-  Object.entries({ ...query, cursor, pageSize: undefined }).forEach(([key, value]) => { if (value !== undefined) search.set(key, String(value)); });
-  return `/admin/moderation?${search}`;
 }

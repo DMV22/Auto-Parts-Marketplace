@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { transitionInternalReturn } from "@/lib/internal-ops/internal-ops-api";
 import {
+  canSubmitReturnTransition,
   formatInternalDate,
   internalMutationError,
   nextReturnStatuses,
@@ -38,6 +39,7 @@ export function InternalReturnDetailScreen({ returnRequestId }: { returnRequestI
   if (request.isPending) return <p role="status">Завантажуємо ReturnRequest…</p>;
   if (request.isError) return <section className={styles.state}><h2>ReturnRequest недоступний</h2><p>Його не знайдено або він недоступний поточній ролі.</p><Link href="/internal/returns">До черги</Link></section>;
   const targets = nextReturnStatuses(request.data.status);
+  const rejectionReasonRequired = targetStatus === "REJECTED";
   return (
     <section className={styles.workspace} aria-labelledby="return-detail-title">
       <div className={styles.toolbar}><div className={styles.heading}><h2 id="return-detail-title">ReturnRequest <span translate="no">{returnRequestId}</span></h2><ReturnStatusBadge status={request.data.status} /></div><Link href="/internal/returns">До черги</Link></div>
@@ -57,8 +59,8 @@ export function InternalReturnDetailScreen({ returnRequestId }: { returnRequestI
         {targets.length ? (
           <div className={styles.form}>
             <div className={styles.field}><label htmlFor="return-target-status">Наступний статус</label><select id="return-target-status" value={targetStatus} onChange={(event) => setTargetStatus(event.target.value as ReturnRequestStatus | "")}><option value="">Оберіть дію</option>{targets.map((status) => <option key={status} value={status}>{presentReturnStatus(status)}</option>)}</select></div>
-            <div className={styles.field}><label htmlFor="return-transition-reason">Причина (необов’язково)</label><textarea id="return-transition-reason" value={reason} maxLength={500} autoComplete="off" onChange={(event) => setReason(event.target.value)} /></div>
-            <Button type="button" disabled={!targetStatus || transition.isPending} onClick={() => transition.mutate()}>{transition.isPending ? "Оновлюємо…" : "Підтвердити transition"}</Button>
+            <div className={styles.field}><label htmlFor="return-transition-reason">Причина {rejectionReasonRequired ? "(обов’язково для відхилення)" : "(необов’язково)"}</label><textarea id="return-transition-reason" value={reason} maxLength={500} required={rejectionReasonRequired} autoComplete="off" onChange={(event) => setReason(event.target.value)} /></div>
+            <Button type="button" disabled={!canSubmitReturnTransition(targetStatus, reason) || transition.isPending} onClick={() => transition.mutate()}>{transition.isPending ? "Оновлюємо…" : "Підтвердити transition"}</Button>
           </div>
         ) : <p>ReturnRequest перебуває у terminal state.</p>}
         {transition.error ? <p className={styles.error} role="alert">{internalMutationError(transition.error)}</p> : null}

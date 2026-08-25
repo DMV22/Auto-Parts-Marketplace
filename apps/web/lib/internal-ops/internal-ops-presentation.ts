@@ -49,6 +49,15 @@ export function nextReturnStatuses(
   return [];
 }
 
+export function canSubmitReturnTransition(
+  targetStatus: ReturnRequestStatus | "",
+  reason: string,
+): boolean {
+  return Boolean(
+    targetStatus && (targetStatus !== "REJECTED" || reason.trim()),
+  );
+}
+
 export function internalMutationError(error: unknown): string {
   if (!(error instanceof AppError)) {
     return "Не вдалося виконати дію. Спробуйте ще раз.";

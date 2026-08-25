@@ -146,3 +146,18 @@ export function localDateTimeToIso(value: FormDataEntryValue | null) {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
 }
+
+export function internalCursorHref(
+  path: string,
+  query: object,
+  cursor: string,
+  paginationKey: "limit" | "pageSize",
+): string {
+  const search = new URLSearchParams();
+  Object.entries({ ...query, cursor }).forEach(([key, value]) => {
+    if (key !== paginationKey && value !== undefined) {
+      search.set(key, String(value));
+    }
+  });
+  return `${path}?${search}`;
+}

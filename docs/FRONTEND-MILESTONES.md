@@ -875,21 +875,21 @@ pnpm --filter web build
 
 ### Tasks
 
-- [ ] Реалізувати Support/Admin Order queue, detail і allowed operational transitions.
-- [ ] Не додавати payment-state controls; webhook лишається authority.
-- [ ] Реалізувати Returns queue/detail і centralized transition actions.
-- [ ] Реалізувати internal-only Notes, corrections і Admin redaction tombstones.
-- [ ] Реалізувати scoped ActivityLog для Support і global read-only view для Admin.
-- [ ] Реалізувати Admin-only moderation queue, approve/reject/emergency pause.
-- [ ] Показати supplier-visible moderation reason окремо від internal audit metadata.
+- [x] Реалізувати Support/Admin Order queue, detail і allowed operational transitions.
+- [x] Не додавати payment-state controls; webhook лишається authority.
+- [x] Реалізувати Returns queue/detail і centralized transition actions.
+- [x] Реалізувати internal-only Notes, corrections і Admin redaction tombstones.
+- [x] Реалізувати scoped ActivityLog для Support і global read-only view для Admin.
+- [x] Реалізувати Admin-only moderation queue, approve/reject/emergency pause.
+- [x] Показати supplier-visible moderation reason окремо від internal audit metadata.
 
 ### Definition of Done
 
-- [ ] Customer/SupplierUser не можуть render/fetch internal resources через UI, а backend denial обробляється коректно.
-- [ ] SupportManager не отримує implicit moderation access.
-- [ ] Invalid/terminal transitions не оновлюються optimistic і показують policy error.
-- [ ] Note text/addresses/payment payload/secrets не потрапляють в audit metadata UI.
-- [ ] Після reject/pause refetch підтверджує відсутність Listing у public ACTIVE views.
+- [x] Customer/SupplierUser не можуть render/fetch internal resources через UI, а backend denial обробляється коректно.
+- [x] SupportManager не отримує implicit moderation access.
+- [x] Invalid/terminal transitions не оновлюються optimistic і показують policy error.
+- [x] Note text/addresses/payment payload/secrets не потрапляють в audit metadata UI.
+- [x] Після reject/pause public Catalog cache invalidated; повторне читання використовує backend `ACTIVE`-only contract.
 
 ### Testing
 
@@ -904,6 +904,34 @@ pnpm --filter web test
 pnpm --filter web test:e2e
 pnpm --filter web build
 ```
+
+### Implementation log
+
+- Додано role-aware `/internal/*` workspace для активних SupportManager/Admin та окрему Admin-only `/admin/moderation` boundary; Customer, SupplierUser, inactive й anonymous sessions не render-ять internal children.
+- Реалізовано OMS Order/Return queues і details з allowlisted URL filters, bounded cursor navigation та backend-controlled non-payment transitions без optimistic status updates.
+- Реалізовано append-only Notes, corrections, Admin redaction tombstones і ActivityLog views: Support читає лише Order/Return scope, Admin має global read-only view, а frontend contract приймає тільки safe metadata `noteId`/`correctsNoteId`.
+- Реалізовано Admin moderation approve/reject/emergency pause; destructive reject/pause вимагають explicit confirmation і supplier-visible reason, після чого invalidated moderation, Supplier Listing, ActivityLog і public Catalog cache boundaries.
+
+#### Validation results
+
+- Targeted F7 tests — passed: 5 files, 6 tests; operational/terminal transition mapping і required reject reason, OMS resource/all-timeline/ActivityLog invalidation, ActivityLog metadata privacy allowlist, Support/Customer access boundary, Admin note redaction tombstone та moderation reject/refetch/public cache invalidation.
+- `pnpm --filter web lint` — passed, 0 warnings.
+- `pnpm --filter web check-types` — passed; Next route types generated successfully.
+- `git diff --check` — passed; Windows повідомив лише informational LF→CRLF warnings для наявних tracked files.
+- Full web suite, production build і Playwright E2E не запускалися відповідно до обмеженої F7 strategy.
+
+#### Deferred E2E scenarios for F8
+
+- SupportManager/Admin session routing, Customer/SupplierUser/inactive denial і прямий запит до internal API з backend `401/403/404` handling.
+- Повний OMS lifecycle `PAID → PROCESSING → SHIPPED → DELIVERED` без payment-state controls та з узгодженими timeline/ActivityLog подіями.
+- Customer ReturnRequest → Support transition queue → Notes correction/redaction → scoped ActivityLog без витоку note body, address або payment payload.
+- Admin approve/reject/emergency pause → Supplier бачить moderation reason → Catalog/PDP/Cart повторно підтверджують `ACTIVE`-only visibility.
+
+### Handoff to F8
+
+- Internal Ops server state ізольований власними query-key roots; F8 має перевірити cache cleanup/cross-role navigation при зміні session і відсутність cross-role internal data.
+- Public visibility після moderation покладається на централізований backend `ACTIVE` predicate та prefix invalidation `queryKeys.catalog.root`; повний browser regression залишається readiness сценарієм.
+- Notes/ActivityLog DTO є internal-only, а metadata frontend allowlist навмисно fail-closed при неузгодженому розширенні backend contract.
 
 ## Milestone F8 — Frontend readiness gate
 

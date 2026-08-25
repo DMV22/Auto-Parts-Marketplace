@@ -1,7 +1,8 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   createInternalNote,
@@ -18,7 +19,10 @@ import { sessionQueryOptions } from "@/lib/query/session-query";
 import styles from "./internal-ops.module.css";
 
 export function InternalNotesPanel({ target }: { target: NoteTarget }) {
-  const [cursor, setCursor] = useState<string | null>(null);
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const cursor = searchParams.get("notesCursor");
   const [body, setBody] = useState("");
   const [correctsNoteId, setCorrectsNoteId] = useState<string | null>(null);
   const notes = useQuery(internalNotesQueryOptions(target, cursor));
@@ -33,6 +37,15 @@ export function InternalNotesPanel({ target }: { target: NoteTarget }) {
       await invalidateNotesAndActivity(queryClient, target);
     },
   });
+
+  function setCursor(nextCursor: string | null) {
+    const next = new URLSearchParams(searchParams.toString());
+    if (nextCursor) next.set("notesCursor", nextCursor);
+    else next.delete("notesCursor");
+    router.replace(`${pathname}${next.size ? `?${next}` : ""}`, {
+      scroll: false,
+    });
+  }
 
   return (
     <section className={styles.panel} aria-labelledby={`notes-${target.type}-${target.id}`}>
@@ -118,6 +131,12 @@ function NoteItem({
 }) {
   const [confirmRedaction, setConfirmRedaction] = useState(false);
   const [reason, setReason] = useState("");
+  const confirmationId = useId();
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const reasonRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    if (confirmRedaction) reasonRef.current?.focus();
+  }, [confirmRedaction]);
   const redact = useMutation({
     mutationFn: () => redactInternalNote(note.id, reason.trim()),
     onSuccess: async () => {
@@ -126,6 +145,11 @@ function NoteItem({
       await onChanged();
     },
   });
+  function cancelRedaction() {
+    setConfirmRedaction(false);
+    setReason("");
+    requestAnimationFrame(() => triggerRef.current?.focus());
+  }
   return (
     <article className={styles.note} data-redacted={note.isRedacted}>
       <div className={styles.toolbar}>
@@ -141,20 +165,20 @@ function NoteItem({
       {!note.isRedacted ? (
         <div className={styles.actions}>
           <Button type="button" variant="outline" onClick={onCorrect}>Створити корекцію</Button>
-          {isAdmin ? <Button type="button" variant="destructive" onClick={() => setConfirmRedaction(true)}>Redact</Button> : null}
+          {isAdmin ? <Button ref={triggerRef} type="button" variant="destructive" aria-expanded={confirmRedaction} aria-controls={confirmationId} onClick={() => setConfirmRedaction(true)}>Redact</Button> : null}
         </div>
       ) : null}
       {confirmRedaction ? (
-        <div className={styles.confirmation}>
+        <div id={confirmationId} className={styles.confirmation} role="group" aria-label="Підтвердження redaction">
           <div className={styles.field}>
             <label htmlFor={`redaction-${note.id}`}>Причина redaction</label>
-            <textarea id={`redaction-${note.id}`} value={reason} maxLength={500} autoComplete="off" onChange={(event) => setReason(event.target.value)} />
+            <textarea ref={reasonRef} id={`redaction-${note.id}`} value={reason} maxLength={500} autoComplete="off" onChange={(event) => setReason(event.target.value)} />
           </div>
           <div className={styles.actions}>
             <Button type="button" variant="destructive" disabled={!reason.trim() || redact.isPending} onClick={() => redact.mutate()}>
               {redact.isPending ? "Приховуємо…" : "Підтвердити redaction"}
             </Button>
-            <Button type="button" variant="outline" onClick={() => setConfirmRedaction(false)}>Скасувати</Button>
+            <Button type="button" variant="outline" onClick={cancelRedaction}>Скасувати</Button>
           </div>
           {redact.error ? <p className={styles.error} role="alert">{internalMutationError(redact.error)}</p> : null}
         </div>

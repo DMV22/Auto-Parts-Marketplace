@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import type { FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { formatInternalDate } from "@/lib/internal-ops/internal-ops-presentation";
-import { localDateTimeToIso, toDateTimeLocal } from "@/lib/internal-ops/internal-ops-route-query";
+import { internalCursorHref, localDateTimeToIso, toDateTimeLocal } from "@/lib/internal-ops/internal-ops-route-query";
 import type { ActivityQuery, ActivityResource } from "@/lib/internal-ops/internal-ops-types";
 import { activityQueryOptions } from "@/lib/query/internal-ops-queries";
 import { sessionQueryOptions } from "@/lib/query/session-query";
@@ -19,7 +19,7 @@ export function ActivityLogScreen({ query }: { query: ActivityQuery }) {
   const isAdmin = session.data?.user.role === "ADMIN";
   const hasSupportScope = Boolean(
     query.resourceId &&
-      (query.resourceType === "ORDER" || query.resourceType === "RETURN_REQUEST"),
+    (query.resourceType === "ORDER" || query.resourceType === "RETURN_REQUEST"),
   );
   const activity = useQuery({
     ...activityQueryOptions(query),
@@ -62,15 +62,9 @@ export function ActivityLogScreen({ query }: { query: ActivityQuery }) {
       {activity.isError ? <div className={styles.error} role="alert">ActivityLog недоступний. Перевірте scope та query values.</div> : null}
       {activity.data?.data.length === 0 ? <div className={styles.state}>Audit events за цими фільтрами відсутні.</div> : null}
       {activity.data?.data.length ? (
-        <div className={styles.tableWrapper}><table className={styles.table}><thead><tr><th scope="col">Дата</th><th scope="col">Actor</th><th scope="col">Resource</th><th scope="col">Action</th><th scope="col">Transition</th><th scope="col">Reason / metadata</th></tr></thead><tbody>{activity.data.data.map((item) => <tr key={item.id}><td>{formatInternalDate(item.createdAt)}</td><td>{item.actorRole ?? "SYSTEM"}<br /><span className={styles.meta} translate="no">{item.actorUserId ?? "—"}</span></td><td>{item.resourceType}<br /><span className={styles.meta} translate="no">{item.resourceId}</span></td><td>{item.action}</td><td>{item.previousStatus ?? "—"} → {item.newStatus ?? "—"}</td><td>{item.reason ?? "—"}{item.metadata ? <ul className={styles.metadata}>{Object.entries(item.metadata).map(([key, value]) => <li key={key}>{key}: <span translate="no">{value}</span></li>)}</ul> : null}</td></tr>)}</tbody></table></div>
+        <div className={styles.tableWrapper}><table className={styles.table}><caption className="sr-only">Internal ActivityLog events</caption><thead><tr><th scope="col">Дата</th><th scope="col">Actor</th><th scope="col">Resource</th><th scope="col">Action</th><th scope="col">Transition</th><th scope="col">Reason / metadata</th></tr></thead><tbody>{activity.data.data.map((item) => <tr key={item.id}><td>{formatInternalDate(item.createdAt)}</td><td>{item.actorRole ?? "SYSTEM"}<br /><span className={styles.meta} translate="no">{item.actorUserId ?? "—"}</span></td><td>{item.resourceType}<br /><span className={styles.meta} translate="no">{item.resourceId}</span></td><td>{item.action}</td><td>{item.previousStatus ?? "—"} → {item.newStatus ?? "—"}</td><td>{item.reason ?? "—"}{item.metadata ? <ul className={styles.metadata}>{Object.entries(item.metadata).map(([key, value]) => <li key={key}>{key}: <span translate="no">{value}</span></li>)}</ul> : null}</td></tr>)}</tbody></table></div>
       ) : null}
-      {activity.data?.pageInfo.nextCursor ? <div className={styles.pagination}><Link href={activityNextHref(query, activity.data.pageInfo.nextCursor)}>Наступна сторінка</Link></div> : null}
+      {activity.data?.pageInfo.nextCursor ? <div className={styles.pagination}><Link href={internalCursorHref("/internal/activity", query, activity.data.pageInfo.nextCursor, "limit")}>Наступна сторінка</Link></div> : null}
     </section>
   );
-}
-
-function activityNextHref(query: ActivityQuery, cursor: string) {
-  const search = new URLSearchParams();
-  Object.entries({ ...query, cursor, limit: undefined }).forEach(([key, value]) => { if (value !== undefined) search.set(key, String(value)); });
-  return `/internal/activity?${search}`;
 }

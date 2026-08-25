@@ -1,3 +1,5 @@
+import type { NoteTarget } from "@/lib/internal-ops/internal-ops-types";
+
 export const queryKeys = {
   auth: {
     session: ["auth", "session"] as const,
@@ -28,15 +30,17 @@ export const queryKeys = {
     orders: (query: string) => ["internal-ops", "orders", query] as const,
     order: (orderId: string) =>
       ["internal-ops", "order", orderId] as const,
+    orderTimelineRoot: (orderId: string) =>
+      ["internal-ops", "order", orderId, "timeline"] as const,
     orderTimeline: (orderId: string, cursor: string | null) =>
       ["internal-ops", "order", orderId, "timeline", cursor] as const,
     returnsRoot: ["internal-ops", "returns"] as const,
     returns: (query: string) => ["internal-ops", "returns", query] as const,
     return: (returnRequestId: string) =>
       ["internal-ops", "return", returnRequestId] as const,
-    notesRoot: (targetType: string, targetId: string) =>
+    notesRoot: (targetType: NoteTarget["type"], targetId: string) =>
       ["internal-ops", "notes", targetType, targetId] as const,
-    notes: (targetType: string, targetId: string, cursor: string | null) =>
+    notes: (targetType: NoteTarget["type"], targetId: string, cursor: string | null) =>
       ["internal-ops", "notes", targetType, targetId, cursor] as const,
     activityRoot: ["internal-ops", "activity"] as const,
     activity: (query: string) =>

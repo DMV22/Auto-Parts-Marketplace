@@ -41,8 +41,9 @@ export function InternalOrderDetailScreen({
         queryClient.invalidateQueries({ queryKey: queryKeys.internalOps.order(orderId) }),
         queryClient.invalidateQueries({ queryKey: queryKeys.internalOps.ordersRoot }),
         queryClient.invalidateQueries({
-          queryKey: queryKeys.internalOps.orderTimeline(orderId, timelineCursor),
+          queryKey: queryKeys.internalOps.orderTimelineRoot(orderId),
         }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.internalOps.activityRoot }),
       ]);
     },
   });
@@ -82,6 +83,7 @@ export function InternalOrderDetailScreen({
         <h3>Позиції</h3>
         <div className={styles.tableWrapper}>
           <table className={styles.table}>
+            <caption className="sr-only">Позиції internal замовлення</caption>
             <thead><tr><th scope="col">Товар</th><th scope="col">Supplier</th><th scope="col">Кількість</th><th scope="col">Сума</th></tr></thead>
             <tbody>
               {order.data.items.map((item) => (
