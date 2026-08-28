@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SignInForm } from "@/components/auth/sign-in-form";
 import { SignUpForm } from "@/components/auth/sign-up-form";
 import { createQueryClient } from "@/lib/query/query-client";
+import { queryKeys } from "@/lib/query/query-keys";
 import { customerSessionResponseFixture } from "../fixtures/auth";
 import { mockApi } from "../mocks/server";
 
@@ -17,11 +18,14 @@ vi.mock("next/navigation", () => ({
 }));
 
 function renderForm(form: ReactElement) {
-  return render(
-    <QueryClientProvider client={createQueryClient()}>
+  const queryClient = createQueryClient();
+  const view = render(
+    <QueryClientProvider client={queryClient}>
       {form}
     </QueryClientProvider>,
   );
+
+  return { ...view, queryClient };
 }
 
 describe("authentication forms", () => {
@@ -53,7 +57,10 @@ describe("authentication forms", () => {
         HttpResponse.json(customerSessionResponseFixture),
       ),
     );
-    renderForm(<SignInForm returnTo="/garage" />);
+    const { queryClient } = renderForm(<SignInForm returnTo="/garage" />);
+    queryClient.setQueryData(queryKeys.internalOps.ordersRoot, {
+      sensitive: "previous identity",
+    });
 
     fireEvent.change(screen.getByLabelText("Email"), {
       target: { value: "customer@example.test" },
@@ -64,6 +71,22 @@ describe("authentication forms", () => {
     fireEvent.click(screen.getByRole("button", { name: "Увійти" }));
 
     await waitFor(() => expect(replace).toHaveBeenCalledWith("/garage"));
+    expect(
+      queryClient.getQueryData(queryKeys.internalOps.ordersRoot),
+    ).toBeUndefined();
+    expect(queryClient.getQueryData(queryKeys.auth.session)).toEqual({
+      session: {
+        expiresAt: customerSessionResponseFixture.session.expiresAt,
+        id: customerSessionResponseFixture.session.id,
+        userId: customerSessionResponseFixture.session.userId,
+      },
+      user: customerSessionResponseFixture.user,
+    });
+    expect(
+      queryClient.getQueryData<{ session: Record<string, unknown> }>(
+        queryKeys.auth.session,
+      )?.session,
+    ).not.toHaveProperty("token");
     expect(refresh).toHaveBeenCalledOnce();
   });
 

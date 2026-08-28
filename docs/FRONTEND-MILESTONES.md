@@ -958,22 +958,22 @@ pnpm --filter web build
 
 ### Tasks
 
-- [ ] Пройти clean install/build rehearsal для monorepo.
+- [x] Пройти clean install/build rehearsal для monorepo.
 - [ ] Пройти critical E2E flows Customer, Guest, SupplierUser, SupportManager, Admin.
-- [ ] Перевірити auth/cart cookies у local production-like topology.
-- [ ] Провести route/DTO/error audit проти фактичних backend controllers і E2E tests.
+- [x] Перевірити auth/cart cookies у local production-like topology.
+- [x] Провести route/DTO/error audit проти фактичних backend controllers і E2E tests.
 - [ ] Перевірити loading/empty/error/403/404/409/503 states на кожному data screen.
 - [ ] Провести keyboard, screen-reader semantics, contrast і fitment status audit.
 - [ ] Зафіксувати Lighthouse/performance budgets і усунути waterfalls/over-serialization.
-- [ ] Оновити README/architecture/context лише за фактичним станом.
+- [x] Оновити README/architecture/context лише за фактичним станом.
 
 ### Definition of Done
 
 - [ ] Усі included frontend domains проходять contract і role/ownership E2E scenarios.
-- [ ] Немає sensitive data в localStorage, logs, serialized RSC props або public caches.
-- [ ] Stripe success/cancel не змінює payment state й коректно відображає pending webhook state.
-- [ ] Inventory conflict проходить refetch/retry UX.
-- [ ] Fitment outcomes не містять false-positive claims.
+- [x] Немає sensitive data в localStorage, logs, serialized RSC props або public caches.
+- [x] Stripe success/cancel не змінює payment state й коректно відображає pending webhook state.
+- [x] Inventory conflict проходить refetch/retry UX.
+- [x] Fitment outcomes не містять false-positive claims.
 - [ ] Build, lint, types, tests, accessibility і repository diff gates успішні.
 
 ### Testing
@@ -992,6 +992,64 @@ pnpm --filter api test:int
 pnpm --filter api test:e2e
 git diff --check
 ```
+
+### Бюджети продуктивності та доступності
+
+- Цільові показники Lighthouse у мобільному середовищі, наближеному до бойового: Performance `>= 80`, Accessibility `>= 95`, Best Practices `>= 90`.
+- Цільові значення Core Web Vitals на 75-му процентилі: LCP `<= 2.5 s`, INP `<= 200 ms`, CLS `<= 0.1`.
+- Публічні Catalog/PDP повинні зберігати обмежену серверну пагінацію, не фільтрувати весь каталог у браузері та не виконувати послідовно незалежні запити, які можна безпечно запускати паралельно.
+- Кожен екран із даними повинен мати семантичні орієнтири, повну клавіатурну навігацію, видимий фокус, підписані елементи керування, озвучення асинхронних результатів і підтримку `prefers-reduced-motion`.
+- Ці бюджети є цільовими порогами релізу, а не вже виміряними результатами. Для зміни статусу F8 на `Ready` ще потрібні автоматизований Lighthouse-аудит і ручна перевірка screen reader та контрастності.
+
+### Журнал реалізації
+
+- Поточний статус готовності: умовно готовий (`Conditional`).
+- Перевірка чистого встановлення та збірки: `pnpm install --frozen-lockfile`, кореневі lint, typecheck і build завершилися успішно; `pnpm-lock.yaml` після встановлення не змінився.
+- Регресійна перевірка: повний набір Vitest для frontend, інтеграційні та E2E-тести API, а також Playwright-тести frontend успішно пройшли в захищеному локальному середовищі. Перший паралельний запуск Vitest отримав шість 5-секундних timeout через конкуренцію за ресурси; усі шість тестів пройшли послідовно, а повторний стандартний запуск завершився успішно без збільшення timeout або зміни кількості робочих процесів.
+- Виправлення F8: після успішного входу очищаються всі попередні дані TanStack Query до завантаження нової безпечної проєкції сесії; таблиця Supplier OrderItems отримала доступний `caption`; регресійні перевірки підтверджують очищення кешу, відсутність token у frontend-сесії та доступну назву таблиці.
+- Аудит репозиторію: session, guest, order і payment tokens не зберігаються у сховищі браузера; frontend runtime не посилається на бойові секрети; DTO для різних власників і ролей залишаються розділеними; sign-out очищає всі запити. Backend E2E-тести покривають нерозкривальну перевірку ownership, RBAC, inventory `409`, повноваження webhook, приватність Notes/ActivityLog та видимість результатів Admin moderation.
+- Документація: кореневий README, README frontend-застосунку, `CONTEXT.md` та `ARCHITECTURE.md` описують реалізовані межі F0–F7, same-origin rewrite, захист тестової бази даних і поточне браузерне покриття.
+
+#### Результати перевірки
+
+- `pnpm install --frozen-lockfile` — успішно виконано локально; lockfile не змінився.
+- `pnpm lint` — успішно; поведінково нейтральний результат API `--fix` перевірено й вилучено з робочих змін F8.
+- `pnpm check-types` — успішно.
+- `pnpm build` — успішно, підтверджено користувачем.
+- `pnpm --filter web test` — повторний стандартний запуск успішний, підтверджено користувачем.
+- `pnpm --filter api test:int` — успішно, підтверджено користувачем.
+- `pnpm --filter api test:e2e` — успішно, підтверджено користувачем.
+- `pnpm --filter web test:e2e` — успішно, підтверджено користувачем; поточний набір перевіряє базову оболонку застосунку, same-origin transport для session/guest cookies, відновлення email-сесії, початок Google redirect і відмову backend для анонімного запиту.
+- Точкові регресійні тести F8 — успішно: ізоляція cache між сесіями, безпечна проєкція session та доступна назва supplier-таблиці.
+- `git diff --check` — успішно; Windows вивів лише інформаційні попередження LF→CRLF.
+
+#### Відкладені E2E-сценарії
+
+- Playwright ще не автоматизує сценарії F2–F7: Garage та активний автомобіль, Catalog/PDP fitment, Cart і відновлення статусу після Stripe webhook, Orders/Returns, конкурентне оновлення Supplier inventory, Internal Ops і moderation.
+- Google OAuth перевіряється лише до початку переходу на сторінку провайдера; callback, прив’язування акаунта і відновлення реальної сесії після повернення залишаються ручною перевіркою.
+- Реальна мережа Stripe навмисно не використовується в автоматичних тестах. API webhook-тести працюють із перевіреними синтетичними fixtures; сценарій через Stripe CLI у середовищі, наближеному до бойового, залишається ручним.
+
+#### Відомі обмеження
+
+- Бюджети Lighthouse зафіксовані, але ще не виміряні.
+- Перевірки адаптивності, клавіатурної навігації, screen reader і контрастності всіх role-aware робочих просторів залишаються ручними.
+- Маршрути Supplier/Internal використовують клієнтські оболонки перевірки доступу для UX і backend guards як єдину межу безпеки. Через це можливий послідовний ланцюжок завантаження session → membership → запит екрана; оптимізувати його слід лише після вимірювань і без послаблення backend authorization.
+
+#### Блокери релізу та відповідальні
+
+- QA фронтенду: додати й виконати role-aware Playwright-сценарії для Customer, Guest, SupplierUser, SupportManager та Admin.
+- QA/UX фронтенду: зафіксувати результати Lighthouse і ручної перевірки доступності для репрезентативних public, commerce, supplier та internal маршрутів.
+- Platform/Backend: перевірити бойові cookie/security headers, Google callback і топологію Stripe webhook у середовищі розгортання.
+
+### План завершення Milestone F8
+
+1. Додати Playwright fixtures для Customer, Guest, SupplierUser з активним membership, SupportManager та Admin із гарантованим очищенням даних у `auto_parts_test`.
+2. Автоматизувати критичні браузерні сценарії F2–F7: Garage, Catalog/PDP/fitment, Cart/Checkout/Orders/Returns, Supplier Cabinet та Internal Ops/moderation.
+3. Додати негативні E2E-перевірки для `401`, `403`, нерозкривального `404`, inventory `409` і повторюваного `503`, а також перевірити очищення кешу після зміни ролі або користувача.
+4. Виконати ручну перевірку клавіатурної навігації, screen reader, контрастності й адаптивності для репрезентативних маршрутів кожного домену доступу та зафіксувати результати.
+5. Запустити Lighthouse для бойової збірки в локальному production-like середовищі на головній сторінці, Catalog, PDP і щонайменше одному авторизованому робочому просторі; порівняти результати із зафіксованими бюджетами.
+6. Провести ручний сценарій Google OAuth callback/прив’язування акаунта і Stripe CLI webhook flow без використання production credentials.
+7. Повторити повний набір перевірок F8, оновити фактичні результати, закрити решту Tasks/DoD і змінити статус із `Conditional` на `Ready` лише після усунення всіх блокерів.
 
 ## Recommended implementation sequence
 

@@ -75,6 +75,9 @@ export function SupplierOrderItemsScreen({
       ) : (
         <div className={styles.tableWrapper}>
           <table className={styles.table}>
+            <caption className="sr-only">
+              Позиції замовлень поточного постачальника
+            </caption>
             <thead>
               <tr>
                 <th scope="col">Товар</th>

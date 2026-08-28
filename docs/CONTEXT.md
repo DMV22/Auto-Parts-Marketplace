@@ -2,7 +2,7 @@
 
 ## Product
 
-Auto Parts Marketplace is an early-stage marketplace for automotive parts. The repository currently provides a reproducible backend foundation, public fitment-aware discovery API, owner-isolated commerce, Supplier Cabinet and Internal CRM/OMS APIs; frontend-to-API integration and supplier fulfillment remain future work.
+Auto Parts Marketplace is an early-stage marketplace for automotive parts. The repository currently provides a reproducible backend foundation and an integrated Next.js experience for public discovery, Customer/Guest commerce, Supplier Cabinet and Internal CRM/OMS workflows. Supplier fulfillment and production deployment remain future work.
 
 ## Current repository baseline
 
@@ -36,6 +36,11 @@ apps/api/src/prisma/    Single Nest Prisma provider and database guards
 apps/api/src/supplier-cabinet/  Supplier-owned Listing, inventory and OrderItem APIs
 apps/api/src/vehicle-taxonomy/  Public vehicle selector API
 apps/api/test/          Integration/e2e suites and guarded test setup
+
+apps/web/app/           App Router routes for public, commerce, supplier and internal workspaces
+apps/web/components/    Accessible feature UI and shared primitives
+apps/web/lib/           Typed API, query, auth and domain projections
+apps/web/test/          Vitest/MSW component tests and guarded Playwright smoke
 
 packages/ui/            Shared React UI primitives
 docker/postgres/init/   Local test-database initialization
@@ -90,6 +95,14 @@ Supplier routes combine session, role and ownership guards with supplier predica
 
 Order, Return, Note/redaction and Listing moderation mutations append ActivityLog records in the same transaction as the state change. Payment status remains exclusively owned by the signature-verified Stripe webhook.
 
+## Implemented frontend
+
+- F0–F2 provide the same-origin API boundary, HttpOnly session handling, public shell/auth, vehicle taxonomy selector and Customer Garage.
+- F3–F5 provide URL-owned Catalog filters, PDP/fitment presentation, owner-isolated Cart/Checkout recovery, Orders/timeline and Customer Returns.
+- F6–F7 provide role-aware Supplier Cabinet and Internal Ops workspaces while leaving authorization, ownership and transitions authoritative in NestJS.
+
+TanStack Query owns server state; local React state is limited to drafts and transient UI. Successful sign-out and identity-changing sign-in clear all cached query data before the next session is used. Browser storage does not hold session, guest, owner, order or payment tokens. The Next.js server rewrites relative `/api/*` requests to `API_INTERNAL_URL`, keeping browser cookies same-origin.
+
 ## Auth and persistence boundaries
 
 `AppModule` imports one global `PrismaModule` and one `AuthModule`. `PrismaService` is the only Nest application-wide Prisma provider and uses the PostgreSQL driver adapter. Better Auth uses that persistence boundary through its Prisma adapter and exposes email/password plus Google OAuth session flows.
@@ -120,9 +133,11 @@ pnpm build
 pnpm --filter api test
 pnpm --filter api test:int
 pnpm --filter api test:e2e
+pnpm --filter web test
+pnpm --filter web test:e2e
 ```
 
-Integration and e2e suites require local `TEST_DATABASE_URL` targeting only `auto_parts_test`. Shared setup validates the target and applies committed migrations. Each suite owns and cleans its fixtures; tests do not import or depend on demo seed.
+Integration and e2e suites require local `TEST_DATABASE_URL` targeting only `auto_parts_test`. Shared setup validates the target and applies committed migrations. Each suite owns and cleans its fixtures; tests do not import or depend on demo seed. The current Playwright suite validates the platform shell, same-origin cookie transport and email/Google-auth initiation; complete browser journeys for Garage, Catalog, commerce, Supplier and Internal Ops remain a documented readiness follow-up.
 
 `prisma:seed` is guarded separately and accepts only local `auto_parts_dev`. It is idempotent and contains synthetic data only.
 
