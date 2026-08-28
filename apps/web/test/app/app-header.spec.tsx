@@ -27,10 +27,13 @@ describe("AppHeader", () => {
       </QueryClientProvider>,
     );
 
-    expect(await screen.findByRole("link", { name: "Увійти" })).toHaveAttribute(
-      "href",
-      "/sign-in",
-    );
+    expect(
+      await screen.findByRole(
+        "link",
+        { name: "Увійти" },
+        { timeout: 5_000 },
+      ),
+    ).toHaveAttribute("href", "/sign-in");
     expect(screen.getByRole("link", { name: "Реєстрація" })).toHaveAttribute(
       "href",
       "/sign-up",

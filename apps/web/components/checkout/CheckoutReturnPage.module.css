@@ -1,0 +1,47 @@
+.main {
+  display: grid;
+  width: min(100% - 2rem, 52rem);
+  margin-inline: auto;
+  gap: 2rem;
+  padding-block: clamp(2rem, 5vw, 4rem);
+}
+
+.header {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.header p,
+.header h1,
+.header span,
+.invalid h2,
+.invalid p {
+  margin: 0;
+}
+
+.header p {
+  color: var(--primary);
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.header h1 {
+  font-size: clamp(2rem, 5vw, 3.25rem);
+  letter-spacing: -0.04em;
+}
+
+.header span,
+.invalid p {
+  color: var(--muted-foreground);
+  line-height: 1.6;
+}
+
+.invalid {
+  display: grid;
+  gap: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+}

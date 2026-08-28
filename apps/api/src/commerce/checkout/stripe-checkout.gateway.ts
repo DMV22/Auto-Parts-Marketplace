@@ -6,6 +6,7 @@ import {
   type CheckoutGatewaySession,
   type CreateCheckoutSessionCommand,
 } from './checkout.gateway';
+import { buildCheckoutReturnUrls } from './checkout-return-url';
 import {
   type StripeWebhookGateway,
   type VerifiedStripeWebhookEvent,
@@ -27,11 +28,16 @@ export class StripeCheckoutGateway
   async createSession(
     command: CreateCheckoutSessionCommand,
   ): Promise<CheckoutGatewaySession> {
+    const returnUrls = buildCheckoutReturnUrls({
+      successUrl: this.config.successUrl,
+      cancelUrl: this.config.cancelUrl,
+      orderId: command.orderId,
+    });
     const session = await this.stripe.checkout.sessions.create(
       {
         mode: 'payment',
-        success_url: this.config.successUrl,
-        cancel_url: this.config.cancelUrl,
+        success_url: returnUrls.successUrl,
+        cancel_url: returnUrls.cancelUrl,
         client_reference_id: command.orderId,
         metadata: {
           orderId: command.orderId,

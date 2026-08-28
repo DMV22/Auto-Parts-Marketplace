@@ -3,9 +3,8 @@ import { loadCheckoutConfig } from './checkout.config';
 const VALID_ENV: NodeJS.ProcessEnv = {
   STRIPE_SECRET_KEY: 'sk_test_local_placeholder',
   STRIPE_WEBHOOK_SECRET: 'whsec_test_local_placeholder',
-  STRIPE_CHECKOUT_SUCCESS_URL:
-    'http://localhost:3000/checkout/success?session_id={CHECKOUT_SESSION_ID}',
-  STRIPE_CHECKOUT_CANCEL_URL: 'http://localhost:3000/cart',
+  STRIPE_CHECKOUT_SUCCESS_URL: 'http://localhost:3000/checkout/success',
+  STRIPE_CHECKOUT_CANCEL_URL: 'http://localhost:3000/checkout/cancel',
 };
 
 describe('loadCheckoutConfig', () => {
@@ -13,9 +12,8 @@ describe('loadCheckoutConfig', () => {
     expect(loadCheckoutConfig(VALID_ENV)).toEqual({
       secretKey: 'sk_test_local_placeholder',
       webhookSecret: 'whsec_test_local_placeholder',
-      successUrl:
-        'http://localhost:3000/checkout/success?session_id={CHECKOUT_SESSION_ID}',
-      cancelUrl: 'http://localhost:3000/cart',
+      successUrl: 'http://localhost:3000/checkout/success',
+      cancelUrl: 'http://localhost:3000/checkout/cancel',
     });
   });
 

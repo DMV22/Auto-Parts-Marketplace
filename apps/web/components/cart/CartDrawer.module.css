@@ -1,0 +1,30 @@
+.drawer {
+  min-height: 100dvh;
+}
+
+.content {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.pageLink {
+  display: inline-flex;
+  min-height: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  background: var(--primary);
+  padding: 0.65rem 1rem;
+  color: var(--primary-foreground);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.pageLink:hover {
+  background: color-mix(in oklch, var(--primary) 86%, var(--background));
+}
+
+.pageLink:focus-visible {
+  outline: 3px solid color-mix(in oklch, var(--ring) 50%, transparent);
+  outline-offset: 3px;
+}

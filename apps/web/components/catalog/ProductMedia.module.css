@@ -1,0 +1,21 @@
+.placeholder {
+  display: grid;
+  aspect-ratio: 4 / 3;
+  place-content: center;
+  justify-items: center;
+  gap: 0.65rem;
+  border-radius: var(--radius-lg);
+  background: var(--muted);
+  color: var(--muted-foreground);
+  text-align: center;
+}
+
+.placeholder svg {
+  inline-size: 2rem;
+  block-size: 2rem;
+}
+
+.placeholder span {
+  padding-inline: 1rem;
+  font-size: 0.875rem;
+}
