@@ -1,0 +1,62 @@
+.variant {
+  display: grid;
+  gap: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background: var(--card);
+  padding: 1rem;
+}
+
+.header {
+  display: grid;
+  gap: 1rem;
+}
+
+.header h3 {
+  margin-block-start: 0.2rem;
+  overflow-wrap: anywhere;
+}
+
+.label {
+  color: var(--muted-foreground);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.fitmentPending {
+  color: var(--muted-foreground);
+  line-height: 1.5;
+}
+
+.identifiers {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.identifiers div {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.identifiers dt {
+  color: var(--muted-foreground);
+  font-size: 0.8rem;
+}
+
+.identifiers dd {
+  font-family: var(--font-geist-mono), monospace;
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 48rem) {
+  .header {
+    grid-template-columns: minmax(10rem, 0.8fr) minmax(0, 1.2fr);
+    align-items: start;
+  }
+
+  .identifiers {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

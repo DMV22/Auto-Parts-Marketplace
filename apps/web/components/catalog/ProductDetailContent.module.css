@@ -1,0 +1,75 @@
+.hero {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.media,
+.summary {
+  min-inline-size: 0;
+}
+
+.summary {
+  display: grid;
+  align-content: center;
+  gap: 0.65rem;
+}
+
+.summary h1 {
+  max-inline-size: 22ch;
+  font-size: clamp(2rem, 7vw, 3.5rem);
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+.brand,
+.eyebrow {
+  color: var(--muted-foreground);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.category {
+  inline-size: fit-content;
+  border-radius: 999px;
+  background: var(--secondary);
+  padding: 0.3rem 0.65rem;
+  color: var(--secondary-foreground);
+  font-size: 0.85rem;
+}
+
+.description {
+  max-inline-size: 65ch;
+  color: var(--muted-foreground);
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.variants {
+  display: grid;
+  gap: 1rem;
+}
+
+.sectionHeading {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.sectionHeading h2 {
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  text-wrap: balance;
+}
+
+.fitmentStatus {
+  color: var(--muted-foreground);
+  line-height: 1.5;
+}
+
+@media (min-width: 48rem) {
+  .hero {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    align-items: center;
+  }
+}

@@ -1,0 +1,121 @@
+.header {
+  position: relative;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in oklch, var(--background) 94%, transparent);
+}
+
+.navigation {
+  display: flex;
+  width: min(100% - 2rem, 72rem);
+  min-height: 4rem;
+  margin-inline: auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.brand {
+  color: var(--foreground);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.sessionArea,
+.actions,
+.account,
+.primaryNavigation {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.actions a {
+  border-radius: var(--radius-md);
+  padding: 0.45rem 0.7rem;
+  color: var(--foreground);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.actions .primaryLink {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.workspaceLink {
+  border-radius: var(--radius-md);
+  padding: 0.45rem 0.7rem;
+  color: var(--foreground);
+  font-size: 0.875rem;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.brand:hover,
+.actions a:hover,
+.workspaceLink:hover {
+  color: var(--primary);
+}
+
+.actions .primaryLink:hover {
+  background: color-mix(in oklch, var(--primary) 86%, var(--background));
+  color: var(--primary-foreground);
+}
+
+.brand:focus-visible,
+.actions a:focus-visible,
+.workspaceLink:focus-visible {
+  outline: 3px solid color-mix(in oklch, var(--ring) 50%, transparent);
+  outline-offset: 3px;
+}
+
+.identity {
+  display: grid;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  line-height: 1.2;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.identity strong {
+  color: var(--foreground);
+  font-size: 0.875rem;
+}
+
+.status,
+.inactive {
+  color: var(--muted-foreground);
+  font-size: 0.8rem;
+}
+
+.inactive,
+.error {
+  color: var(--destructive);
+}
+
+.error {
+  width: min(100% - 2rem, 72rem);
+  margin: 0 auto;
+  padding-bottom: 0.75rem;
+  font-size: 0.8rem;
+  text-align: right;
+}
+
+@media (max-width: 42rem) {
+  .navigation {
+    align-items: flex-start;
+    flex-direction: column;
+    padding-block: 0.85rem;
+  }
+
+  .sessionArea,
+  .account,
+  .primaryNavigation {
+    width: 100%;
+    justify-content: space-between;
+  }
+}

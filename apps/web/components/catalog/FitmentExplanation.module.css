@@ -1,0 +1,25 @@
+.explanation {
+  display: grid;
+  gap: 0.55rem;
+  border-inline-start: 3px solid var(--border);
+  padding-inline-start: 0.8rem;
+}
+
+.explanation[data-status="compatible"] {
+  border-inline-start-color: oklch(0.55 0.15 150);
+}
+
+.explanation[data-status="incompatible"] {
+  border-inline-start-color: var(--destructive);
+}
+
+.explanation[data-status="caution"] {
+  border-inline-start-color: oklch(0.65 0.13 75);
+}
+
+.explanation p {
+  max-inline-size: 65ch;
+  color: var(--muted-foreground);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
