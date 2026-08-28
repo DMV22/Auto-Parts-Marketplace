@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
+import { parseGuardedTestDatabaseUrl } from "./fixtures/test-database-url.js";
 
 const webDirectory = fileURLToPath(new URL("../..", import.meta.url));
 const repositoryDirectory = fileURLToPath(new URL("../../../..", import.meta.url));
@@ -24,14 +25,7 @@ if (!testDatabaseUrl) {
   );
 }
 
-const databaseUrl = new URL(testDatabaseUrl);
-const databaseName = decodeURIComponent(databaseUrl.pathname).replace(/^\//, "");
-
-if (databaseName !== "auto_parts_test") {
-  throw new Error(
-    `Refusing to run frontend E2E against database '${databaseName}'. Expected auto_parts_test.`,
-  );
-}
+parseGuardedTestDatabaseUrl(testDatabaseUrl);
 
 const browserChannel =
   // eslint-disable-next-line turbo/no-undeclared-env-vars
@@ -69,6 +63,8 @@ const testEnvironment = {
 // npm_execpath is supplied by pnpm while this package script is running.
 // eslint-disable-next-line turbo/no-undeclared-env-vars
 const pnpmCli = process.env.npm_execpath;
+const playwrightArguments = process.argv.slice(2);
+if (playwrightArguments[0] === "--") playwrightArguments.shift();
 
 if (!pnpmCli) {
   throw new Error("pnpm CLI path is unavailable in npm_execpath");
@@ -91,9 +87,18 @@ function run(command, args, cwd) {
 }
 
 run(process.execPath, [pnpmCli, "--filter", "api", "prisma:migrate:deploy"], repositoryDirectory);
+run(process.execPath, [pnpmCli, "--filter", "api", "build"], repositoryDirectory);
 run(process.execPath, [pnpmCli, "--filter", "web", "build"], repositoryDirectory);
 run(
   process.execPath,
-  [pnpmCli, "exec", "playwright", "test", "--config", "playwright.config.ts"],
+  [
+    pnpmCli,
+    "exec",
+    "playwright",
+    "test",
+    "--config",
+    "playwright.config.ts",
+    ...playwrightArguments,
+  ],
   webDirectory,
 );

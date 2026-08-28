@@ -78,8 +78,12 @@ describe("InternalNotesPanel", () => {
       `/internal/orders/${ORDER_ID}?notesCursor=older-notes`,
       { scroll: false },
     );
-    fireEvent.click(screen.getByRole("button", { name: "Redact" }));
-    fireEvent.change(screen.getByLabelText("Причина redaction"), {
+    const redactTrigger = screen.getByRole("button", { name: "Redact" });
+    fireEvent.click(redactTrigger);
+    expect(redactTrigger).toHaveAttribute("aria-expanded", "true");
+    const redactionReason = screen.getByLabelText("Причина redaction");
+    await waitFor(() => expect(redactionReason).toHaveFocus());
+    fireEvent.change(redactionReason, {
       target: { value: "Contains customer data" },
     });
     fireEvent.click(

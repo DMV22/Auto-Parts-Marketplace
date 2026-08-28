@@ -1010,6 +1010,22 @@ git diff --check
 - Аудит репозиторію: session, guest, order і payment tokens не зберігаються у сховищі браузера; frontend runtime не посилається на бойові секрети; DTO для різних власників і ролей залишаються розділеними; sign-out очищає всі запити. Backend E2E-тести покривають нерозкривальну перевірку ownership, RBAC, inventory `409`, повноваження webhook, приватність Notes/ActivityLog та видимість результатів Admin moderation.
 - Документація: кореневий README, README frontend-застосунку, `CONTEXT.md` та `ARCHITECTURE.md` описують реалізовані межі F0–F7, same-origin rewrite, захист тестової бази даних і поточне браузерне покриття.
 
+#### Завершені автоматизовані перевірки (Automated checks completed)
+
+- Додано Playwright fixtures для anonymous, Customer, Guest, active/inactive SupplierUser, SupportManager та Admin. Вони використовують реальні server-issued Better Auth/guest cookies, випадкові runtime-only паролі та scoped cleanup виключно в guarded `auto_parts_test`.
+- Targeted role-aware Playwright smoke пройшов `3/3`: anonymous/Guest, Customer/Supplier membership та ownership, SupportManager/Admin boundaries, нерозкривальний missing-resource state, sign-out і порожнє browser storage.
+- Targeted accessibility regressions для Admin moderation та Note redaction пройшли `2/2`: disclosure state має `aria-expanded`, а focus переходить у поле destructive confirmation.
+- Targeted cache-isolation regression підтвердив, що sign-out видаляє role-bound TanStack Query data до встановлення anonymous session state.
+- Static audit не виявив unbounded polling/rendering, browser token persistence, query-key collision або відсутньої cursor pagination у перевірених F6/F7 flows. Checkout polling обмежений 30 секундами, moderation mutation позначає public Catalog cache stale.
+- Playwright runner підтримує запуск одного spec, явно будує API/frontend і запускає compiled API entry point; timeout readiness не збільшувався.
+
+#### Ручні перевірки, які має виконати користувач (Manual checks required from user)
+
+- Реальний Google OAuth callback, safe `returnTo`, refresh і sign-out із локальними або staging credentials.
+- Stripe CLI forwarding та тестовий Checkout: `PENDING_PAYMENT` до verified webhook, `PAID` лише після нього, delayed/cancel/retry behavior.
+- Keyboard-only, screen-reader, contrast, reduced-motion та mobile/tablet/desktop перевірки репрезентативних Customer, Supplier та Internal/Admin маршрутів.
+- Lighthouse для production-like build на `/`, `/catalog`, репрезентативному PDP і щонайменше одному авторизованому workspace.
+
 #### Результати перевірки
 
 - `pnpm install --frozen-lockfile` — успішно виконано локально; lockfile не змінився.
@@ -1020,12 +1036,14 @@ git diff --check
 - `pnpm --filter api test:int` — успішно, підтверджено користувачем.
 - `pnpm --filter api test:e2e` — успішно, підтверджено користувачем.
 - `pnpm --filter web test:e2e` — успішно, підтверджено користувачем; поточний набір перевіряє базову оболонку застосунку, same-origin transport для session/guest cookies, відновлення email-сесії, початок Google redirect і відмову backend для анонімного запиту.
+- `pnpm --filter web test:e2e -- role-aware-access.e2e-spec.ts` — успішно після локальних test-infrastructure fixes; API/frontend production builds пройшли, role-aware browser smoke `3/3`.
 - Точкові регресійні тести F8 — успішно: ізоляція cache між сесіями, безпечна проєкція session та доступна назва supplier-таблиці.
+- Точкові F8 accessibility-тести — успішно: Admin moderation і Note redaction `2/2`.
 - `git diff --check` — успішно; Windows вивів лише інформаційні попередження LF→CRLF.
 
 #### Відкладені E2E-сценарії
 
-- Playwright ще не автоматизує сценарії F2–F7: Garage та активний автомобіль, Catalog/PDP fitment, Cart і відновлення статусу після Stripe webhook, Orders/Returns, конкурентне оновлення Supplier inventory, Internal Ops і moderation.
+- Playwright тепер автоматизує role/session/membership/ownership boundaries для всіх базових actor contexts, але ще не виконує повні product lifecycles F2–F7: створення Garage vehicle, Catalog/PDP fitment, Cart із товаром і відновлення статусу після Stripe webhook, Order/Return mutations, конкурентний Supplier inventory update, Internal transitions/Notes та фактичну Admin moderation mutation.
 - Google OAuth перевіряється лише до початку переходу на сторінку провайдера; callback, прив’язування акаунта і відновлення реальної сесії після повернення залишаються ручною перевіркою.
 - Реальна мережа Stripe навмисно не використовується в автоматичних тестах. API webhook-тести працюють із перевіреними синтетичними fixtures; сценарій через Stripe CLI у середовищі, наближеному до бойового, залишається ручним.
 
@@ -1035,17 +1053,27 @@ git diff --check
 - Перевірки адаптивності, клавіатурної навігації, screen reader і контрастності всіх role-aware робочих просторів залишаються ручними.
 - Маршрути Supplier/Internal використовують клієнтські оболонки перевірки доступу для UX і backend guards як єдину межу безпеки. Через це можливий послідовний ланцюжок завантаження session → membership → запит екрана; оптимізувати його слід лише після вимірювань і без послаблення backend authorization.
 
+#### Відкладена перевірка (Deferred validation)
+
+- Повний Playwright suite після додавання role-aware fixtures ще потребує окремого погодженого запуску.
+- Повні F2–F7 mutation lifecycles залишаються відкладеними до детермінованих scenario fixtures або ручної перевірки зовнішніх Google/Stripe flows.
+- Lighthouse і повний manual accessibility/responsive audit не виконувалися; результати не припускаються й не підміняються static audit.
+
 #### Блокери релізу та відповідальні
 
-- QA фронтенду: додати й виконати role-aware Playwright-сценарії для Customer, Guest, SupplierUser, SupportManager та Admin.
+- QA фронтенду: додати детерміновані fixtures і виконати повні F2–F7 product lifecycle E2E-сценарії поверх уже перевірених role-aware boundaries; після цього повторити повний Playwright suite.
 - QA/UX фронтенду: зафіксувати результати Lighthouse і ручної перевірки доступності для репрезентативних public, commerce, supplier та internal маршрутів.
 - Platform/Backend: перевірити бойові cookie/security headers, Google callback і топологію Stripe webhook у середовищі розгортання.
 
+#### Фінальний статус релізу (Final release status)
+
+- `Conditional`: автоматизований role-aware smoke і локальні regression gates пройшли, але зовнішні Google/Stripe scenarios, Lighthouse, ручна accessibility/responsive перевірка та повний F2–F7 lifecycle E2E gate ще не закриті.
+
 ### План завершення Milestone F8
 
-1. Додати Playwright fixtures для Customer, Guest, SupplierUser з активним membership, SupportManager та Admin із гарантованим очищенням даних у `auto_parts_test`.
-2. Автоматизувати критичні браузерні сценарії F2–F7: Garage, Catalog/PDP/fitment, Cart/Checkout/Orders/Returns, Supplier Cabinet та Internal Ops/moderation.
-3. Додати негативні E2E-перевірки для `401`, `403`, нерозкривального `404`, inventory `409` і повторюваного `503`, а також перевірити очищення кешу після зміни ролі або користувача.
+1. Розширити наявні guarded role-aware fixtures детермінованими domain records для повних F2–F7 product lifecycle scenarios.
+2. Автоматизувати решту критичних браузерних сценаріїв: створення Garage vehicle, Catalog/PDP/fitment, Cart/Checkout/Orders/Returns, Supplier inventory mutation та Internal Ops/moderation mutations.
+3. Доповнити наявні `401`/`403`/нерозкривальний `404`/cache-isolation перевірки browser-сценаріями inventory `409` і повторюваного `503` там, де вони підтримуються детермінованими fixtures.
 4. Виконати ручну перевірку клавіатурної навігації, screen reader, контрастності й адаптивності для репрезентативних маршрутів кожного домену доступу та зафіксувати результати.
 5. Запустити Lighthouse для бойової збірки в локальному production-like середовищі на головній сторінці, Catalog, PDP і щонайменше одному авторизованому робочому просторі; порівняти результати із зафіксованими бюджетами.
 6. Провести ручний сценарій Google OAuth callback/прив’язування акаунта і Stripe CLI webhook flow без використання production credentials.

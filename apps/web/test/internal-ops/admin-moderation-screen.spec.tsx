@@ -76,9 +76,15 @@ describe("AdminModerationScreen", () => {
     );
 
     expect(await screen.findByText("BRAKE-100")).toBeVisible();
-    fireEvent.click(screen.getByRole("button", { name: "Reject…" }));
+    const rejectTrigger = screen.getByRole("button", { name: "Reject…" });
+    fireEvent.click(rejectTrigger);
+    expect(rejectTrigger).toHaveAttribute("aria-expanded", "true");
+    const rejectionReason = screen.getByLabelText(
+      "Supplier-visible rejection reason",
+    );
+    await waitFor(() => expect(rejectionReason).toHaveFocus());
     fireEvent.change(
-      screen.getByLabelText("Supplier-visible rejection reason"),
+      rejectionReason,
       { target: { value: "Unsafe description" } },
     );
     fireEvent.click(
