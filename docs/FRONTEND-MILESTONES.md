@@ -1035,7 +1035,7 @@ git diff --check
 - `pnpm --filter web test` — повторний стандартний запуск успішний, підтверджено користувачем.
 - `pnpm --filter api test:int` — успішно, підтверджено користувачем.
 - `pnpm --filter api test:e2e` — успішно, підтверджено користувачем.
-- `pnpm --filter web test:e2e` — успішно, підтверджено користувачем; поточний набір перевіряє базову оболонку застосунку, same-origin transport для session/guest cookies, відновлення email-сесії, початок Google redirect і відмову backend для анонімного запиту.
+- `pnpm --filter web test:e2e` — успішно після додавання guarded role-aware fixtures: повний поточний suite `8/8` перевіряє базову оболонку застосунку, same-origin transport для session/guest cookies, email auth lifecycle, початок Google redirect, anonymous denial та Customer/Guest/SupplierUser/SupportManager/Admin boundaries.
 - `pnpm --filter web test:e2e -- role-aware-access.e2e-spec.ts` — успішно після локальних test-infrastructure fixes; API/frontend production builds пройшли, role-aware browser smoke `3/3`.
 - Точкові регресійні тести F8 — успішно: ізоляція cache між сесіями, безпечна проєкція session та доступна назва supplier-таблиці.
 - Точкові F8 accessibility-тести — успішно: Admin moderation і Note redaction `2/2`.
@@ -1055,7 +1055,6 @@ git diff --check
 
 #### Відкладена перевірка (Deferred validation)
 
-- Повний Playwright suite після додавання role-aware fixtures ще потребує окремого погодженого запуску.
 - Повні F2–F7 mutation lifecycles залишаються відкладеними до детермінованих scenario fixtures або ручної перевірки зовнішніх Google/Stripe flows.
 - Lighthouse і повний manual accessibility/responsive audit не виконувалися; результати не припускаються й не підміняються static audit.
 
