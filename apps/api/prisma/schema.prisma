@@ -1,0 +1,541 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  CUSTOMER
+  SUPPLIER_USER
+  SUPPORT_MANAGER
+  ADMIN
+}
+
+enum SupplierUserStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum ListingStatus {
+  DRAFT
+  PENDING_APPROVAL
+  ACTIVE
+  PAUSED
+  REJECTED
+  ARCHIVED
+}
+
+enum ListingCondition {
+  NEW
+  USED
+  REMANUFACTURED
+}
+
+enum FitmentRuleEffect {
+  COMPATIBLE
+  INCOMPATIBLE
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  PAID
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentEventProcessingStatus {
+  RECEIVED
+  PROCESSED
+  FAILED
+}
+
+enum OrderStatusEventSource {
+  CHECKOUT
+  STRIPE_WEBHOOK
+  SYSTEM
+  INTERNAL_OPS
+}
+
+enum ReturnRequestStatus {
+  REQUESTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  RECEIVED
+  COMPLETED
+  CANCELLED
+}
+
+enum ActivityResourceType {
+  ORDER
+  RETURN_REQUEST
+  LISTING
+  NOTE
+}
+
+model Category {
+  id        String    @id @default(uuid()) @db.Uuid
+  name      String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  products  Product[]
+}
+
+model Brand {
+  id        String    @id @default(uuid()) @db.Uuid
+  name      String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  products  Product[]
+}
+
+model Product {
+  id          String           @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  categoryId  String?          @db.Uuid
+  brandId     String           @db.Uuid
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  category    Category?        @relation(fields: [categoryId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  brand       Brand            @relation(fields: [brandId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  variants    ProductVariant[]
+
+  @@index([categoryId])
+  @@index([brandId])
+}
+
+model ProductVariant {
+  id                     String        @id @default(uuid()) @db.Uuid
+  productId              String        @db.Uuid
+  sku                    String        @unique
+  manufacturerPartNumber String
+  oemNumber              String?
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+  product                Product       @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  fitmentRules           FitmentRule[]
+  listings               Listing[]
+
+  @@unique([productId, manufacturerPartNumber])
+  @@index([productId])
+}
+
+model VehicleMake {
+  id        String         @id @default(uuid()) @db.Uuid
+  name      String         @unique
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  models    VehicleModel[]
+}
+
+model VehicleModel {
+  id            String              @id @default(uuid()) @db.Uuid
+  vehicleMakeId String              @db.Uuid
+  name          String
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  vehicleMake   VehicleMake         @relation(fields: [vehicleMakeId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  generations   VehicleGeneration[]
+
+  @@unique([vehicleMakeId, name])
+  @@index([vehicleMakeId])
+}
+
+model VehicleGeneration {
+  id             String         @id @default(uuid()) @db.Uuid
+  vehicleModelId String         @db.Uuid
+  code           String
+  name           String?
+  yearFrom       Int
+  yearTo         Int
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  vehicleModel   VehicleModel   @relation(fields: [vehicleModelId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  engineTypes    EngineType[]
+  fitmentRules   FitmentRule[]
+  savedVehicles  SavedVehicle[]
+
+  @@unique([vehicleModelId, code])
+  @@index([vehicleModelId])
+  @@index([yearFrom, yearTo])
+}
+
+model EngineType {
+  id                  String            @id @default(uuid()) @db.Uuid
+  vehicleGenerationId String            @db.Uuid
+  code                String
+  name                String
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  vehicleGeneration   VehicleGeneration @relation(fields: [vehicleGenerationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  fitmentRules        FitmentRule[]
+  savedVehicles       SavedVehicle[]
+
+  @@unique([id, vehicleGenerationId])
+  @@unique([vehicleGenerationId, code])
+  @@index([vehicleGenerationId])
+}
+
+model FitmentRule {
+  id                  String            @id @default(uuid()) @db.Uuid
+  productVariantId    String            @db.Uuid
+  vehicleGenerationId String            @db.Uuid
+  engineTypeId        String?           @db.Uuid
+  effect              FitmentRuleEffect
+  createdAt           DateTime          @default(now())
+  productVariant      ProductVariant    @relation(fields: [productVariantId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  vehicleGeneration   VehicleGeneration @relation(fields: [vehicleGenerationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  engineType          EngineType?       @relation(fields: [engineTypeId, vehicleGenerationId], references: [id, vehicleGenerationId], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([productVariantId, vehicleGenerationId, engineTypeId], map: "FitmentRule_productVariantId_vehicleGenerationId_engineTypeId_k")
+  @@index([productVariantId])
+  @@index([vehicleGenerationId])
+  @@index([engineTypeId])
+}
+
+model User {
+  id                    String           @id @default(uuid()) @db.Uuid
+  name                  String
+  email                 String           @unique
+  emailVerified         Boolean          @default(false)
+  image                 String?
+  role                  UserRole         @default(CUSTOMER)
+  isActive              Boolean          @default(true)
+  activeSavedVehicleId  String?          @unique @db.Uuid
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+  sessions              Session[]
+  accounts              Account[]
+  customerProfile       CustomerProfile?
+  savedVehicles         SavedVehicle[]   @relation("SavedVehicleOwner")
+  activeSavedVehicle    SavedVehicle?    @relation("ActiveSavedVehicle", fields: [activeSavedVehicleId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  addresses             Address[]
+  supplierUser          SupplierUser?
+  cart                  Cart?
+  orders                Order[]
+  createdReturnRequests ReturnRequest[]  @relation("ReturnRequestCreatedBy")
+  decidedReturnRequests ReturnRequest[]  @relation("ReturnRequestDecidedBy")
+  authoredNotes         Note[]           @relation("NoteAuthor")
+  redactedNotes         Note[]           @relation("NoteRedactedBy")
+  activityLogs          ActivityLog[]
+}
+
+model Session {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Account {
+  id                    String    @id @default(uuid()) @db.Uuid
+  userId                String    @db.Uuid
+  accountId             String
+  providerId            String
+  accessToken           String?   @db.Text
+  refreshToken          String?   @db.Text
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  idToken               String?   @db.Text
+  password              String?   @db.Text
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id @default(uuid()) @db.Uuid
+  identifier String
+  value      String   @db.Text
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+}
+
+model CustomerProfile {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @unique @db.Uuid
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+}
+
+model SavedVehicle {
+  id                  String            @id @default(uuid()) @db.Uuid
+  userId              String            @db.Uuid
+  vehicleGenerationId String            @db.Uuid
+  engineTypeId        String?           @db.Uuid
+  year                Int
+  label               String?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  user                User              @relation("SavedVehicleOwner", fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  activeForUser       User?             @relation("ActiveSavedVehicle")
+  vehicleGeneration   VehicleGeneration @relation(fields: [vehicleGenerationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  engineType          EngineType?       @relation(fields: [engineTypeId, vehicleGenerationId], references: [id, vehicleGenerationId], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId])
+  @@index([userId, year, vehicleGenerationId, engineTypeId])
+  @@index([vehicleGenerationId])
+  @@index([engineTypeId])
+}
+
+model Address {
+  id            String   @id @default(uuid()) @db.Uuid
+  userId        String   @db.Uuid
+  label         String?
+  recipientName String
+  line1         String
+  line2         String?
+  city          String
+  region        String?
+  postalCode    String
+  countryCode   String   @db.Char(2)
+  phone         String?
+  isDefault     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId])
+}
+
+model Supplier {
+  id        String         @id @default(uuid()) @db.Uuid
+  name      String
+  slug      String         @unique
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  users     SupplierUser[]
+  listings  Listing[]
+}
+
+model SupplierUser {
+  id         String             @id @default(uuid()) @db.Uuid
+  userId     String             @unique @db.Uuid
+  supplierId String             @db.Uuid
+  status     SupplierUserStatus @default(ACTIVE)
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  supplier   Supplier           @relation(fields: [supplierId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([supplierId, status])
+}
+
+model Listing {
+  id               String           @id @default(uuid()) @db.Uuid
+  supplierId       String           @db.Uuid
+  productVariantId String           @db.Uuid
+  status           ListingStatus    @default(DRAFT)
+  condition        ListingCondition
+  price            Decimal          @db.Decimal(12, 2)
+  currency         String           @db.Char(3)
+  stockQuantity    Int              @default(0)
+  inventoryVersion Int              @default(0)
+  rejectionReason  String?          @db.VarChar(500)
+  moderationReason String?          @db.VarChar(500)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  supplier         Supplier         @relation(fields: [supplierId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  productVariant   ProductVariant   @relation(fields: [productVariantId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  cartItems        CartItem[]
+  orderItems       OrderItem[]
+
+  @@index([supplierId, status])
+  @@index([productVariantId, status])
+  @@index([status, condition, currency, price])
+}
+
+model Cart {
+  id             String     @id @default(uuid()) @db.Uuid
+  customerId     String?    @unique @db.Uuid
+  guestTokenHash String?    @unique @db.Char(64)
+  currency       String?    @db.Char(3)
+  expiresAt      DateTime?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  customer       User?      @relation(fields: [customerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  items          CartItem[]
+
+  @@index([expiresAt])
+}
+
+model CartItem {
+  id        String   @id @default(uuid()) @db.Uuid
+  cartId    String   @db.Uuid
+  listingId String   @db.Uuid
+  quantity  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([cartId, listingId])
+  @@index([listingId])
+}
+
+model Order {
+  id                         String             @id @default(uuid()) @db.Uuid
+  customerId                 String?            @db.Uuid
+  guestTokenHash             String?            @db.Char(64)
+  status                     OrderStatus        @default(PENDING_PAYMENT)
+  currency                   String             @db.Char(3)
+  totalAmount                Decimal            @db.Decimal(12, 2)
+  checkoutRequestId          String?            @unique @db.Uuid
+  checkoutRequestFingerprint String?            @db.Char(64)
+  checkoutExpiresAt          DateTime?
+  checkoutSessionId          String?            @unique
+  checkoutSessionUrl         String?            @db.Text
+  reservationReleasedAt      DateTime?
+  createdAt                  DateTime           @default(now())
+  updatedAt                  DateTime           @updatedAt
+  customer                   User?              @relation(fields: [customerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  items                      OrderItem[]
+  paymentEvents              PaymentEvent[]
+  statusEvents               OrderStatusEvent[]
+  notes                      Note[]
+
+  @@index([customerId, status])
+  @@index([guestTokenHash, status])
+  @@index([status, checkoutExpiresAt])
+}
+
+model OrderItem {
+  id                     String            @id @default(uuid()) @db.Uuid
+  orderId                String            @db.Uuid
+  listingId              String            @db.Uuid
+  quantity               Int
+  unitPrice              Decimal           @db.Decimal(12, 2)
+  productName            String?
+  sku                    String?
+  manufacturerPartNumber String?
+  condition              ListingCondition?
+  supplierName           String?
+  createdAt              DateTime          @default(now())
+  order                  Order             @relation(fields: [orderId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  listing                Listing           @relation(fields: [listingId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  returnRequests         ReturnRequest[]
+
+  @@index([orderId])
+  @@index([listingId])
+}
+
+model PaymentEvent {
+  id               String                       @id @default(uuid()) @db.Uuid
+  orderId          String                       @db.Uuid
+  externalEventId  String                       @unique
+  provider         String
+  eventType        String
+  status           PaymentEventProcessingStatus @default(RECEIVED)
+  payload          Json
+  receivedAt       DateTime                     @default(now())
+  processedAt      DateTime?
+  order            Order                        @relation(fields: [orderId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  orderStatusEvent OrderStatusEvent?
+
+  @@index([orderId, status])
+}
+
+model OrderStatusEvent {
+  id             String                 @id @default(uuid()) @db.Uuid
+  orderId        String                 @db.Uuid
+  fromStatus     OrderStatus?
+  toStatus       OrderStatus
+  source         OrderStatusEventSource
+  paymentEventId String?                @unique @db.Uuid
+  createdAt      DateTime               @default(now())
+  order          Order                  @relation(fields: [orderId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  paymentEvent   PaymentEvent?          @relation(fields: [paymentEventId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([orderId, createdAt])
+}
+
+model ReturnRequest {
+  id              String              @id @default(uuid()) @db.Uuid
+  orderItemId     String              @db.Uuid
+  createdByUserId String?             @db.Uuid
+  decidedByUserId String?             @db.Uuid
+  status          ReturnRequestStatus @default(REQUESTED)
+  reason          String
+  decisionReason  String?             @db.VarChar(500)
+  decidedAt       DateTime?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  orderItem       OrderItem           @relation(fields: [orderItemId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  createdBy       User?               @relation("ReturnRequestCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  decidedBy       User?               @relation("ReturnRequestDecidedBy", fields: [decidedByUserId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  notes           Note[]
+
+  @@index([orderItemId, status])
+  @@index([status, createdAt, id])
+  @@index([createdByUserId])
+  @@index([decidedByUserId])
+}
+
+model Note {
+  id               String         @id @default(uuid()) @db.Uuid
+  orderId          String?        @db.Uuid
+  returnRequestId  String?        @db.Uuid
+  authorUserId     String         @db.Uuid
+  correctsNoteId   String?        @db.Uuid
+  body             String         @db.Text
+  redactedAt       DateTime?
+  redactedByUserId String?        @db.Uuid
+  redactionReason  String?        @db.VarChar(500)
+  createdAt        DateTime       @default(now())
+  order            Order?         @relation(fields: [orderId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  returnRequest    ReturnRequest? @relation(fields: [returnRequestId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  author           User           @relation("NoteAuthor", fields: [authorUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  corrects         Note?          @relation("NoteCorrections", fields: [correctsNoteId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  corrections      Note[]         @relation("NoteCorrections")
+  redactedBy       User?          @relation("NoteRedactedBy", fields: [redactedByUserId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([orderId, createdAt, id])
+  @@index([returnRequestId, createdAt, id])
+  @@index([authorUserId])
+  @@index([correctsNoteId])
+  @@index([redactedByUserId])
+}
+
+model ActivityLog {
+  id             String               @id @default(uuid()) @db.Uuid
+  actorUserId    String?              @db.Uuid
+  actorRole      UserRole?
+  resourceType   ActivityResourceType
+  resourceId     String               @db.Uuid
+  action         String               @db.VarChar(100)
+  previousStatus String?              @db.VarChar(50)
+  newStatus      String?              @db.VarChar(50)
+  reason         String?              @db.VarChar(500)
+  metadata       Json?
+  createdAt      DateTime             @default(now())
+  actor          User?                @relation(fields: [actorUserId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([resourceType, resourceId, createdAt, id])
+  @@index([actorUserId, createdAt, id])
+  @@index([action, createdAt, id])
+  @@index([createdAt, id])
+}

@@ -63,55 +63,62 @@
 - Уже застосовані migration-файли не редагувати; наступні зміни робити новими міграціями.
 - Для production-like середовищ використовувати non-interactive migration deployment (`prisma migrate deploy`), а `prisma migrate dev` залишити для локальної розробки.
 - Не commit-ити реальні credentials або локальний `.env`; example-файл повинен містити лише placeholder/local-safe value.
-- Версії Prisma CLI і client мають збігатися та підтримувати фактичний Node.js engine репозиторію. Якщо обрана Prisma version вимагає новіший Node.js, спочатку окремо погодити оновлення engine/runtime.
-- Integration tests повинні працювати на ізольованій test database і не очищати development або production database.
+- Цільова ORM version — Prisma 7.x. Prisma CLI, Prisma Client і PostgreSQL driver adapter мають бути зафіксовані на однаковій exact version `7.9.0`; version ranges (`^`/`~`) для цих пакетів не використовувати.
+- Мінімальний Node.js engine для локального середовища та CI — `>=22.12.0 <23`; рекомендований локальний runtime — актуальний patch-реліз Node.js 22 LTS. Root `package.json` має бути оновлений з `>=18` до цього діапазону до встановлення Prisma 7. Перехід на Prisma 7 також має врахувати його ESM configuration і обов'язковий PostgreSQL driver adapter, не змінюючи версії Next.js, NestJS чи інших технологій стеку.
+- Основний dev/test database baseline — локальний PostgreSQL 16 у repo-managed Docker Compose. Development і test використовують різні бази (`auto_parts_dev` та `auto_parts_test`) на одному локальному server і окремі `DATABASE_URL`. Supabase або інший managed PostgreSQL можна оцінити пізніше для deployment, але не використовувати як baseline для development чи tests.
+- Integration tests повинні працювати лише з `auto_parts_test`, перевіряти суфікс `_test` перед cleanup/reset і не очищати development або production database.
 - Destructive reset/drop дозволений лише для явно перевіреної test/local database, ніколи для довільного `DATABASE_URL`.
 - Старт API при недоступній базі має завершуватися передбачуваною помилкою без витоку connection string.
 
 ## Open questions
 
-Ці рішення мають бути прийняті й записані в цьому плані до створення першої міграції:
+None. Для Milestone 0 прийняті такі рішення:
 
-1. Який PostgreSQL baseline використовуємо для локальної розробки й тестів: repo-managed Compose чи зовнішню/вже наявну instance? Від цього залежать operational files і команди перевірки.
-2. Яка підтримувана major version PostgreSQL для development, tests і deployment?
-3. Яка стратегія ідентифікаторів для `Part` і `Vehicle`: UUID, CUID чи database-generated integer?
-4. Які мінімальні обов'язкові поля `Part`, окрім ідентифікатора та назви? Зокрема, чи потрібен `partNumber`, хто його задає і чи може він бути глобально унікальним?
-5. Чи `Vehicle(make, model, year)` має бути унікальним, чи потрібні додаткові поля (наприклад, trim/engine) до введення такого constraint?
-6. Що означає `year`: один модельний рік на `Vehicle` чи діапазон років для fitment?
-7. Яка delete policy для пов'язаних записів: `Restrict` чи cascade-видалення `Fitment` при видаленні `Part`/`Vehicle`?
-8. Чи потрібні public CRUD endpoints у цій же реалізації? Базовий план вважає їх non-goal і перевіряє persistence через service/integration tests.
+1. **Локальний PostgreSQL:** використовувати repo-managed Docker Compose, щоб development і integration/e2e tests відтворювалися однаково на локальній машині. Один PostgreSQL server містить окремі бази `auto_parts_dev` і `auto_parts_test`; для них використовуються різні `DATABASE_URL`. Зовнішня PostgreSQL instance може бути підключена вручну, але не є baseline і не змінює committed migrations.
+2. **PostgreSQL version:** підтримуваний baseline — PostgreSQL 16 для development, tests і першого deployment. Compose image фіксується на major tag `postgres:16`; перехід на іншу major version потребує окремої перевірки migrations та integration tests.
+3. **Identifiers:** `Part.id` і `Vehicle.id` — application-generated UUID v4, які Prisma зберігає в native PostgreSQL `uuid` (`String @id @default(uuid()) @db.Uuid`). `Fitment` не має окремого surrogate id: composite primary key складається з `(partId, vehicleId)`.
+4. **Мінімальні поля Part:** обов'язкові `name`, `manufacturer` і `manufacturerPartNumber`, а також `createdAt`/`updatedAt`. Номер задається виробником і не вважається глобально унікальним; database constraint — `unique(manufacturer, manufacturerPartNumber)`. Перед записом application layer обрізає зовнішні пробіли та приводить `manufacturerPartNumber` до uppercase, щоб уникати очевидних дублікатів.
+5. **Vehicle uniqueness:** у базовій моделі обов'язкові лише `make`, `model`, `year` та timestamps; `trim`/`engine` не додаються в цьому milestone. `unique(make, model, year)` визначає одну канонічну модель для конкретного модельного року. Application layer обрізає зовнішні пробіли й використовує узгоджене написання `make`/`model` перед записом.
+6. **Значення year:** `year` — один модельний рік як integer на одному `Vehicle`. Діапазон років не зберігається; сумісність у кількох роках представлена окремими `Vehicle` та `Fitment` records.
+7. **Delete policy:** foreign keys `Fitment.partId` і `Fitment.vehicleId` використовують `onDelete: Cascade` та `onUpdate: Cascade`, бо `Fitment` не має самостійного життєвого циклу. Видалення `Part` або `Vehicle` видаляє лише залежні join rows, не іншу сторону зв'язку.
+8. **Public API:** CRUD endpoints не входять у цю реалізацію. Persistence boundary перевіряється через injected NestJS service/Prisma provider та integration tests; public controllers і DTO додаються окремим планом після погодження API contract.
 
 ## Proposed approach
 
 Розмістити Prisma schema, migrations і generated-client configuration у `apps/api`, оскільки NestJS API володіє persistence orchestration. Додати глобальний або явно імпортований `PrismaModule` з одним `PrismaService`, який розширює/обгортає `PrismaClient` та інтегрується з NestJS lifecycle. Domain services надалі отримуватимуть цей provider через dependency injection; контролери не повинні звертатися до Prisma напряму.
 
-Базова запропонована модель після вирішення open questions:
+Погоджена базова модель:
 
 ```text
 Part 1 ----- * Fitment * ----- 1 Vehicle
 
 Part
-  id
-  <погоджені описові поля>
-  createdAt
-  updatedAt
+  id: UUID primary key
+  name: required
+  manufacturer: required
+  manufacturerPartNumber: required
+  createdAt: required
+  updatedAt: required
+  unique(manufacturer, manufacturerPartNumber)
 
 Vehicle
-  id
-  make
-  model
-  year
-  createdAt
-  updatedAt
+  id: UUID primary key
+  make: required
+  model: required
+  year: required integer model year
+  createdAt: required
+  updatedAt: required
+  unique(make, model, year)
 
 Fitment
-  partId      -> Part.id
-  vehicleId   -> Vehicle.id
-  createdAt
-  unique(partId, vehicleId)
+  partId: UUID -> Part.id, onDelete/onUpdate Cascade
+  vehicleId: UUID -> Vehicle.id, onDelete/onUpdate Cascade
+  createdAt: required
+  primaryKey(partId, vehicleId)
+  index(vehicleId)
 ```
 
-`Fitment` має бути explicit join model, а не implicit many-to-many relation: це робить constraint видимим, дає місце для timestamps і дозволяє пізніше додати погоджені fitment metadata окремою міграцією. Не додавати metadata наперед.
+`Fitment` має бути explicit join model, а не implicit many-to-many relation: composite primary key забороняє дублікати, окремий index на `vehicleId` підтримує пошук деталей за транспортним засобом, а `createdAt` залишає audit baseline. Узгоджені fitment metadata можна додати пізніше окремою міграцією; не додавати їх наперед.
 
 Очікуваний runtime flow для майбутніх domain operations:
 
@@ -126,10 +133,10 @@ API request
 
 ### Milestone 0 — погодити database і schema decisions
 
-- [ ] Зафіксувати відповіді на open questions 1–8 у цьому документі.
-- [ ] Вибрати Prisma version після перевірки сумісності з NestJS 11, TypeScript і підтримуваним Node.js runtime.
-- [ ] Зафіксувати остаточні поля, nullability, identifiers, indexes і referential actions для трьох моделей.
-- [ ] Узгодити спосіб запуску isolated PostgreSQL для integration/e2e tests.
+- [x] Зафіксувати відповіді на open questions 1–8 у цьому документі.
+- [x] Зафіксувати Prisma `7.9.0` і Node.js engine `>=22.12.0 <23`, сумісні з поточними NestJS 11 і TypeScript.
+- [x] Зафіксувати остаточні поля, nullability, identifiers, indexes і referential actions для трьох моделей.
+- [x] Узгодити repo-managed Docker Compose з окремою `auto_parts_test` для integration/e2e tests.
 
 Validation:
 
@@ -138,11 +145,11 @@ Validation:
 
 ### Milestone 1 — підготувати PostgreSQL і Prisma toolchain
 
-- [ ] Додати Prisma CLI як dev dependency та Prisma Client як runtime dependency до `apps/api` через pnpm.
-- [ ] Додати Prisma schema з PostgreSQL datasource і client generator у `apps/api/prisma/schema.prisma` (або зафіксувати інший шлях у package configuration).
-- [ ] Додати API scripts для generate, migration development, migration deployment і schema validation; root aliases додавати лише якщо вони справді потрібні monorepo workflow.
-- [ ] Додати безпечний environment example із форматом `DATABASE_URL` та короткі інструкції запуску обраного PostgreSQL baseline.
-- [ ] Якщо погоджено repo-managed Compose, додати мінімальний PostgreSQL service з named volume і healthcheck без production credentials.
+- [x] Додати Prisma CLI як dev dependency та Prisma Client як runtime dependency до `apps/api` через pnpm.
+- [x] Додати Prisma schema з PostgreSQL datasource і client generator у `apps/api/prisma/schema.prisma` (або зафіксувати інший шлях у package configuration).
+- [x] Додати API scripts для generate, migration development, migration deployment і schema validation; root aliases додавати лише якщо вони справді потрібні monorepo workflow.
+- [x] Додати безпечний environment example із форматом `DATABASE_URL` та короткі інструкції запуску обраного PostgreSQL baseline.
+- [x] Якщо погоджено repo-managed Compose, додати мінімальний PostgreSQL service з named volume і healthcheck без production credentials.
 
 Validation:
 
@@ -152,10 +159,10 @@ Validation:
 
 ### Milestone 2 — створити модель і початкову міграцію
 
-- [ ] Описати погоджені `Part`, `Vehicle`, `Fitment`, relations, indexes та referential actions у Prisma schema.
-- [ ] Створити і переглянути initial migration SQL; переконатися, що вона не містить випадкових destructive operations.
-- [ ] Застосувати committed migrations до чистої development/test database.
-- [ ] Перевірити, що повторний `migrate deploy` є idempotent і не створює schema drift.
+- [x] Описати погоджені `Part`, `Vehicle`, `Fitment`, relations, indexes та referential actions у Prisma schema.
+- [x] Створити і переглянути initial migration SQL; переконатися, що вона не містить випадкових destructive operations.
+- [x] Застосувати committed migrations до чистої development/test database.
+- [x] Перевірити, що повторний `migrate deploy` є idempotent і не створює schema drift.
 
 Validation:
 
@@ -166,10 +173,10 @@ Validation:
 
 ### Milestone 3 — інтегрувати Prisma з NestJS lifecycle
 
-- [ ] Додати `PrismaModule`/`PrismaService` у межах `apps/api/src` і підключити його до `AppModule`.
-- [ ] Забезпечити єдиний injectable client і коректне завершення connection pool під час shutdown.
-- [ ] Не додавати public domain endpoints; за потреби створити мінімальний internal service тільки для перевірки dependency injection і persistence boundary.
-- [ ] Додати unit tests для lifecycle/provider behavior там, де вони дають стабільну перевірку без реальної бази.
+- [x] Додати `PrismaModule`/`PrismaService` у межах `apps/api/src` і підключити його до `AppModule`.
+- [x] Забезпечити єдиний injectable client і коректне завершення connection pool під час shutdown.
+- [x] Не додавати public domain endpoints; persistence boundary доступний лише через injected `PrismaService`.
+- [x] Integration tests для provider lifecycle і persistence behavior проходять на локальній `auto_parts_test` із застосованими migrations.
 
 Validation:
 
@@ -180,11 +187,11 @@ Validation:
 
 ### Milestone 4 — додати database integration tests
 
-- [ ] Налаштувати окремий test `DATABASE_URL` з явним guard проти production/development database.
-- [ ] Перед test suite застосовувати committed migrations до ізольованої бази; cleanup виконувати транзакційно або в межах перевіреної test schema/database.
-- [ ] Додати integration test для створення й читання Part, Vehicle та Fitment через injected Prisma boundary/service.
-- [ ] Додати regression checks для duplicate fitment, foreign keys і погодженої delete policy.
-- [ ] Зберегти наявний Supertest e2e test або адаптувати bootstrap так, щоб database lifecycle не робив його flaky.
+- [x] Налаштувати окремий test `DATABASE_URL` з явним guard проти production/development database.
+- [x] Перед test suite застосовувати committed migrations до ізольованої бази; cleanup виконувати транзакційно або в межах перевіреної test schema/database.
+- [x] Додати integration test для створення й читання Part, Vehicle та Fitment через injected Prisma boundary/service.
+- [x] Додати regression checks для duplicate fitment, foreign keys і погодженої delete policy.
+- [x] Зберегти наявний Supertest e2e test або адаптувати bootstrap так, щоб database lifecycle не робив його flaky.
 
 Validation:
 
@@ -193,13 +200,30 @@ Validation:
 - Повторний запуск suite дає той самий результат і не залежить від залишкових записів.
 - Тести не можуть підключитися до database, що не має явного test marker/name, визначеного в Milestone 0.
 
+Implementation log:
+
+- Додано спільний Jest `globalSetup`, який проходить test database guard і застосовує committed migrations до `auto_parts_test` через `prisma migrate deploy` перед integration/e2e suites.
+- Cleanup виконується через injected `PrismaService` лише після перевірки локального `TEST_DATABASE_URL`; reset/drop не використовуються.
+- Integration suite перевіряє create/read relations, duplicate fitment, обидва foreign keys і cascade delete з обох сторін Fitment.
+- Supertest e2e application закривається після кожного тесту, тому Prisma lifecycle не залишає відкритий connection pool.
+- Integration suite успішно пройшла двічі поспіль: 4/4 tests у кожному запуску; Supertest e2e — 1/1.
+
+Verification steps:
+
+```bash
+pnpm --filter api test
+pnpm --filter api test:int
+pnpm --filter api test:e2e
+pnpm --filter api build
+```
+
 ### Milestone 5 — документація та повна перевірка
 
-- [ ] Оновити `docs/CONTEXT.md`: позначити фактичні Prisma/PostgreSQL versions, model baseline, migration/test commands і прибрати застаріле `not configured`.
-- [ ] Оновити `docs/ARCHITECTURE.md`: описати реалізований persistence boundary, не видаючи non-goals за готові можливості.
-- [ ] Оновити релевантний API/root README короткими setup і migration commands.
-- [ ] Перевірити, що реальні credentials, local database data та generated artifacts не потрапили до Git.
-- [ ] Оновити статуси цього execution plan лише після фактичної перевірки кожного milestone.
+- [x] Оновити `docs/CONTEXT.md`: позначити фактичні Prisma/PostgreSQL versions, model baseline, migration/test commands і прибрати застаріле `not configured`.
+- [x] Оновити `docs/ARCHITECTURE.md`: описати реалізований persistence boundary, не видаючи non-goals за готові можливості.
+- [x] Оновити релевантний API/root README короткими setup і migration commands.
+- [x] Перевірити, що реальні credentials, local database data та generated artifacts не потрапили до Git.
+- [x] Виконати повний validation workflow нижче та лише після успішного результату вважати Milestone 5 повністю завершеним.
 
 Validation:
 
@@ -209,6 +233,36 @@ Validation:
 - Backend unit, integration та e2e tests проходять із чистою test database.
 - `git diff --check` не показує whitespace errors.
 - Документація та manifests узгоджені з фактичними версіями, paths і scripts.
+
+Implementation log:
+
+- `docs/CONTEXT.md` узгоджено з Prisma `7.9.0`, PostgreSQL 16, Node.js `>=22.12.0 <23`, реалізованою моделлю та test database guard.
+- `docs/ARCHITECTURE.md` документує ownership persistence у `apps/api`, єдиний `PrismaModule`/`PrismaService` і Nest-managed database lifecycle.
+- `apps/api/README.md` доповнено фактичними setup, migration, local API та unit/integration/e2e test commands.
+- Підтверджено, що Git відстежує лише безпечний `apps/api/.env.example`; generated Prisma Client і локальні database data не відстежуються, а production deployment та нереалізовані домени явно залишені поза baseline.
+
+Verification steps:
+
+```bash
+pnpm lint
+pnpm check-types
+pnpm build
+pnpm --filter api test
+pnpm --filter api test:int
+pnpm --filter api test:e2e
+git diff --check
+```
+
+### Milestone 6 — backend domain foundation та Auth/RBAC
+
+Milestone 6 винесено в окремий execution plan [`BACKEND-PLAN.md`](BACKEND-PLAN.md), щоб schema evolution, auth/security та seed/status baseline не виконувалися однією mega-change.
+
+- [ ] Milestone 6.1 — Domain schema migration: `Product`, `ProductVariant`, `FitmentRule` і vehicle taxonomy.
+- [ ] Milestone 6.2 — Auth/RBAC: Users, Sessions, Customers, Suppliers і supplier ownership.
+- [ ] Milestone 6.3 — Idempotent seed і status baseline для Listing/Order/Payment/ReturnRequest.
+- [ ] Milestone 6.4 — Clean-database rehearsal, regression verification і foundation readiness gate.
+
+Goal, Tasks, Definition of Done, Open questions, migration strategy та окремі Validation commands для 6.1–6.4 є source of truth у [`docs/BACKEND-PLAN.md`](BACKEND-PLAN.md). Milestones 7–10 не входять до цього Prisma baseline plan і не змінюються цим посиланням.
 
 ### Migration and rollback strategy
 
@@ -228,4 +282,3 @@ Validation:
 - **Занадто широке persistence API.** Prisma залишається в `apps/api`; web/shared UI не залежать від generated client.
 - **Нестабільні tests через shared state.** Ізольована database/schema на suite або worker, deterministic setup і cleanup.
 - **Витік credentials.** Commit лише example configuration; реальні `.env*` залишаються ignored і не виводяться в logs/errors.
-

@@ -3,6 +3,7 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
+import { configureAuthHttp } from '../src/auth/configure-auth-http';
 
 describe('AppController (e2e)', () => {
   let app: INestApplication<App>;
@@ -12,8 +13,13 @@ describe('AppController (e2e)', () => {
       imports: [AppModule],
     }).compile();
 
-    app = moduleFixture.createNestApplication();
+    app = moduleFixture.createNestApplication({ bodyParser: false });
+    configureAuthHttp(app);
     await app.init();
+  });
+
+  afterEach(async () => {
+    await app?.close();
   });
 
   it('/ (GET)', () => {

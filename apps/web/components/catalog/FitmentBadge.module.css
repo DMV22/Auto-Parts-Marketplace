@@ -1,0 +1,38 @@
+.badge {
+  display: inline-flex;
+  inline-size: fit-content;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.8125rem;
+  font-weight: 750;
+  line-height: 1.2;
+}
+
+.badge svg {
+  inline-size: 1rem;
+  block-size: 1rem;
+  flex: none;
+}
+
+.badge[data-status="compatible"] {
+  background: oklch(0.95 0.045 150);
+  color: oklch(0.34 0.12 150);
+}
+
+.badge[data-status="incompatible"] {
+  background: oklch(0.95 0.04 25);
+  color: oklch(0.42 0.16 25);
+}
+
+.badge[data-status="caution"] {
+  background: oklch(0.96 0.06 85);
+  color: oklch(0.39 0.1 70);
+}
+
+.badge[data-status="unknown"] {
+  background: var(--muted);
+  color: var(--foreground);
+}

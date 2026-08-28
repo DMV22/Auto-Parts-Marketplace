@@ -1,0 +1,39 @@
+.checkoutAction {
+  display: grid;
+  justify-items: end;
+  gap: 0.5rem;
+  min-width: min(100%, 20rem);
+}
+
+.checkoutAction button {
+  width: 100%;
+}
+
+.hint,
+.error {
+  max-width: 28rem;
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  text-align: end;
+}
+
+.hint {
+  color: var(--muted-foreground);
+}
+
+.error {
+  color: var(--destructive);
+}
+
+@media (max-width: 40rem) {
+  .checkoutAction {
+    width: 100%;
+    justify-items: stretch;
+  }
+
+  .hint,
+  .error {
+    text-align: start;
+  }
+}
