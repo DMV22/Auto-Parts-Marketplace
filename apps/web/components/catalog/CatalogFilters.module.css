@@ -1,0 +1,100 @@
+.panel {
+  display: grid;
+  align-content: start;
+  gap: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background: var(--card);
+  padding: 1rem;
+}
+
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.heading h2 {
+  font-size: 1.15rem;
+}
+
+.heading button {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.field {
+  display: grid;
+  gap: 0.4rem;
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+
+.field input,
+.field select {
+  min-block-size: 2.75rem;
+  inline-size: 100%;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-md);
+  background: var(--background);
+  padding: 0.6rem 0.75rem;
+  color: var(--foreground);
+  font: inherit;
+  font-weight: 450;
+}
+
+.field input:focus-visible,
+.field select:focus-visible,
+.heading button:focus-visible {
+  outline: 3px solid color-mix(in oklch, var(--ring) 50%, transparent);
+  outline-offset: 2px;
+}
+
+.field input:disabled,
+.field select:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.priceFields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.hint,
+.warning {
+  color: var(--muted-foreground);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.warning {
+  border-inline-start: 3px solid #b7791f;
+  padding-inline-start: 0.65rem;
+}
+
+.filterError {
+  display: grid;
+  gap: 0.5rem;
+  color: var(--destructive);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.filterError button {
+  justify-self: start;
+  min-block-size: 2.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0.5rem 0.75rem;
+  color: var(--foreground);
+  font-weight: 700;
+}
+
+@media (max-width: 34rem) {
+  .priceFields {
+    grid-template-columns: 1fr;
+  }
+}

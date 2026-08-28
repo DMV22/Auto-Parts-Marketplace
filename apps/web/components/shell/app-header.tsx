@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { CartDrawer } from "@/components/cart/CartDrawer";
 import { signOut } from "@/lib/auth/auth-api";
 import type { UserRole } from "@/lib/auth/session";
 import { queryKeys } from "@/lib/query/query-keys";
@@ -44,9 +45,24 @@ export function AppHeader() {
   return (
     <header className={styles.header}>
       <nav className={styles.navigation} aria-label="Основна навігація">
-        <Link className={styles.brand} href="/">
-          Auto Parts Marketplace
-        </Link>
+        <div className={styles.primaryNavigation}>
+          <Link className={styles.brand} href="/">
+            Auto Parts Marketplace
+          </Link>
+          <Link className={styles.workspaceLink} href="/catalog">
+            Каталог
+          </Link>
+          <CartDrawer />
+          {!session.isPending &&
+          !session.isError &&
+          (!session.data ||
+            (session.data.user.role === "CUSTOMER" &&
+              session.data.user.isActive)) ? (
+            <Link className={styles.workspaceLink} href="/orders">
+              Замовлення
+            </Link>
+          ) : null}
+        </div>
         <div className={styles.sessionArea}>
           {session.isPending ? (
             <span role="status" className={styles.status}>

@@ -1,0 +1,80 @@
+.item {
+  display: grid;
+  gap: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  background: var(--card);
+}
+
+.heading,
+.actions,
+.quantity {
+  display: flex;
+  align-items: center;
+}
+
+.heading,
+.actions {
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.heading > div {
+  min-width: 0;
+}
+
+.heading a {
+  color: var(--foreground);
+  font-weight: 700;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.2em;
+}
+
+.heading p,
+.supplier,
+.issues span {
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+}
+
+.heading p,
+.supplier,
+.error {
+  margin: 0;
+}
+
+.quantity {
+  gap: 0.5rem;
+}
+
+.quantity output {
+  min-width: 2ch;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.issues {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.issues > div {
+  display: grid;
+  gap: 0.15rem;
+  border-inline-start: 3px solid var(--destructive);
+  padding-inline-start: 0.75rem;
+}
+
+.error {
+  color: var(--destructive);
+  font-size: 0.875rem;
+}
+
+@media (max-width: 32rem) {
+  .heading,
+  .actions {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

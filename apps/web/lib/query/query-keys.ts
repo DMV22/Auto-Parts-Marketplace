@@ -2,6 +2,23 @@ export const queryKeys = {
   auth: {
     session: ["auth", "session"] as const,
   },
+  catalog: {
+    filterOptions: ["catalog", "filter-options"] as const,
+    products: (query: string, savedVehicleId: string | null) =>
+      ["catalog", "products", query, savedVehicleId] as const,
+    productDetail: (productId: string, savedVehicleId: string | null) =>
+      ["catalog", "product-detail", productId, savedVehicleId] as const,
+  },
+  commerce: {
+    cart: (ownerKey: string) => ["commerce", "cart", ownerKey] as const,
+    orders: (cursor: string | null) =>
+      ["commerce", "orders", cursor] as const,
+    order: (orderId: string) => ["commerce", "order", orderId] as const,
+    orderTimeline: (orderId: string, cursor: string | null) =>
+      ["commerce", "order-timeline", orderId, cursor] as const,
+    returns: (orderId: string, orderItemId: string) =>
+      ["commerce", "returns", orderId, orderItemId] as const,
+  },
   garage: {
     vehicles: ["garage", "vehicles"] as const,
   },
