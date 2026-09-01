@@ -65,6 +65,9 @@ const testEnvironment = {
 const pnpmCli = process.env.npm_execpath;
 const playwrightArguments = process.argv.slice(2);
 if (playwrightArguments[0] === "--") playwrightArguments.shift();
+const reuseBuildIndex = playwrightArguments.indexOf("--reuse-build");
+const reuseBuild = reuseBuildIndex >= 0;
+if (reuseBuild) playwrightArguments.splice(reuseBuildIndex, 1);
 
 if (!pnpmCli) {
   throw new Error("pnpm CLI path is unavailable in npm_execpath");
@@ -86,9 +89,11 @@ function run(command, args, cwd) {
   }
 }
 
-run(process.execPath, [pnpmCli, "--filter", "api", "prisma:migrate:deploy"], repositoryDirectory);
-run(process.execPath, [pnpmCli, "--filter", "api", "build"], repositoryDirectory);
-run(process.execPath, [pnpmCli, "--filter", "web", "build"], repositoryDirectory);
+if (!reuseBuild) {
+  run(process.execPath, [pnpmCli, "--filter", "api", "prisma:migrate:deploy"], repositoryDirectory);
+  run(process.execPath, [pnpmCli, "--filter", "api", "build"], repositoryDirectory);
+  run(process.execPath, [pnpmCli, "--filter", "web", "build"], repositoryDirectory);
+}
 run(
   process.execPath,
   [

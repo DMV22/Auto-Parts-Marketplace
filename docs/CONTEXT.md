@@ -137,7 +137,7 @@ pnpm --filter web test
 pnpm --filter web test:e2e
 ```
 
-Integration and e2e suites require local `TEST_DATABASE_URL` targeting only `auto_parts_test`. Shared setup validates the target and applies committed migrations. Each suite owns and cleans its fixtures; tests do not import or depend on demo seed. The current Playwright suite validates the platform shell, same-origin cookie transport and email/Google-auth initiation; complete browser journeys for Garage, Catalog, commerce, Supplier and Internal Ops remain a documented readiness follow-up.
+Integration and e2e suites require local `TEST_DATABASE_URL` targeting only `auto_parts_test`. Shared setup validates the target and applies committed migrations. Each suite owns and cleans its fixtures; tests do not import or depend on demo seed. Playwright validates the platform shell, same-origin cookie transport, email/Google-auth initiation, role boundaries and deterministic critical mutations across Garage/PDP, Cart/Checkout recovery, Customer Returns, Supplier inventory and Internal Ops/moderation. Real Google callback, Stripe webhook forwarding and measured performance/accessibility evidence remain readiness follow-ups.
 
 `prisma:seed` is guarded separately and accepts only local `auto_parts_dev`. It is idempotent and contains synthetic data only.
 

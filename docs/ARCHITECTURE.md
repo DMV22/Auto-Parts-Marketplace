@@ -14,7 +14,7 @@ The repository currently implements the backend foundation plus the F0–F7 web 
 - Docker Compose — PostgreSQL 16 with `auto_parts_dev` and `auto_parts_test`, exposed on host port `5433`.
 - pnpm/Turborepo — workspace task graph, including `.next/**` and API `dist/**` build outputs.
 
-The committed migration chain implements catalog and vehicle taxonomy, identity/supplier ownership, owner-aware commerce, inventory constraints and Internal Ops persistence. The API implements public discovery, Customer/guest commerce, supplier-scoped Cabinet operations, internal OMS/Returns/Notes/audit and Admin Listing moderation. The web application consumes those contracts through a same-origin `/api/*` rewrite, typed Zod projections and TanStack Query. Regression coverage includes migrations, fitment, auth/RBAC, commerce idempotency, supplier isolation, internal privacy, transition policies and frontend unit/component tests; browser E2E currently covers the platform/auth boundary only.
+The committed migration chain implements catalog and vehicle taxonomy, identity/supplier ownership, owner-aware commerce, inventory constraints and Internal Ops persistence. The API implements public discovery, Customer/guest commerce, supplier-scoped Cabinet operations, internal OMS/Returns/Notes/audit and Admin Listing moderation. The web application consumes those contracts through a same-origin `/api/*` rewrite, typed Zod projections and TanStack Query. Regression coverage includes migrations, fitment, auth/RBAC, commerce idempotency, supplier isolation, internal privacy, transition policies, frontend unit/component tests and guarded browser scenarios for role boundaries plus critical F2–F7 mutations.
 
 ## Application boundaries
 
@@ -106,7 +106,7 @@ Order/payment transitions are explicit application-service operations guarded by
 
 - supplier fulfillment and shipping workflows;
 - payouts, refunds and external CRM/notification integrations;
-- complete F2–F7 browser E2E coverage and measured Lighthouse baselines;
+- real-provider Google/Stripe release smoke, measured Lighthouse baselines and full manual accessibility/responsive evidence;
 - production database, secret management, backups, monitoring and deployment architecture.
 
 These capabilities belong to later milestones and must build on the established persistence, auth and ownership boundaries.

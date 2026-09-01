@@ -39,6 +39,6 @@ pnpm --filter web build
 pnpm --filter web test:e2e
 ```
 
-The guarded E2E runner requires `TEST_DATABASE_URL` to target exactly `auto_parts_test`, applies committed migrations, builds the web app and uses an already-installed Chrome/Edge channel. It does not require live Stripe credentials or download browsers. Current Playwright coverage is platform/auth smoke; full F2–F7 browser journeys remain deferred in the F8 handoff.
+The guarded E2E runner requires `TEST_DATABASE_URL` to target exactly `auto_parts_test`, applies committed migrations, builds the web app and uses an already-installed Chrome/Edge channel. It does not require live Stripe credentials or download browsers. Playwright covers platform/auth and deterministic critical F2–F7 mutations; real Google callback, Stripe webhook forwarding, Lighthouse and manual accessibility/responsive checks remain F8 release evidence.
 
 See [Frontend milestones](../../docs/FRONTEND-MILESTONES.md) and [Architecture](../../docs/ARCHITECTURE.md).

@@ -959,7 +959,7 @@ pnpm --filter web build
 ### Tasks
 
 - [x] Пройти clean install/build rehearsal для monorepo.
-- [ ] Пройти critical E2E flows Customer, Guest, SupplierUser, SupportManager, Admin.
+- [x] Пройти critical E2E flows Customer, Guest, SupplierUser, SupportManager, Admin.
 - [x] Перевірити auth/cart cookies у local production-like topology.
 - [x] Провести route/DTO/error audit проти фактичних backend controllers і E2E tests.
 - [ ] Перевірити loading/empty/error/403/404/409/503 states на кожному data screen.
@@ -969,7 +969,7 @@ pnpm --filter web build
 
 ### Definition of Done
 
-- [ ] Усі included frontend domains проходять contract і role/ownership E2E scenarios.
+- [x] Усі included frontend domains проходять contract і role/ownership E2E scenarios.
 - [x] Немає sensitive data в localStorage, logs, serialized RSC props або public caches.
 - [x] Stripe success/cancel не змінює payment state й коректно відображає pending webhook state.
 - [x] Inventory conflict проходить refetch/retry UX.
@@ -1018,6 +1018,8 @@ git diff --check
 - Targeted cache-isolation regression підтвердив, що sign-out видаляє role-bound TanStack Query data до встановлення anonymous session state.
 - Static audit не виявив unbounded polling/rendering, browser token persistence, query-key collision або відсутньої cursor pagination у перевірених F6/F7 flows. Checkout polling обмежений 30 секундами, moderation mutation позначає public Catalog cache stale.
 - Playwright runner підтримує запуск одного spec, явно будує API/frontend і запускає compiled API entry point; timeout readiness не збільшувався.
+- Додано guarded domain fixture та шість mutation-oriented Playwright-сценаріїв для F2–F7: Garage/active fitment, Guest Cart persistence, checkout redirect recovery, Customer Return create/cancel, Listing submit та inventory `409` retry, Internal OMS/Return/Note і Admin moderation/public visibility. Combined targeted run пройшов `6/6`; cleanup audit після run підтвердив `0` залишкових F8 users/products/vehicles/notes/suppliers.
+- Для локальних повторних targeted запусків runner підтримує явний `--reuse-build`; звичайний `test:e2e` як і раніше виконує guarded migration та API/web production builds. Прапорець використано лише після успішного build rehearsal у тому самому validation cycle.
 
 #### Ручні перевірки, які має виконати користувач (Manual checks required from user)
 
@@ -1037,13 +1039,14 @@ git diff --check
 - `pnpm --filter api test:e2e` — успішно, підтверджено користувачем.
 - `pnpm --filter web test:e2e` — успішно після додавання guarded role-aware fixtures: повний поточний suite `8/8` перевіряє базову оболонку застосунку, same-origin transport для session/guest cookies, email auth lifecycle, початок Google redirect, anonymous denial та Customer/Guest/SupplierUser/SupportManager/Admin boundaries.
 - `pnpm --filter web test:e2e -- role-aware-access.e2e-spec.ts` — успішно після локальних test-infrastructure fixes; API/frontend production builds пройшли, role-aware browser smoke `3/3`.
+- `pnpm --filter web test:e2e -- --reuse-build critical-mutations.e2e-spec.ts` — успішно: combined deterministic mutation slice `6/6` пройшов за 1.3 хвилини після успішного guarded migration/API/web build rehearsal.
 - Точкові регресійні тести F8 — успішно: ізоляція cache між сесіями, безпечна проєкція session та доступна назва supplier-таблиці.
 - Точкові F8 accessibility-тести — успішно: Admin moderation і Note redaction `2/2`.
 - `git diff --check` — успішно; Windows вивів лише інформаційні попередження LF→CRLF.
 
 #### Відкладені E2E-сценарії
 
-- Playwright тепер автоматизує role/session/membership/ownership boundaries для всіх базових actor contexts, але ще не виконує повні product lifecycles F2–F7: створення Garage vehicle, Catalog/PDP fitment, Cart із товаром і відновлення статусу після Stripe webhook, Order/Return mutations, конкурентний Supplier inventory update, Internal transitions/Notes та фактичну Admin moderation mutation.
+- Детермінований Playwright slice тепер автоматизує критичні F2–F7 mutations і role/ownership boundaries. Checkout browser test перевіряє ephemeral `Idempotency-Key`, redirect тільки на server-shaped URL та owner-protected `PENDING_PAYMENT` recovery через локальний route fixture; він навмисно не підміняє реальну Stripe signature/webhook перевірку.
 - Google OAuth перевіряється лише до початку переходу на сторінку провайдера; callback, прив’язування акаунта і відновлення реальної сесії після повернення залишаються ручною перевіркою.
 - Реальна мережа Stripe навмисно не використовується в автоматичних тестах. API webhook-тести працюють із перевіреними синтетичними fixtures; сценарій через Stripe CLI у середовищі, наближеному до бойового, залишається ручним.
 
@@ -1055,23 +1058,23 @@ git diff --check
 
 #### Відкладена перевірка (Deferred validation)
 
-- Повні F2–F7 mutation lifecycles залишаються відкладеними до детермінованих scenario fixtures або ручної перевірки зовнішніх Google/Stripe flows.
+- Після додавання нового mutation spec ще потрібен один повний `pnpm --filter web test:e2e` без `--reuse-build`, щоб включити його до загального Playwright gate разом із platform/auth/role-aware tests.
 - Lighthouse і повний manual accessibility/responsive audit не виконувалися; результати не припускаються й не підміняються static audit.
 
 #### Блокери релізу та відповідальні
 
-- QA фронтенду: додати детерміновані fixtures і виконати повні F2–F7 product lifecycle E2E-сценарії поверх уже перевірених role-aware boundaries; після цього повторити повний Playwright suite.
+- QA фронтенду: повторити повний Playwright suite без `--reuse-build` і зафіксувати сумарний результат після додавання mutation slice.
 - QA/UX фронтенду: зафіксувати результати Lighthouse і ручної перевірки доступності для репрезентативних public, commerce, supplier та internal маршрутів.
 - Platform/Backend: перевірити бойові cookie/security headers, Google callback і топологію Stripe webhook у середовищі розгортання.
 
 #### Фінальний статус релізу (Final release status)
 
-- `Conditional`: автоматизований role-aware smoke і локальні regression gates пройшли, але зовнішні Google/Stripe scenarios, Lighthouse, ручна accessibility/responsive перевірка та повний F2–F7 lifecycle E2E gate ще не закриті.
+- `Conditional`: автоматизовані role-aware boundaries і targeted F2–F7 mutation lifecycles пройшли, але ще потрібно виконати повний Playwright gate з новим spec та зафіксувати результати зовнішніх Google/Stripe, Lighthouse і ручної accessibility/responsive перевірки.
 
 ### План завершення Milestone F8
 
-1. Розширити наявні guarded role-aware fixtures детермінованими domain records для повних F2–F7 product lifecycle scenarios.
-2. Автоматизувати решту критичних браузерних сценаріїв: створення Garage vehicle, Catalog/PDP/fitment, Cart/Checkout/Orders/Returns, Supplier inventory mutation та Internal Ops/moderation mutations.
+1. [x] Розширити наявні guarded role-aware fixtures детермінованими domain records для критичних F2–F7 product lifecycle scenarios.
+2. [x] Автоматизувати критичні браузерні сценарії: Garage/PDP fitment, Cart/Checkout recovery, Customer Returns, Supplier Listing/inventory та Internal Ops/moderation mutations.
 3. Доповнити наявні `401`/`403`/нерозкривальний `404`/cache-isolation перевірки browser-сценаріями inventory `409` і повторюваного `503` там, де вони підтримуються детермінованими fixtures.
 4. Виконати ручну перевірку клавіатурної навігації, screen reader, контрастності й адаптивності для репрезентативних маршрутів кожного домену доступу та зафіксувати результати.
 5. Запустити Lighthouse для бойової збірки в локальному production-like середовищі на головній сторінці, Catalog, PDP і щонайменше одному авторизованому робочому просторі; порівняти результати із зафіксованими бюджетами.
