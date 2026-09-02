@@ -10,18 +10,19 @@ describe("frontend platform shell", () => {
     expect(screen.getByRole("main")).toBeInTheDocument();
     expect(
       screen.getByRole("heading", {
-        name: "Запчастини, сумісні з вашим авто",
+        name: "Запчастини, що точно підходять вашому авто",
         level: 1,
       }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Створити акаунт" })).toHaveAttribute(
-      "href",
-      "/sign-up",
-    );
-    expect(screen.getByRole("link", { name: "Відкрити каталог" })).toHaveAttribute(
-      "href",
-      "/catalog",
-    );
+    expect(
+      screen.getByRole("link", { name: "Обрати автомобіль" }),
+    ).toHaveAttribute("href", "/garage");
+    expect(
+      screen.getByRole("link", { name: "Перейти до каталогу" }),
+    ).toHaveAttribute("href", "/catalog");
+    expect(
+      screen.getByRole("region", { name: "Переваги платформи" }),
+    ).toBeInTheDocument();
   });
 
   it("provides an accessible app-local button primitive", () => {

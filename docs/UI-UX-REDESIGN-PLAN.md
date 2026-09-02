@@ -3,8 +3,8 @@
 ## Status
 
 - Workstream: UI/UX redesign після функціональних Milestones F0–F8.
-- Поточний етап: audit і execution plan.
-- Implementation status: не розпочато; кожен slice потребує окремого погодження.
+- Поточний етап: U0 завершено; наступний погоджуваний slice — U1.
+- Implementation status: U0 — complete; U1–U6 — не розпочато.
 - F8 залишається `Conditional`: фінальні accessibility, responsive, Lighthouse та external integration checks виконуються після redesign.
 
 ## Summary
@@ -411,6 +411,31 @@ External provider можливий лише після approval, license review 
 - Tokens проходять contrast checks.
 - Немає нових dependencies, API changes або client-state authority.
 - Targeted shell/home/auth tests, lint, typecheck і `git diff --check` проходять.
+
+#### Implementation log
+
+- У `globals.css` додано semantic foundation “Precision Workshop”: graphite/canvas/surface, signal-orange CTA, info/fitment/status colors, stronger control edge, shared storefront container, focus і reduced-motion rules. Dormant dark theme не активовано.
+- Public header отримав HTML/CSS wordmark, active-route `aria-current`, окремі shopping/workspace zones та Base UI `Sheet` для mobile navigation. Session, sign-out, Cart, Supplier membership discovery і role routes залишилися без змін.
+- Homepage перероблено як vehicle-first pilot: Garage є єдиним шляхом вибору/активації автомобіля, Catalog — явним fallback. Новий local vehicle state або непідтримувані Catalog query params не додавалися.
+- Додано оригінальну generic vehicle illustration без логотипів і тексту. Asset збережено локально як WebP `1280×720` (приблизно 236 KB), використано декоративно з reserved dimensions.
+- Homepage отримав Fitment Rail, compact catalog directions і factual trust strip без reviews, delivery promises або вигаданих product/media claims.
+
+#### Validation results
+
+- `pnpm --filter web test -- app/platform-shell.spec.tsx app/app-header.spec.tsx auth/auth-forms.spec.tsx` — passed, 3 files / 8 tests.
+- `pnpm --filter web test -- app/app-header.spec.tsx` після mobile Sheet assertion — passed, 1 file / 2 tests.
+- `pnpm --filter web lint` — passed.
+- `pnpm --filter web check-types` — passed.
+- `git diff --check` — passed.
+- Static contrast check: graphite/canvas `14.90:1`, signal/white `5.18:1`, info/white `5.99:1`, compatible/white `7.13:1`, caution/white `7.09:1`, incompatible/white `6.57:1`, interactive input edge/canvas `3.26:1`.
+- Full visual responsive, 200% zoom, screen-reader і Lighthouse validation залишаються частиною U6; automated U0 checks не видаються за повну manual accessibility перевірку.
+
+#### U1 handoff
+
+- Reuse global semantic tokens і storefront container; component-specific presentation залишається в CSS Modules.
+- Підключити active Garage vehicle до real Fitment Rail через наявні query contracts, не створюючи client authority.
+- Замінювати generic category directions на API-backed categories лише з фактичними IDs; не hardcode-ити filter query values.
+- Product fallback залишається чесним до появи media contract. Category illustrations потребують окремого content/license approval.
 
 ### U1 — Vehicle, Catalog and PDP storefront
 

@@ -1,37 +1,66 @@
 .main {
-  display: grid;
-  min-height: calc(100svh - 4rem);
-  place-items: center;
-  padding: clamp(3rem, 9vw, 7rem) 1rem;
+  min-height: calc(100svh - 4.5rem);
+  overflow: clip;
 }
 
-.content {
+.hero,
+.catalogDirections,
+.trustStrip {
+  width: min(100% - 2rem, var(--container-storefront));
+  margin-inline: auto;
+}
+
+.hero {
+  padding-block: clamp(2.75rem, 6vw, 5.75rem) 2rem;
+}
+
+.heroGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(28rem, 1.1fr);
+  align-items: center;
+  gap: clamp(2rem, 5vw, 5rem);
+}
+
+.heroContent {
+  position: relative;
+  z-index: 1;
   display: flex;
-  width: min(100%, 46rem);
   flex-direction: column;
   align-items: flex-start;
   gap: 1.25rem;
 }
 
 .eyebrow {
-  color: var(--muted-foreground);
-  font-size: 0.875rem;
-  font-weight: 650;
+  margin: 0;
+  color: var(--accent-foreground);
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1.4;
+  text-transform: uppercase;
 }
 
 .title {
-  max-width: 14ch;
-  font-size: clamp(2.25rem, 8vw, 4.5rem);
-  font-weight: 700;
-  letter-spacing: -0.05em;
-  line-height: 0.98;
+  max-width: 12ch;
+  margin: 0;
+  color: var(--foreground);
+  font-size: clamp(2.75rem, 6vw, 5.4rem);
+  font-weight: 780;
+  letter-spacing: -0.055em;
+  line-height: 0.95;
   text-wrap: balance;
 }
 
+.title span {
+  color: var(--signal);
+}
+
 .description {
-  max-width: 42rem;
+  max-width: 38rem;
+  margin: 0;
   color: var(--muted-foreground);
-  font-size: clamp(1rem, 2vw, 1.15rem);
+  font-size: clamp(1rem, 1.6vw, 1.2rem);
   line-height: 1.65;
   text-wrap: pretty;
 }
@@ -40,34 +69,427 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
+  padding-block-start: 0.25rem;
 }
 
-.actions a {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: 0.65rem 1rem;
-  color: var(--foreground);
-  font-weight: 650;
+.primaryAction,
+.secondaryAction {
+  display: inline-flex;
+  min-height: 3rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  border-radius: var(--radius-lg);
+  padding-inline: 1.1rem;
+  font-size: 0.925rem;
+  font-weight: 700;
   text-decoration: none;
+  transition:
+    background-color var(--duration-fast) ease,
+    border-color var(--duration-fast) ease,
+    color var(--duration-fast) ease,
+    transform var(--duration-fast) ease;
 }
 
-.actions .primary {
-  border-color: var(--primary);
+.primaryAction {
+  border: 1px solid var(--primary);
   background: var(--primary);
   color: var(--primary-foreground);
 }
 
-.actions a:hover {
-  border-color: var(--primary);
-  color: var(--primary);
+.secondaryAction {
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--foreground);
 }
 
-.actions .primary:hover {
-  background: color-mix(in oklch, var(--primary) 86%, var(--background));
-  color: var(--primary-foreground);
+.primaryAction:hover {
+  border-color: color-mix(in srgb, var(--primary) 84%, var(--foreground));
+  background: color-mix(in srgb, var(--primary) 84%, var(--foreground));
+  transform: translateY(-1px);
 }
 
-.actions a:focus-visible {
-  outline: 3px solid color-mix(in oklch, var(--ring) 50%, transparent);
+.secondaryAction:hover {
+  border-color: var(--foreground);
+  background: var(--surface-inset);
+}
+
+.primaryAction:focus-visible,
+.secondaryAction:focus-visible,
+.fitmentRail a:focus-visible,
+.sectionHeading a:focus-visible,
+.directionLink:focus-visible {
+  outline: 3px solid var(--ring);
   outline-offset: 3px;
+}
+
+.technicalVisual {
+  position: relative;
+  min-height: 26rem;
+  isolation: isolate;
+}
+
+.visualGrid {
+  position: absolute;
+  z-index: -1;
+  inset: -8% -12%;
+  background-image:
+    linear-gradient(rgb(23 32 51 / 7%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(23 32 51 / 7%) 1px, transparent 1px);
+  background-size: 2rem 2rem;
+  mask-image: radial-gradient(circle at center, black 28%, transparent 76%);
+}
+
+.vehicleImage {
+  display: block;
+  width: 112%;
+  max-width: none;
+  height: auto;
+  margin-inline-start: -8%;
+  filter: drop-shadow(0 1.5rem 1.8rem rgb(23 32 51 / 12%));
+}
+
+.inspectionLabel {
+  position: absolute;
+  inset-block-end: 12%;
+  inset-inline-end: 1rem;
+  border-inline-start: 3px solid var(--signal);
+  background: color-mix(in srgb, var(--surface) 86%, transparent);
+  padding: 0.35rem 0.55rem;
+  color: var(--foreground);
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.fitmentRail {
+  display: grid;
+  margin-block-start: clamp(1.5rem, 4vw, 3rem);
+  grid-template-columns: minmax(14rem, 0.8fr) minmax(18rem, 1.4fr) auto;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-inline-start: 4px solid var(--status-compatible);
+  background: var(--surface);
+  box-shadow: var(--shadow-raised);
+}
+
+.vehiclePrompt,
+.fitmentState {
+  display: flex;
+  min-width: 0;
+  min-height: 4.75rem;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.9rem 1.1rem;
+}
+
+.vehiclePrompt {
+  border-inline-end: 1px solid var(--border);
+}
+
+.vehiclePrompt > svg,
+.fitmentState > svg {
+  width: 1.35rem;
+  height: 1.35rem;
+  flex: 0 0 auto;
+}
+
+.vehiclePrompt > svg {
+  color: var(--foreground);
+}
+
+.vehiclePrompt div {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.vehiclePrompt span {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+}
+
+.vehiclePrompt strong {
+  font-size: 0.9rem;
+}
+
+.fitmentState {
+  color: var(--status-compatible);
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+
+.fitmentRail > a {
+  min-height: 2.75rem;
+  margin-inline-end: 1rem;
+  align-content: center;
+  color: var(--status-info);
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.fitmentRail > a:hover,
+.sectionHeading a:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.25rem;
+}
+
+.catalogDirections {
+  padding-block: clamp(3rem, 6vw, 5rem);
+}
+
+.sectionHeading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-block-end: 1.5rem;
+}
+
+.sectionHeading div {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.sectionHeading h2 {
+  margin: 0;
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  letter-spacing: -0.035em;
+}
+
+.sectionHeading > a {
+  min-height: 2.75rem;
+  align-content: center;
+  color: var(--status-info);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.directionGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-block: 1px solid var(--border);
+}
+
+.directionLink {
+  position: relative;
+  display: grid;
+  min-height: 12rem;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: 1fr auto;
+  gap: 1rem;
+  border-inline-end: 1px solid var(--border);
+  padding: 1.25rem;
+  color: var(--foreground);
+  text-decoration: none;
+  transition:
+    background-color var(--duration-fast) ease,
+    color var(--duration-fast) ease;
+}
+
+.directionLink:last-child {
+  border-inline-end: 0;
+}
+
+.directionLink:hover {
+  background: var(--surface);
+}
+
+.directionLink > svg:first-of-type {
+  width: 2.5rem;
+  height: 2.5rem;
+  align-self: center;
+  color: var(--signal);
+}
+
+.directionLink > svg:last-of-type {
+  width: 1.1rem;
+  height: 1.1rem;
+  align-self: end;
+}
+
+.directionLink strong {
+  align-self: end;
+  font-size: 1rem;
+}
+
+.trustStrip {
+  display: grid;
+  margin-block-end: clamp(3rem, 6vw, 5rem);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.trustStrip article {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.85rem;
+  padding: 1.25rem;
+}
+
+.trustStrip article + article {
+  border-inline-start: 1px solid var(--border);
+}
+
+.trustStrip svg {
+  width: 1.45rem;
+  height: 1.45rem;
+  color: var(--status-info);
+}
+
+.trustStrip h2,
+.trustStrip p {
+  margin: 0;
+}
+
+.trustStrip h2 {
+  font-size: 0.95rem;
+}
+
+.trustStrip p {
+  margin-block-start: 0.25rem;
+  color: var(--muted-foreground);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 64rem) {
+  .heroGrid {
+    grid-template-columns: minmax(0, 1fr) minmax(22rem, 0.85fr);
+  }
+
+  .title {
+    font-size: clamp(2.65rem, 6vw, 4.5rem);
+  }
+
+  .technicalVisual {
+    min-height: 20rem;
+  }
+
+  .directionGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .directionLink:nth-child(2) {
+    border-inline-end: 0;
+  }
+
+  .directionLink:nth-child(-n + 2) {
+    border-block-end: 1px solid var(--border);
+  }
+}
+
+@media (max-width: 48rem) {
+  .main {
+    min-height: calc(100svh - 4rem);
+  }
+
+  .hero,
+  .catalogDirections,
+  .trustStrip {
+    width: min(100% - 1.25rem, var(--container-storefront));
+  }
+
+  .hero {
+    padding-block-start: 2.5rem;
+  }
+
+  .heroGrid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.5rem;
+  }
+
+  .heroContent {
+    gap: 1rem;
+  }
+
+  .title {
+    max-width: 13ch;
+    font-size: clamp(2.55rem, 12vw, 4.2rem);
+  }
+
+  .technicalVisual {
+    min-height: 0;
+  }
+
+  .vehicleImage {
+    width: 108%;
+    margin-inline-start: -4%;
+  }
+
+  .inspectionLabel {
+    inset-block-end: 6%;
+    inset-inline-end: 0;
+  }
+
+  .fitmentRail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .vehiclePrompt {
+    border-inline-end: 0;
+    border-block-end: 1px solid var(--border);
+  }
+
+  .fitmentState {
+    min-height: auto;
+    padding-block-end: 0.5rem;
+  }
+
+  .fitmentRail > a {
+    margin: 0;
+    padding: 0 1.1rem 0.9rem;
+  }
+
+  .trustStrip {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .trustStrip article + article {
+    border-block-start: 1px solid var(--border);
+    border-inline-start: 0;
+  }
+}
+
+@media (max-width: 30rem) {
+  .actions,
+  .primaryAction,
+  .secondaryAction {
+    width: 100%;
+  }
+
+  .sectionHeading {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .directionGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .directionLink,
+  .directionLink:nth-child(2),
+  .directionLink:last-child {
+    min-height: 8.5rem;
+    border-inline-end: 0;
+    border-block-end: 1px solid var(--border);
+  }
+
+  .directionLink:last-child {
+    border-block-end: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .primaryAction,
+  .secondaryAction,
+  .directionLink {
+    transition: none;
+  }
+
+  .primaryAction:hover {
+    transform: none;
+  }
 }
