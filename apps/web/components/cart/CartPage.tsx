@@ -5,11 +5,11 @@ export function CartPage() {
   return (
     <main id="main-content" className={styles.main}>
       <header className={styles.header}>
-        <p>Server-authoritative commerce</p>
+        <p>Перевірка перед оплатою</p>
         <h1>Ваш кошик</h1>
         <span>
-          Guest identity зберігається тільки в HttpOnly cookie. Остаточні ціна
-          та залишок визначаються API.
+          Перевірте пропозиції та кількість. Актуальні ціна й наявність будуть
+          підтверджені перед переходом до оплати.
         </span>
       </header>
       <CartBoundary />

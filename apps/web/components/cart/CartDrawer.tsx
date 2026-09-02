@@ -78,7 +78,7 @@ export function CartDrawer() {
         <SheetHeader>
           <SheetTitle>Кошик</SheetTitle>
           <SheetDescription>
-            Ціни, валюта й доступність повторно перевіряються сервером.
+            Перевірте товари та кількість перед переходом до оплати.
           </SheetDescription>
         </SheetHeader>
         <div className={styles.content}>

@@ -1,14 +1,41 @@
 .main {
   display: grid;
-  width: min(100% - 2rem, 52rem);
+  width: min(100% - 2rem, 58rem);
   margin-inline: auto;
-  gap: 2rem;
-  padding-block: clamp(2rem, 5vw, 4rem);
+  gap: 1.5rem;
+  padding-block: clamp(1.5rem, 5vw, 4rem);
+}
+
+.steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.steps li {
+  position: relative;
+  display: grid;
+  min-height: 3rem;
+  place-items: center;
+  border-block-end: 2px solid var(--border);
+  padding: 0.5rem;
+  color: var(--muted-foreground);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.steps li[aria-current="step"] {
+  border-block-end-color: var(--signal);
+  color: var(--foreground);
 }
 
 .header {
   display: grid;
   gap: 0.5rem;
+  text-align: center;
 }
 
 .header p,
@@ -20,16 +47,18 @@
 }
 
 .header p {
-  color: var(--primary);
-  font-size: 0.8rem;
+  color: var(--signal);
+  font-size: 0.78rem;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
 .header h1 {
   font-size: clamp(2rem, 5vw, 3.25rem);
   letter-spacing: -0.04em;
+  line-height: 1.08;
+  text-wrap: balance;
 }
 
 .header span,
@@ -41,7 +70,18 @@
 .invalid {
   display: grid;
   gap: 0.75rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border: 1px solid color-mix(in srgb, var(--status-incompatible) 35%, var(--border));
+  border-inline-start: 4px solid var(--status-incompatible);
+  background: var(--surface);
   padding: 1.5rem;
+}
+
+@media (max-width: 40rem) {
+  .main {
+    width: min(100% - 1.25rem, 58rem);
+  }
+
+  .steps li {
+    font-size: 0.72rem;
+  }
 }

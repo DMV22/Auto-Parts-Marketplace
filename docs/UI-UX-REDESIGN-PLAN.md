@@ -3,8 +3,8 @@
 ## Status
 
 - Workstream: UI/UX redesign після функціональних Milestones F0–F8.
-- Поточний етап: U0–U1 завершено; наступний погоджуваний slice — U2.
-- Implementation status: U0–U1 — complete; U2–U6 — не розпочато.
+- Поточний етап: U0–U2 завершено; наступний погоджуваний slice — U3.
+- Implementation status: U0–U2 — complete; U3–U6 — не розпочато.
 - F8 залишається `Conditional`: фінальні accessibility, responsive, Lighthouse та external integration checks виконуються після redesign.
 
 ## Summary
@@ -484,10 +484,40 @@ External provider можливий лише після approval, license review 
 
 ### U2 — Customer commerce and account
 
-- Auth, Garage, Cart drawer/page, checkout return, Orders і Returns.
-- Customer-facing copy cleanup.
-- Status timeline, commercial summary і destructive confirmations.
-- F1/F2/F4/F5 targeted regression.
+**Статус:** Complete. Auth, Cart, checkout return, Orders і Returns оновлено без зміни F0–F8 behavior, API/query contracts або server-authoritative state. Garage завершено в U1 і повторно не перероблявся.
+
+- [x] Auth отримав виразний split-layout із фактичними trust signals і збереженою семантикою форм.
+- [x] Cart page/drawer отримали чітку hierarchy позицій, availability issues, sticky commercial summary та чесний media fallback.
+- [x] Checkout success/cancel flow отримав progress context і status hierarchy без client-side підтвердження оплати.
+- [x] Orders list став компактною responsive history surface, а detail — двоколонковим order/timeline layout.
+- [x] Returns зберігають фактичну eligibility/status policy та вимагають явного підтвердження destructive cancellation.
+- [x] Customer-facing copy очищено від transport/webhook/cache термінів без приховування важливих станів.
+- [x] Виконано targeted F1/F4/F5 regression, typecheck, scoped lint і static responsive/accessibility review.
+
+#### U2 implementation log
+
+- Auth shell перебудовано в asymmetric storefront composition: форма залишається головною семантичною областю, а context panel пояснює vehicle/fitment/session value без вигаданих commercial claims.
+- Cart items отримали технічний neutral placeholder, виразні quantity/remove states і summary panel; checkout як і раніше використовує фактичні backend totals, availability та Listing identifiers.
+- Очищення кошика стало двоетапною дією. Початкова кнопка не видаляється з DOM, а confirmation region зв’язаний через `aria-expanded` і `aria-controls`, тому keyboard focus не губиться.
+- Checkout return pages показують кроки Кошик → Stripe Checkout → Підтвердження та відображають лише фактичний Order status; redirect не встановлює `PAID`.
+- Orders history адаптовано як щільну desktop table-like list із mobile card fallback; detail повторно використовує immutable OrderItem snapshots і наявну timeline.
+- Return cancellation отримала inline confirmation зі збереженням focus target; create/cancel mutations, eligibility, ownership і cache invalidation не змінювалися.
+- Референсні зображення використано лише як структурний орієнтир. Не додано product photos, delivery promises, wishlist, нові payment/order/return states або assets.
+
+#### U2 validation results
+
+- `pnpm --filter web test -- test/auth/auth-forms.spec.tsx` — passed, 1 file / 4 tests.
+- `pnpm --filter web test -- test/commerce/cart-item.spec.tsx` — passed, 1 file / 1 test.
+- `pnpm --filter web test -- test/commerce/checkout-button.spec.tsx` — passed, 1 file / 1 test.
+- `pnpm --filter web test -- test/commerce/checkout-status.spec.ts` — passed, 1 file / 1 test.
+- `pnpm --filter web test -- test/orders/order-presentation.spec.ts test/orders/return-presentation.spec.ts` — passed, 2 files / 5 tests.
+- `pnpm --filter web test -- test/commerce/cart-boundary.spec.tsx test/orders/return-item-panel.spec.tsx` — passed, 2 files / 2 tests; підтверджено, що destructive mutation не відправляється до явного confirmation.
+- Один початковий combined Vitest запуск не стартував через worker-response timeout; кожен affected test file було повторно запущено окремо та успішно пройдено.
+- `pnpm --filter web check-types` — passed.
+- Scoped ESLint для змінених U2 TS/TSX/test files — passed.
+- `git diff --check` — passed; Windows LF → CRLF повідомлення є інформаційними.
+- Static responsive/a11y review — passed: mobile stacking, desktop sticky summary/timeline, semantic headings/lists/status, visible focus, live mutation feedback і confirmation relationships збережено.
+- Manual keyboard, screen-reader, 200% zoom, responsive device і Lighthouse validation для цілісного redesign залишається у U6.
 
 ### U3 — Supplier workspace
 
