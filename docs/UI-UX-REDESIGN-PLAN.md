@@ -3,8 +3,8 @@
 ## Status
 
 - Workstream: UI/UX redesign після функціональних Milestones F0–F8.
-- Поточний етап: U0 завершено; наступний погоджуваний slice — U1.
-- Implementation status: U0 — complete; U1–U6 — не розпочато.
+- Поточний етап: U0–U1 завершено; наступний погоджуваний slice — U2.
+- Implementation status: U0–U1 — complete; U2–U6 — не розпочато.
 - F8 залишається `Conditional`: фінальні accessibility, responsive, Lighthouse та external integration checks виконуються після redesign.
 
 ## Summary
@@ -439,15 +439,15 @@ External provider можливий лише після approval, license review 
 
 ### U1 — Vehicle, Catalog and PDP storefront
 
-**Статус:** In progress. Vehicle/Garage і Catalog slice реалізовано; PDP decision layout та фінальне U1 closure залишаються наступним кроком.
+**Статус:** Complete. Vehicle/Garage, Catalog і PDP storefront оновлено без зміни F0–F8 behavior або backend contracts.
 
 - [x] Fitment Rail у Home та Catalog використовує фактичний active Garage vehicle через наявні session/query contracts.
 - [x] Vehicle Selector отримав видиму п’ятиетапну послідовність без зміни cascade/reset behavior.
 - [x] Garage розділяє active vehicle і компактний список інших автомобілів; create/activate/delete mutations та ownership contract не змінено.
 - [x] Catalog отримав toolbar, mobile filter Sheet, applied filters і нову product-card hierarchy.
 - [x] Product media fallback залишається чесним за відсутності media contract.
-- [ ] Підключити Fitment Rail до PDP decision layout, посилити fitment hierarchy, technical identifiers та offers.
-- [ ] Виконати фінальний targeted F3 regression і responsive/a11y smoke для завершення U1.
+- [x] Підключити Fitment Rail до PDP decision layout, посилити fitment hierarchy, technical identifiers та offers.
+- [x] Виконати фінальний targeted F3 regression і static responsive/a11y smoke для завершення U1; повна ручна перевірка залишається у U6.
 
 #### Garage media policy
 
@@ -464,16 +464,23 @@ External provider можливий лише після approval, license review 
 - Додано оригінальний локальний нейтральний SVG silhouette без логотипів, торгових марок і claims щодо конкретного автомобіля.
 - Catalog search/sort винесено в toolbar; desktop filters зроблено sticky, mobile filters — через наявний Base UI Sheet; додано applied-filter chips.
 - Catalog cards показують лише фактичні Brand/Category/price/listing availability та чесний placeholder замість вигаданих product images.
+- PDP перебудовано як decision surface: чесний media fallback, фактичний price/availability summary, anchor до пропозицій і пояснення, що конкретний Listing обирається нижче.
+- PDP повторно використовує спільний Vehicle Context Rail; active vehicle не видається за підтвердження сумісності, а backend fitment status/reason залишається окремим для кожної ProductVariant.
+- ProductVariant blocks отримали status-specific hierarchy, компактні SKU/MPN/OEM identifiers і responsive supplier-offer rows; Add to Cart як і раніше викликається лише з фактичним Listing id.
+- Референсні зображення використано лише як структурний орієнтир: не додано wishlist, вигаданих характеристик, stock/delivery claims, товарних фотографій або нових media/API contracts.
 
 #### Validation results
 
 - `pnpm --filter web test -- test/vehicles/vehicle-selector.spec.tsx` — passed, 1 file / 1 test.
 - `pnpm --filter web test -- test/garage/garage-workspace.spec.tsx` — passed, 1 file / 1 test; перевірено activate/refetch і neutral silhouette.
 - `pnpm --filter web test -- test/catalog/catalog-page.spec.tsx` — passed, 1 file / 1 test.
+- `pnpm --filter web test -- test/catalog/product-detail-page.spec.tsx` — passed, 1 file / 1 test; перевірено active vehicle toggle, всі fitment outcomes, media fallback і фактичний offer summary.
+- `pnpm --filter web test -- test/vehicles/vehicle-selector.spec.tsx test/garage/garage-workspace.spec.tsx test/catalog/catalog-page.spec.tsx test/catalog/product-detail-page.spec.tsx test/catalog/fitment-presentation.spec.ts` — passed, 5 files / 5 tests.
 - `pnpm --filter web check-types` — passed.
-- Scoped ESLint для змінених Vehicle/Garage/Catalog TSX-файлів — passed; повний lint раніше не завершився у відведений короткий інтервал.
+- Scoped ESLint для змінених Vehicle/Garage/Catalog/PDP TSX-файлів — passed; повний lint раніше не завершився у відведений короткий інтервал.
 - `git diff --check` — passed; Windows LF → CRLF повідомлення є інформаційними.
-- Manual responsive, keyboard, 200% zoom і screen-reader smoke для всього U1 залишається pending до PDP closure.
+- Static responsive/a11y review — passed: mobile-first single-column fallback, desktop decision layout, semantic headings/regions, visible focus, live vehicle/fitment status і touch-sized actions збережено.
+- Manual responsive, keyboard, 200% zoom, screen-reader і Lighthouse validation для цілісного redesign залишається у фінальному U6 gate; automated/static U1 checks не видаються за повний manual audit.
 
 ### U2 — Customer commerce and account
 
