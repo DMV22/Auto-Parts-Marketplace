@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import type { GarageVehicle } from "@/lib/garage/garage-types";
 import styles from "./SavedVehicleCard.module.css";
@@ -31,15 +32,27 @@ export function SavedVehicleCard({
   }
 
   return (
-    <article className={styles.card} aria-labelledby={`vehicle-${vehicle.id}`}>
-      <div className={styles.heading}>
-        <div>
-          <h3 id={`vehicle-${vehicle.id}`}>{title}</h3>
-          <p>{vehicle.label ?? "Без власної назви"}</p>
-        </div>
+    <article
+      className={styles.card}
+      data-active={vehicle.isActive}
+      aria-labelledby={`vehicle-${vehicle.id}`}
+    >
+      <div className={styles.media}>
+        <Image
+          src="/images/vehicles/generic-workshop-vehicle.webp"
+          alt=""
+          width={1280}
+          height={720}
+          sizes="(max-width: 767px) 100vw, 24rem"
+        />
         {vehicle.isActive ? (
           <span className={styles.active}>Активне авто</span>
         ) : null}
+      </div>
+
+      <div className={styles.heading}>
+        <p>{vehicle.label ?? "Збережений автомобіль"}</p>
+        <h3 id={`vehicle-${vehicle.id}`}>{title}</h3>
       </div>
 
       <dl className={styles.details}>

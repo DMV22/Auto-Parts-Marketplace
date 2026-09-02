@@ -6,7 +6,12 @@ import {
   catalogProductsQueryOptions,
 } from "@/lib/query/catalog-queries";
 import { CatalogFilters } from "./CatalogFilters";
+import {
+  CatalogAppliedFilters,
+  countAppliedCatalogFilters,
+} from "./CatalogAppliedFilters";
 import { CatalogResults, type CatalogResultsModel } from "./CatalogResults";
+import { CatalogToolbar } from "./CatalogToolbar";
 import { VehicleCatalogContext } from "./VehicleCatalogContext";
 import { useCatalogUrlState } from "./useCatalogUrlState";
 import { useCatalogVehicleContext } from "./useCatalogVehicleContext";
@@ -40,6 +45,15 @@ export function CatalogPage() {
           onRetry: () => void filterOptions.refetch(),
         } as const)
       : ({ kind: "ready", options: filterOptions.data } as const);
+  const filterActions = {
+    changeFilter: url.changeFilter,
+    changeCurrency: url.changeCurrency,
+    reset: url.reset,
+  };
+  const resultTotal =
+    results.kind === "empty" || results.kind === "ready"
+      ? results.response.meta.total
+      : null;
 
   return (
     <main id="main-content" className={styles.main}>
@@ -58,17 +72,42 @@ export function CatalogPage() {
         </div>
       ) : null}
 
+      <CatalogToolbar
+        search={url.searchDraft}
+        sort={url.state.sort}
+        currency={url.state.currency}
+        total={resultTotal}
+        activeFilterCount={countAppliedCatalogFilters(url.state)}
+        onSearchChange={url.setSearchDraft}
+        onSortChange={(sort) => url.changeFilter({ sort })}
+        filters={
+          <CatalogFilters
+            headingId="catalog-mobile-filters"
+            state={url.state}
+            optionsState={optionsState}
+            actions={filterActions}
+          />
+        }
+      />
+
+      <CatalogAppliedFilters
+        state={url.state}
+        options={filterOptions.data}
+        onSearchChange={url.setSearchDraft}
+        onChange={url.changeFilter}
+        onCurrencyChange={url.changeCurrency}
+        onReset={url.reset}
+      />
+
       <div className={styles.layout}>
-        <CatalogFilters
-          model={{ state: url.state, searchDraft: url.searchDraft }}
-          optionsState={optionsState}
-          actions={{
-            changeSearch: url.setSearchDraft,
-            changeFilter: url.changeFilter,
-            changeCurrency: url.changeCurrency,
-            reset: url.reset,
-          }}
-        />
+        <div className={styles.desktopFilters}>
+          <CatalogFilters
+            headingId="catalog-desktop-filters"
+            state={url.state}
+            optionsState={optionsState}
+            actions={filterActions}
+          />
+        </div>
         <CatalogResults
           model={results}
           onRetry={() => void catalog.refetch()}

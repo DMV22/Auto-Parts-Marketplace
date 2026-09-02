@@ -1,7 +1,5 @@
 import {
   ArrowRightIcon,
-  CarIcon,
-  CheckCircle2Icon,
   CreditCardIcon,
   PackageCheckIcon,
   SearchCheckIcon,
@@ -9,6 +7,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { HomeVehicleRail } from "@/components/vehicles/HomeVehicleRail";
 import styles from "./page.module.css";
 
 const catalogDirections = [
@@ -77,18 +76,7 @@ export default function Home() {
         </div>
 
         <div className={styles.fitmentRail}>
-          <div className={styles.vehiclePrompt}>
-            <CarIcon aria-hidden="true" />
-            <div>
-              <span>Ваш автомобіль</span>
-              <strong>Оберіть точну комплектацію</strong>
-            </div>
-          </div>
-          <div className={styles.fitmentState}>
-            <CheckCircle2Icon aria-hidden="true" />
-            <span>Після вибору покажемо результат перевірки сумісності</span>
-          </div>
-          <Link href="/garage">Налаштувати авто</Link>
+          <HomeVehicleRail />
         </div>
       </section>
 

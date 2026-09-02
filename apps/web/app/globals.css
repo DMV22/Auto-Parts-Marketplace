@@ -51,6 +51,7 @@ body {
   --color-surface-inset: var(--surface-inset);
   --color-surface-raised: var(--surface-raised);
   --color-signal: var(--signal);
+  --color-signal-foreground: var(--signal-foreground);
   --color-info: var(--status-info);
   --color-compatible: var(--status-compatible);
   --color-caution: var(--status-caution);
@@ -101,6 +102,7 @@ body {
   --surface-inset: #e9edf2;
   --surface-raised: #ffffff;
   --signal: #c2410c;
+  --signal-foreground: #ffffff;
   --status-info: #175cd3;
   --status-compatible: #166534;
   --status-caution: #92400e;

@@ -116,7 +116,6 @@
 
 .primaryAction:focus-visible,
 .secondaryAction:focus-visible,
-.fitmentRail a:focus-visible,
 .sectionHeading a:focus-visible,
 .directionLink:focus-visible {
   outline: 3px solid var(--ring);
@@ -164,72 +163,9 @@
 }
 
 .fitmentRail {
-  display: grid;
   margin-block-start: clamp(1.5rem, 4vw, 3rem);
-  grid-template-columns: minmax(14rem, 0.8fr) minmax(18rem, 1.4fr) auto;
-  align-items: center;
-  border: 1px solid var(--border);
-  border-inline-start: 4px solid var(--status-compatible);
-  background: var(--surface);
-  box-shadow: var(--shadow-raised);
 }
 
-.vehiclePrompt,
-.fitmentState {
-  display: flex;
-  min-width: 0;
-  min-height: 4.75rem;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.9rem 1.1rem;
-}
-
-.vehiclePrompt {
-  border-inline-end: 1px solid var(--border);
-}
-
-.vehiclePrompt > svg,
-.fitmentState > svg {
-  width: 1.35rem;
-  height: 1.35rem;
-  flex: 0 0 auto;
-}
-
-.vehiclePrompt > svg {
-  color: var(--foreground);
-}
-
-.vehiclePrompt div {
-  display: grid;
-  gap: 0.15rem;
-}
-
-.vehiclePrompt span {
-  color: var(--muted-foreground);
-  font-size: 0.75rem;
-}
-
-.vehiclePrompt strong {
-  font-size: 0.9rem;
-}
-
-.fitmentState {
-  color: var(--status-compatible);
-  font-size: 0.875rem;
-  font-weight: 650;
-}
-
-.fitmentRail > a {
-  min-height: 2.75rem;
-  margin-inline-end: 1rem;
-  align-content: center;
-  color: var(--status-info);
-  font-size: 0.875rem;
-  font-weight: 700;
-  text-decoration: none;
-}
-
-.fitmentRail > a:hover,
 .sectionHeading a:hover {
   text-decoration: underline;
   text-underline-offset: 0.25rem;
@@ -422,25 +358,6 @@
   .inspectionLabel {
     inset-block-end: 6%;
     inset-inline-end: 0;
-  }
-
-  .fitmentRail {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .vehiclePrompt {
-    border-inline-end: 0;
-    border-block-end: 1px solid var(--border);
-  }
-
-  .fitmentState {
-    min-height: auto;
-    padding-block-end: 0.5rem;
-  }
-
-  .fitmentRail > a {
-    margin: 0;
-    padding: 0 1.1rem 0.9rem;
   }
 
   .trustStrip {

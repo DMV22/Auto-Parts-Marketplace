@@ -2,22 +2,45 @@
   display: grid;
   min-inline-size: 0;
   align-content: start;
-  gap: 1rem;
+  gap: 1.1rem;
   border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  padding: 0.75rem;
+  transition:
+    border-color var(--duration-fast) ease,
+    box-shadow var(--duration-fast) ease,
+    transform var(--duration-fast) ease;
+}
+
+.card[data-active="true"] {
+  border-color: color-mix(in srgb, var(--status-compatible) 45%, var(--border));
+  box-shadow: var(--shadow-raised);
+}
+
+.media {
+  position: relative;
+  aspect-ratio: 16 / 8.5;
+  overflow: hidden;
   border-radius: var(--radius-lg);
-  background: var(--card);
-  padding: 1.25rem;
+  background:
+    linear-gradient(rgb(23 32 51 / 6%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(23 32 51 / 6%) 1px, transparent 1px),
+    var(--surface-inset);
+  background-size: 1.5rem 1.5rem;
+}
+
+.media img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 0.8rem 0.8rem rgb(23 32 51 / 10%));
 }
 
 .heading {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.heading > div {
-  min-inline-size: 0;
+  display: grid;
+  gap: 0.25rem;
+  padding-inline: 0.35rem;
 }
 
 .heading h3,
@@ -26,7 +49,8 @@
 }
 
 .heading h3 {
-  font-size: 1.1rem;
+  font-size: 1.2rem;
+  letter-spacing: -0.02em;
 }
 
 .heading p {
@@ -35,11 +59,13 @@
 }
 
 .active {
-  flex: 0 0 auto;
+  position: absolute;
+  inset-block-start: 0.75rem;
+  inset-inline-start: 0.75rem;
   border-radius: 999px;
-  background: var(--secondary);
+  background: var(--status-compatible);
   padding: 0.3rem 0.55rem;
-  color: var(--secondary-foreground);
+  color: #fff;
   font-size: 0.75rem;
   font-weight: 700;
 }
@@ -48,6 +74,8 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.75rem;
+  border-block: 1px solid var(--border);
+  padding: 0.85rem 0.35rem;
 }
 
 .details div {
@@ -71,6 +99,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 0.65rem;
+  padding-inline: 0.35rem;
 }
 
 .confirmation {
@@ -83,13 +112,25 @@
   font-weight: 600;
 }
 
-@media (max-width: 28rem) {
-  .heading {
-    align-items: flex-start;
-    flex-direction: column;
+@media (hover: hover) and (pointer: fine) {
+  .card:hover {
+    border-color: var(--border-strong);
+    transform: translateY(-2px);
   }
+}
 
+@media (max-width: 28rem) {
   .details {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    transition: none;
+  }
+
+  .card:hover {
+    transform: none;
   }
 }

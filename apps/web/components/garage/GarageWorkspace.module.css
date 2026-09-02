@@ -1,6 +1,6 @@
 .workspace {
   display: grid;
-  gap: 1.5rem;
+  gap: 1.75rem;
 }
 
 .toolbar {
@@ -8,6 +8,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
+  border-block-end: 1px solid var(--border);
+  padding-block-end: 1rem;
 }
 
 .toolbar h2 {
@@ -32,8 +34,8 @@
 
 .list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 21rem), 1fr));
+  gap: 1.25rem;
 }
 
 .empty,

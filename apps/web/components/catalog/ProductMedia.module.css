@@ -1,11 +1,18 @@
 .placeholder {
+  position: relative;
   display: grid;
   aspect-ratio: 4 / 3;
   place-content: center;
   justify-items: center;
   gap: 0.65rem;
   border-radius: var(--radius-lg);
-  background: var(--muted);
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  background:
+    linear-gradient(rgb(23 32 51 / 6%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(23 32 51 / 6%) 1px, transparent 1px),
+    var(--surface-inset);
+  background-size: 1.35rem 1.35rem;
   color: var(--muted-foreground);
   text-align: center;
 }
@@ -15,7 +22,26 @@
   block-size: 2rem;
 }
 
-.placeholder span {
+.placeholder span,
+.placeholder strong {
   padding-inline: 1rem;
   font-size: 0.875rem;
+}
+
+.placeholder strong {
+  color: var(--foreground);
+  font-size: 0.95rem;
+}
+
+.marker {
+  position: absolute;
+  inset-block-start: 0.65rem;
+  inset-inline-start: 0.65rem;
+  border-inline-start: 2px solid var(--signal);
+  padding: 0.2rem 0.35rem !important;
+  color: var(--foreground);
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.65rem !important;
+  font-weight: 700;
+  letter-spacing: 0.08em;
 }
