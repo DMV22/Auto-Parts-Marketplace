@@ -439,11 +439,41 @@ External provider можливий лише після approval, license review 
 
 ### U1 — Vehicle, Catalog and PDP storefront
 
-- Fitment Rail у Home/Catalog/PDP.
-- Catalog toolbar, filter Sheet, applied filters і product-card hierarchy.
-- PDP decision layout, fitment hierarchy, technical identifiers та offers.
-- Category/product placeholder media policy.
-- Targeted F2/F3 regression і responsive/a11y smoke.
+**Статус:** In progress. Vehicle/Garage і Catalog slice реалізовано; PDP decision layout та фінальне U1 closure залишаються наступним кроком.
+
+- [x] Fitment Rail у Home та Catalog використовує фактичний active Garage vehicle через наявні session/query contracts.
+- [x] Vehicle Selector отримав видиму п’ятиетапну послідовність без зміни cascade/reset behavior.
+- [x] Garage розділяє active vehicle і компактний список інших автомобілів; create/activate/delete mutations та ownership contract не змінено.
+- [x] Catalog отримав toolbar, mobile filter Sheet, applied filters і нову product-card hierarchy.
+- [x] Product media fallback залишається чесним за відсутності media contract.
+- [ ] Підключити Fitment Rail до PDP decision layout, посилити fitment hierarchy, technical identifiers та offers.
+- [ ] Виконати фінальний targeted F3 regression і responsive/a11y smoke для завершення U1.
+
+#### Garage media policy
+
+- Garage використовує локальний нейтральний `vehicle-silhouette.svg` як декоративний fallback; він не заявляє точну марку, модель, покоління або тип кузова.
+- Фактичним описом автомобіля залишаються лише server-provided Year, Make, Model, Generation та Engine.
+- Повторне використання homepage hero media у Garage заборонено regression-тестом.
+- Точні фотографії не визначаються на frontend за назвою моделі та не завантажуються зі сторонніх URL.
+- Контрольований media contract для Vehicle Model або Vehicle Generation відкладено до окремого backend/content milestone. Після його появи frontend має використовувати точне media лише за явним DTO-полем, з neutral silhouette як fallback.
+
+#### Implementation log
+
+- Створено reusable Vehicle Context Rail для Home/Catalog із loading, empty, warning та active states без client-side fitment authority.
+- Garage presentation перебудовано навколо окремої featured-картки active vehicle, compact saved rows і нижнього блоку додавання автомобіля.
+- Додано оригінальний локальний нейтральний SVG silhouette без логотипів, торгових марок і claims щодо конкретного автомобіля.
+- Catalog search/sort винесено в toolbar; desktop filters зроблено sticky, mobile filters — через наявний Base UI Sheet; додано applied-filter chips.
+- Catalog cards показують лише фактичні Brand/Category/price/listing availability та чесний placeholder замість вигаданих product images.
+
+#### Validation results
+
+- `pnpm --filter web test -- test/vehicles/vehicle-selector.spec.tsx` — passed, 1 file / 1 test.
+- `pnpm --filter web test -- test/garage/garage-workspace.spec.tsx` — passed, 1 file / 1 test; перевірено activate/refetch і neutral silhouette.
+- `pnpm --filter web test -- test/catalog/catalog-page.spec.tsx` — passed, 1 file / 1 test.
+- `pnpm --filter web check-types` — passed.
+- Scoped ESLint для змінених Vehicle/Garage/Catalog TSX-файлів — passed; повний lint раніше не завершився у відведений короткий інтервал.
+- `git diff --check` — passed; Windows LF → CRLF повідомлення є інформаційними.
+- Manual responsive, keyboard, 200% zoom і screen-reader smoke для всього U1 залишається pending до PDP closure.
 
 ### U2 — Customer commerce and account
 
