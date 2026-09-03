@@ -49,7 +49,7 @@ export function ActivityLogScreen({ query }: { query: ActivityQuery }) {
         <h2 id="activity-title">Журнал дій</h2>
         <p>{isAdmin ? "Перегляд усіх дозволених подій без можливості редагування." : "Вкажіть конкретне замовлення або повернення для перегляду його історії."}</p>
       </header>
-      <form className={styles.filters} onSubmit={applyFilters}>
+      <form className={styles.filters} data-layout="activity" onSubmit={applyFilters}>
         <div className={styles.field}><label htmlFor="activity-resource-type">Тип ресурсу</label><select id="activity-resource-type" name="resourceType" defaultValue={query.resourceType ?? ""}><option value="">Усі</option>{resources.map((resource) => <option key={resource} value={resource}>{resourceLabel(resource)}</option>)}</select></div>
         <div className={styles.field}><label htmlFor="activity-resource-id">ID ресурсу</label><input id="activity-resource-id" name="resourceId" defaultValue={query.resourceId ?? ""} placeholder="UUID ресурсу…" autoComplete="off" spellCheck={false} /></div>
         {isAdmin ? <div className={styles.field}><label htmlFor="activity-actor-id">ID виконавця</label><input id="activity-actor-id" name="actorId" defaultValue={query.actorId ?? ""} placeholder="UUID користувача…" autoComplete="off" spellCheck={false} /></div> : null}

@@ -45,7 +45,7 @@ export function AdminModerationScreen({ query }: { query: ModerationQuery }) {
   return (
     <section className={styles.workspace} aria-labelledby="moderation-title">
       <header className={styles.heading}><p>Контроль каталогу</p><h1 id="moderation-title">Модерація оголошень</h1><p>Перевіряйте нові пропозиції та фіксуйте результат, який побачить постачальник.</p></header>
-      <form className={styles.filters} onSubmit={applyFilters}>
+      <form className={styles.filters} data-layout="moderation" onSubmit={applyFilters}>
         <div className={styles.field}><label htmlFor="moderation-status">Статус</label><select id="moderation-status" name="status" defaultValue={query.status ?? "PENDING_APPROVAL"}><option value="PENDING_APPROVAL">Очікує перевірки</option><option value="ACTIVE">Опубліковано</option><option value="REJECTED">Відхилено</option><option value="PAUSED">Призупинено</option><option value="DRAFT">Чернетка</option><option value="ARCHIVED">Архів</option></select></div>
         <div className={styles.field}><label htmlFor="moderation-condition">Стан товару</label><select id="moderation-condition" name="condition" defaultValue={query.condition ?? ""}><option value="">Усі</option><option value="NEW">Новий</option><option value="USED">Вживаний</option><option value="REMANUFACTURED">Відновлений</option></select></div>
         <div className={styles.field}><label htmlFor="moderation-supplier">ID постачальника</label><input id="moderation-supplier" name="supplierId" defaultValue={query.supplierId ?? ""} placeholder="UUID постачальника…" autoComplete="off" spellCheck={false} /></div>

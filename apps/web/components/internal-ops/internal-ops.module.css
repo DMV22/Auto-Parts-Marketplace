@@ -258,7 +258,7 @@
   top: 1rem;
   z-index: 5;
   display: grid;
-  grid-template-columns: repeat(4, minmax(9rem, 1fr)) auto;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
   gap: 0.75rem;
   align-items: end;
   padding: 0.875rem;
@@ -268,13 +268,30 @@
   box-shadow: 0 0.5rem 1.5rem rgb(23 32 51 / 5%);
 }
 
+.filters[data-layout="orders"] .field {
+  grid-column: span 3;
+}
+
+.filters[data-layout="activity"] .field,
+.filters[data-layout="moderation"] .field {
+  grid-column: span 4;
+}
+
+.filters[data-layout="moderation"] .field:nth-child(n + 4) {
+  grid-column: span 6;
+}
+
 .filterActions {
+  grid-column: 1 / -1;
   justify-content: flex-end;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
 }
 
 .filterActions a,
 .rowAction,
-.pagination a {
+.pagination a,
+.backLink {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -287,21 +304,44 @@
 
 .filterActions a {
   padding-inline: 0.75rem;
+  border: 1px solid var(--border);
+  background: var(--surface-inset);
   color: var(--muted-foreground);
 }
 
 .filterActions a:hover,
 .rowAction:hover,
-.pagination a:hover {
+.pagination a:hover,
+.backLink:hover {
   text-decoration: underline;
   text-underline-offset: 0.2em;
 }
 
+.filterActions a:hover {
+  border-color: var(--input);
+  background: color-mix(in oklch, var(--surface-inset) 70%, var(--surface));
+}
+
 .filterActions a:focus-visible,
 .rowAction:focus-visible,
-.pagination a:focus-visible {
+.pagination a:focus-visible,
+.backLink:focus-visible {
   outline: 3px solid var(--ring);
   outline-offset: 2px;
+}
+
+.rowAction,
+.backLink {
+  gap: 0.4rem;
+  padding-inline: 0.7rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  white-space: nowrap;
+}
+
+.backLink svg {
+  width: 1rem;
+  height: 1rem;
 }
 
 .field {
@@ -317,6 +357,8 @@
 .field select,
 .field textarea {
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   min-height: var(--ops-control-height);
   padding: 0.65rem 0.75rem;
   border: 1px solid var(--input);
@@ -364,8 +406,13 @@
 
 .table {
   width: 100%;
+  min-width: 60rem;
   border-collapse: collapse;
   font-variant-numeric: tabular-nums;
+}
+
+.ordersTable {
+  min-width: 64rem;
 }
 
 .table th,
@@ -385,6 +432,8 @@
   font-weight: 800;
   letter-spacing: 0.035em;
   text-transform: uppercase;
+  overflow-wrap: normal;
+  word-break: normal;
 }
 
 .table tbody tr:last-child td {
@@ -722,8 +771,8 @@
 }
 
 @media (max-width: 72rem) {
-  .filters {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .filters[data-layout] .field {
+    grid-column: span 6;
   }
 }
 
@@ -782,6 +831,14 @@
     grid-template-columns: 1fr;
   }
 
+  .filters[data-layout] .field {
+    grid-column: 1 / -1;
+  }
+
+  .filters[data-layout="moderation"] .field:nth-child(n + 4) {
+    grid-column: 1 / -1;
+  }
+
   .actionRail {
     position: static;
   }
@@ -808,6 +865,11 @@
   .table td {
     display: block;
     width: 100%;
+  }
+
+  .table,
+  .ordersTable {
+    min-width: 0;
   }
 
   .table thead {

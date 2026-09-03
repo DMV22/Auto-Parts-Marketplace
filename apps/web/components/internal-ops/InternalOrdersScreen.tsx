@@ -62,7 +62,7 @@ export function InternalOrdersScreen({ query }: { query: InternalOrdersQuery }) 
         <h2 id="internal-orders-title">Черга замовлень</h2>
         <p>Переглядайте стан виконання. Результат оплати доступний лише для читання.</p>
       </header>
-      <form className={styles.filters} onSubmit={applyFilters}>
+      <form className={styles.filters} data-layout="orders" onSubmit={applyFilters}>
         <div className={styles.field}>
           <label htmlFor="internal-order-status">Статус</label>
           <select id="internal-order-status" name="status" defaultValue={query.status ?? ""}>
@@ -103,7 +103,7 @@ export function InternalOrdersScreen({ query }: { query: InternalOrdersQuery }) 
         <div className={styles.state}>Замовлень за цими фільтрами немає.</div>
       ) : (
         <div className={styles.tableWrapper}>
-          <table className={styles.table}>
+          <table className={`${styles.table} ${styles.ordersTable}`}>
             <caption className="sr-only">Internal OMS — черга замовлень</caption>
             <thead>
               <tr>

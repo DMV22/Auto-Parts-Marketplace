@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -37,12 +38,12 @@ export function InternalReturnDetailScreen({ returnRequestId }: { returnRequestI
     },
   });
   if (request.isPending) return <section className={styles.state}><h2>Запит на повернення</h2><p role="status">Завантажуємо деталі…</p></section>;
-  if (request.isError) return <section className={styles.state}><h2>Запит недоступний</h2><p>Його не знайдено або він недоступний поточній ролі.</p><Link href="/internal/returns">До черги</Link></section>;
+  if (request.isError) return <section className={styles.state}><h2>Запит недоступний</h2><p>Його не знайдено або він недоступний поточній ролі.</p><Link className={styles.backLink} href="/internal/returns"><ArrowLeft aria-hidden="true" />Повернутися до черги повернень</Link></section>;
   const targets = nextReturnStatuses(request.data.status);
   const rejectionReasonRequired = targetStatus === "REJECTED";
   return (
     <section className={styles.workspace} aria-labelledby="return-detail-title">
-      <div className={styles.toolbar}><div className={styles.heading}><p>Повернення</p><h2 id="return-detail-title"><span translate="no">{returnRequestId}</span></h2><ReturnStatusBadge status={request.data.status} /></div><Link href="/internal/returns">До черги</Link></div>
+      <div className={styles.toolbar}><div className={styles.heading}><p>Повернення</p><h2 id="return-detail-title"><span translate="no">{returnRequestId}</span></h2><ReturnStatusBadge status={request.data.status} /></div><Link className={styles.backLink} href="/internal/returns"><ArrowLeft aria-hidden="true" />Повернутися до черги повернень</Link></div>
       <div className={styles.detailLayout}>
         <div className={styles.detailMain}>
           <section className={styles.panel}>
