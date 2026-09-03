@@ -8,27 +8,48 @@
   border-radius: var(--radius-lg);
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
-  background:
-    linear-gradient(rgb(23 32 51 / 6%) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(23 32 51 / 6%) 1px, transparent 1px),
-    var(--surface-inset);
-  background-size: 1.35rem 1.35rem;
+  background: var(--surface-inset);
   color: var(--muted-foreground);
   text-align: center;
 }
 
-.placeholder svg {
+.placeholder::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(rgb(255 255 255 / 12%), rgb(255 255 255 / 58%));
+  content: "";
+  pointer-events: none;
+}
+
+.artwork {
+  object-fit: cover;
+}
+
+.message {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  max-width: min(80%, 18rem);
+  place-items: center;
+  gap: 0.55rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgb(255 255 255 / 75%);
+  border-radius: var(--radius-md);
+  background: rgb(255 255 255 / 92%);
+  box-shadow: 0 0.5rem 1.5rem rgb(23 32 51 / 7%);
+}
+
+.message svg {
   inline-size: 2rem;
   block-size: 2rem;
 }
 
-.placeholder span,
-.placeholder strong {
-  padding-inline: 1rem;
+.message span,
+.message strong {
   font-size: 0.875rem;
 }
 
-.placeholder strong {
+.message strong {
   color: var(--foreground);
   font-size: 0.95rem;
 }
@@ -37,6 +58,7 @@
   position: absolute;
   inset-block-start: 0.65rem;
   inset-inline-start: 0.65rem;
+  z-index: 2;
   border-inline-start: 2px solid var(--signal);
   padding: 0.2rem 0.35rem !important;
   color: var(--foreground);

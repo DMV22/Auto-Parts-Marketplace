@@ -212,9 +212,11 @@
   position: relative;
   display: grid;
   min-height: 12rem;
+  aspect-ratio: 3 / 2;
   grid-template-columns: 1fr auto;
-  grid-template-rows: 1fr auto;
+  grid-template-rows: minmax(0, 1fr) auto;
   gap: 1rem;
+  overflow: hidden;
   border-inline-end: 1px solid var(--border);
   padding: 1.25rem;
   color: var(--foreground);
@@ -222,6 +224,20 @@
   transition:
     background-color var(--duration-fast) ease,
     color var(--duration-fast) ease;
+}
+
+.directionLink::after {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    transparent 30%,
+    rgb(23 32 51 / 8%) 58%,
+    rgb(255 255 255 / 96%) 100%
+  );
+  content: "";
+  pointer-events: none;
 }
 
 .directionLink:last-child {
@@ -232,20 +248,32 @@
   background: var(--surface);
 }
 
-.directionLink > svg:first-of-type {
-  width: 2.5rem;
-  height: 2.5rem;
-  align-self: center;
-  color: var(--signal);
+.directionMedia {
+  position: absolute;
+  inset: 0;
+  background: var(--surface-inset);
+}
+
+.directionImage {
+  object-fit: cover;
+  transition: transform var(--duration-fast) ease;
+}
+
+.directionLink:hover .directionImage {
+  transform: scale(1.025);
 }
 
 .directionLink > svg:last-of-type {
+  position: relative;
+  z-index: 2;
   width: 1.1rem;
   height: 1.1rem;
   align-self: end;
 }
 
 .directionLink strong {
+  position: relative;
+  z-index: 2;
   align-self: end;
   font-size: 1rem;
 }
@@ -402,11 +430,16 @@
 @media (prefers-reduced-motion: reduce) {
   .primaryAction,
   .secondaryAction,
-  .directionLink {
+  .directionLink,
+  .directionImage {
     transition: none;
   }
 
   .primaryAction:hover {
+    transform: none;
+  }
+
+  .directionLink:hover .directionImage {
     transform: none;
   }
 }

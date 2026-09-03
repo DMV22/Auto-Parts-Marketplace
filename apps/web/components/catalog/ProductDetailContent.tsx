@@ -24,7 +24,10 @@ export function ProductDetailContent({
     <>
       <section className={styles.hero} aria-labelledby="product-title">
         <div className={styles.media}>
-          <ProductMedia label={product.category?.name ?? product.brand.name} />
+          <ProductMedia
+            label={product.category?.name ?? product.brand.name}
+            priority
+          />
         </div>
         <aside className={styles.summary} aria-label="Коротко про товар">
           <div className={styles.taxonomy}>

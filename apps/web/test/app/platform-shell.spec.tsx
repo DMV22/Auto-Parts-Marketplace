@@ -1,11 +1,15 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import Home from "@/app/page";
 import { Button } from "@/components/ui/button";
 
+vi.mock("@/components/vehicles/HomeVehicleRail", () => ({
+  HomeVehicleRail: () => <div data-testid="home-vehicle-rail" />,
+}));
+
 describe("frontend platform shell", () => {
   it("exposes one semantic main landmark and project heading", () => {
-    render(<Home />);
+    const { container } = render(<Home />);
 
     expect(screen.getByRole("main")).toBeInTheDocument();
     expect(
@@ -23,6 +27,13 @@ describe("frontend platform shell", () => {
     expect(
       screen.getByRole("region", { name: "Переваги платформи" }),
     ).toBeInTheDocument();
+    expect(
+      Array.from(container.querySelectorAll("img")).filter((image) =>
+        decodeURIComponent(image.getAttribute("src") ?? "").includes(
+          "/images/categories/",
+        ),
+      ),
+    ).toHaveLength(4);
   });
 
   it("provides an accessible app-local button primitive", () => {

@@ -3,8 +3,8 @@
 ## Status
 
 - Workstream: UI/UX redesign після функціональних Milestones F0–F8.
-- Поточний етап: U0–U4 завершено; наступний погоджуваний slice — U5.
-- Implementation status: U0–U4 — complete; U5–U6 — не розпочато.
+- Поточний етап: U0–U5 завершено; наступний slice — U6 readiness gate.
+- Implementation status: U0–U5 — complete; U6 — не розпочато.
 - F8 залишається `Conditional`: фінальні accessibility, responsive, Lighthouse та external integration checks виконуються після redesign.
 
 ## Summary
@@ -38,7 +38,7 @@ Redesign має надати платформі впізнаваний automotiv
 - `apps/web/components/**` — domain screens, shadcn primitives і CSS Modules.
 - `apps/web/app/globals.css` — current neutral theme tokens і dormant dark tokens.
 - `apps/web/lib/**` — route/session/query boundaries і presentation mappings.
-- `apps/web/public/**` — лише starter assets; automotive media відсутні.
+- `apps/web/public/**` — локальні vehicle, category та honest product-fallback assets із manifest; real catalog media contract відсутній.
 - `apps/web/next.config.js` — API rewrite; image `remotePatterns` не налаштовані.
 - `apps/web/lib/catalog/catalog-types.ts` — Catalog/PDP DTO не містить image/media fields.
 - `apps/web/package.json` і `apps/web/components.json` — Next.js 16, React 19, Tailwind 4, Base Nova, Lucide.
@@ -256,7 +256,7 @@ Component-specific styles залишаються в CSS Modules.
 - Vehicle/Garage DTO не містить vehicle image.
 - Category filter-options повертає лише `id` і `name`.
 - `next.config.js` не має `images.remotePatterns`.
-- `public/` не містить automotive assets.
+- U0/U1 додали локальні generic vehicle assets; U5 додав локальні category illustrations і product fallback без зміни DTO.
 
 Тому real product/vehicle media є content/backend prerequisite, а не styling task.
 
@@ -589,9 +589,36 @@ External provider можливий лише після approval, license review 
 
 ### U5 — Approved media/content integration
 
-- Додати лише погоджені local assets або окремо approved media provider contract.
-- Перевірити license manifest, aspect ratios, alt policy, `next/image`, CLS і fallbacks.
-- Не входить у попередні slices, якщо approval/content відсутні.
+**Статус:** Complete. Додано лише погоджені локальні presentation assets; backend/media DTO, remote provider policy та F0–F8 behavior не змінювалися.
+
+- [x] Додано 4 узгоджені category illustrations у WebP із єдиною Precision Workshop art direction.
+- [x] Додано neutral technical product fallback, який не видається за фото конкретного товару.
+- [x] Створено local media manifest із source, dimensions, usage/alt policy та SHA-256.
+- [x] Category media інтегровано в Home tiles із reserved `3:2` frame та responsive `sizes`.
+- [x] Catalog/PDP fallback інтегровано через `next/image` у reserved `4:3` frame зі збереженим visible disclosure.
+- [x] Existing generic vehicle hero/silhouette включено до manifest; exact vehicle claims не додавалися.
+- [x] Виконано targeted Home/PDP regression, lint, typecheck і static media/accessibility review.
+
+#### U5 implementation log
+
+- Нові raster assets згенеровано вбудованим OpenAI image tool без third-party source material, брендів, тексту, watermark або model-specific claims.
+- Assets локально нормалізовано до WebP без додавання dependency: category images — `1200×800`, product fallback — `1200×900`; сукупний розмір нових media files — 288,700 bytes.
+- Home category illustrations є декоративними (`alt=""`), оскільки кожне посилання вже має повну доступну назву категорії.
+- `ProductMedia` зберігає один accessible image label і видимий текст про відсутність фото; вкладене fallback-зображення декоративне та не дублює announcement.
+- PDP використовує priority для above-the-fold fallback; catalog thumbnails залишаються lazy за default behavior `next/image`.
+- `next.config.js` і `images.remotePatterns` не змінювалися: runtime не звертається до remote image providers.
+- Global design tokens не змінювалися; responsive crop, overlay та reduced-motion rules локалізовано у CSS Modules.
+- G8/real media prerequisite залишається відкритим: product/listing і exact vehicle images потребують окремого backend/content contract.
+
+#### U5 validation results
+
+- `pnpm --filter web test -- test/app/platform-shell.spec.tsx test/catalog/product-detail-page.spec.tsx` — passed, 2 files / 3 tests.
+- Regression підтверджує 4 локальні category sources, збережений product fallback accessible label і локальний technical fallback source.
+- Початковий Home test виявив застарілий harness без QueryClient для session-aware child; rail ізольовано як сусідній модуль, production code не змінювався.
+- `pnpm --filter web lint` — passed.
+- `pnpm --filter web check-types` — passed.
+- Static media/a11y review — passed: explicit dimensions/aspect ratios, responsive `sizes`, decorative alt policy, visible fallback disclosure та reduced-motion behavior збережено.
+- Full visual regression, keyboard/screen-reader, responsive device і Lighthouse validation залишається у U6.
 
 ### U6 — Redesign readiness gate
 

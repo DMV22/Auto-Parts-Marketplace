@@ -3,7 +3,6 @@ import {
   CreditCardIcon,
   PackageCheckIcon,
   SearchCheckIcon,
-  Settings2Icon,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -11,10 +10,13 @@ import { HomeVehicleRail } from "@/components/vehicles/HomeVehicleRail";
 import styles from "./page.module.css";
 
 const catalogDirections = [
-  "Гальмівна система",
-  "Фільтри",
-  "Підвіска",
-  "Двигун",
+  {
+    label: "Гальмівна система",
+    image: "/images/categories/braking-system.webp",
+  },
+  { label: "Фільтри", image: "/images/categories/filters.webp" },
+  { label: "Підвіска", image: "/images/categories/suspension.webp" },
+  { label: "Двигун", image: "/images/categories/engine.webp" },
 ] as const;
 
 const trustItems = [
@@ -92,13 +94,21 @@ export default function Home() {
         <div className={styles.directionGrid}>
           {catalogDirections.map((direction) => (
             <Link
-              key={direction}
+              key={direction.label}
               className={styles.directionLink}
               href="/catalog"
-              aria-label={`${direction}: відкрити каталог`}
+              aria-label={`${direction.label}: відкрити каталог`}
             >
-              <Settings2Icon aria-hidden="true" />
-              <strong>{direction}</strong>
+              <span className={styles.directionMedia} aria-hidden="true">
+                <Image
+                  className={styles.directionImage}
+                  src={direction.image}
+                  alt=""
+                  fill
+                  sizes="(max-width: 479px) 100vw, (max-width: 1023px) 50vw, 25vw"
+                />
+              </span>
+              <strong>{direction.label}</strong>
               <ArrowRightIcon aria-hidden="true" />
             </Link>
           ))}
