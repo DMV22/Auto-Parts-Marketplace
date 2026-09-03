@@ -514,6 +514,11 @@
   display: grid;
   grid-template-columns: minmax(12rem, 1fr) minmax(10rem, 1fr) minmax(7rem, 0.5fr);
   gap: 0.75rem;
+  align-items: start;
+}
+
+.offerFields > .field {
+  align-content: start;
 }
 
 .formActions {
@@ -567,6 +572,16 @@
 .listingActionRail .detail,
 .listingActionRail .dangerZone {
   align-items: stretch;
+}
+
+.listingActionRail .inventoryEditor {
+  grid-column: auto;
+  grid-template-columns: 1fr;
+}
+
+.listingActionRail .inventoryCurrent span,
+.listingActionRail .inventoryVersion span {
+  display: block;
 }
 
 .visibilityState {
@@ -642,8 +657,8 @@
 .inventoryRow {
   display: grid;
   grid-template-columns:
-    minmax(12rem, 1.5fr) minmax(8rem, 0.9fr) minmax(7rem, 0.75fr)
-    minmax(8rem, 0.9fr) minmax(5rem, 0.55fr) minmax(7rem, 0.75fr);
+    minmax(11rem, 1.4fr) minmax(7.5rem, 0.7fr) minmax(8.5rem, 0.8fr)
+    minmax(9rem, 0.9fr) minmax(4.5rem, 0.4fr) minmax(7.5rem, 0.75fr);
   gap: 0.75rem;
   align-items: center;
 }
@@ -657,6 +672,11 @@
   font-weight: 800;
   letter-spacing: 0.035em;
   text-transform: uppercase;
+}
+
+.inventoryHeader span {
+  min-width: 0;
+  line-height: 1.25;
 }
 
 .inventoryList {
@@ -849,21 +869,6 @@
     grid-template-columns: minmax(0, 1fr) minmax(15rem, 18rem);
   }
 
-  .inventoryHeader,
-  .inventoryRow {
-    grid-template-columns: minmax(11rem, 1.35fr) minmax(7rem, 0.8fr) minmax(0, 3fr);
-  }
-
-  .inventoryHeader span:nth-child(3),
-  .inventoryHeader span:nth-child(4),
-  .inventoryHeader span:nth-child(5),
-  .inventoryHeader span:nth-child(6) {
-    display: none;
-  }
-
-  .inventoryEditor {
-    grid-column: 3;
-  }
 }
 
 @media (max-width: 48rem) {
