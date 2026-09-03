@@ -273,6 +273,7 @@
 }
 
 .filters[data-layout="activity"] .field,
+.filters[data-layout="returns"] .field,
 .filters[data-layout="moderation"] .field {
   grid-column: span 4;
 }
@@ -286,6 +287,11 @@
   justify-content: flex-end;
   padding-top: 0.75rem;
   border-top: 1px solid var(--border);
+}
+
+.filterActions > a,
+.filterActions > button {
+  min-inline-size: 7.5rem;
 }
 
 .filterActions a,

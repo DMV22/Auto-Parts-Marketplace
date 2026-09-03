@@ -44,7 +44,7 @@ export function InternalReturnsScreen({ query }: { query: InternalReturnsQuery }
   return (
     <section className={styles.workspace} aria-labelledby="internal-returns-title">
       <header className={styles.heading}><p>Операційні дані</p><h2 id="internal-returns-title">Черга повернень</h2><p>Переглядайте запити та відкривайте деталі для дозволеної наступної дії.</p></header>
-      <form className={styles.filters} onSubmit={applyFilters}>
+      <form className={styles.filters} data-layout="returns" onSubmit={applyFilters}>
         <div className={styles.field}><label htmlFor="return-status">Статус</label><select id="return-status" name="status" defaultValue={query.status ?? ""}><option value="">Усі</option>{returnStatuses.map((status) => <option key={status} value={status}>{presentReturnStatus(status)}</option>)}</select></div>
         <div className={styles.field}><label htmlFor="returns-from">Створено від</label><input id="returns-from" name="createdFrom" type="datetime-local" defaultValue={toDateTimeLocal(query.createdFrom)} autoComplete="off" /></div>
         <div className={styles.field}><label htmlFor="returns-to">Створено до</label><input id="returns-to" name="createdTo" type="datetime-local" defaultValue={toDateTimeLocal(query.createdTo)} autoComplete="off" /></div>
