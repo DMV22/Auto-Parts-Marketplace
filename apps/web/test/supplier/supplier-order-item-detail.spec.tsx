@@ -1,5 +1,5 @@
 import { QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
 import { SupplierOrderItemDetail } from "@/components/supplier/SupplierOrderItemDetail";
@@ -65,10 +65,10 @@ describe("Supplier OrderItem presentation", () => {
       </QueryClientProvider>,
     );
 
-    expect(
-      await screen.findByRole("table", {
-        name: "Позиції замовлень поточного постачальника",
-      }),
-    ).toBeVisible();
+    const table = await screen.findByRole("table", {
+      name: "Позиції замовлень поточного постачальника",
+    });
+    expect(table).toBeVisible();
+    expect(within(table).getByText("Оплачено")).toBeVisible();
   });
 });

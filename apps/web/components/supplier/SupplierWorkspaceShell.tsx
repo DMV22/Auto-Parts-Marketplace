@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { sessionQueryOptions } from "@/lib/query/session-query";
 import { supplierMembershipQueryOptions } from "@/lib/query/supplier-queries";
+import { SupplierWorkspaceNavigation } from "./SupplierWorkspaceNavigation";
 import styles from "./supplier.module.css";
 
 export function SupplierWorkspaceShell({
@@ -40,7 +41,7 @@ export function SupplierWorkspaceShell({
     return (
       <WorkspaceState
         title="Потрібен вхід"
-        message="Увійдіть як SupplierUser або Admin."
+        message="Увійдіть як постачальник або адміністратор."
         action={
           <Link href={`/sign-in?returnTo=${encodeURIComponent(`/supplier/${supplierId}/listings`)}`}>
             Увійти
@@ -53,7 +54,7 @@ export function SupplierWorkspaceShell({
     return (
       <WorkspaceState
         title="Акаунт неактивний"
-        message="Supplier workspace недоступний для неактивного акаунта."
+        message="Кабінет постачальника недоступний для неактивного акаунта."
       />
     );
   }
@@ -63,18 +64,18 @@ export function SupplierWorkspaceShell({
     return (
       <WorkspaceState
         title="Доступ заборонено"
-        message="Цей розділ призначений для SupplierUser або Admin."
+        message="Цей розділ призначений для постачальника або адміністратора."
       />
     );
   }
   if (!isAdmin && membership.isPending) {
-    return <WorkspaceState message="Перевіряємо membership постачальника…" />;
+    return <WorkspaceState message="Перевіряємо доступ постачальника…" />;
   }
   if (!isAdmin && membership.isError) {
     return (
       <WorkspaceState
-        title="Не вдалося перевірити membership"
-        message="Дані постачальника тимчасово недоступні."
+        title="Не вдалося перевірити доступ"
+        message="Дані доступу постачальника тимчасово недоступні."
         action={
           <Button
             type="button"
@@ -97,10 +98,10 @@ export function SupplierWorkspaceShell({
   ) {
     return (
       <WorkspaceState
-        title="Supplier workspace недоступний"
+        title="Кабінет постачальника недоступний"
         message={
           currentMembership?.status === "DISABLED"
-            ? "Membership постачальника вимкнено."
+            ? "Доступ постачальника вимкнено."
             : "Постачальника не знайдено або він не належить поточному користувачу."
         }
       />
@@ -108,23 +109,34 @@ export function SupplierWorkspaceShell({
   }
 
   const supplierName = isAdmin
-    ? "Admin supplier view"
+    ? `Supplier ${supplierId.slice(0, 8)}`
     : currentMembership?.supplier.name;
 
   return (
     <div className={styles.shell}>
-      <header className={styles.heading}>
-        <p>Кабінет постачальника</p>
-        <h1>{supplierName}</h1>
-      </header>
-      <nav className={styles.workspaceNav} aria-label="Кабінет постачальника">
-        <Link href={`/supplier/${supplierId}/listings`}>Оголошення</Link>
-        <Link href={`/supplier/${supplierId}/inventory`}>Залишки</Link>
-        <Link href={`/supplier/${supplierId}/order-items`}>Позиції замовлень</Link>
-      </nav>
-      <main id="main-content" className={styles.main}>
-        {children}
-      </main>
+      <SupplierWorkspaceNavigation
+        supplierId={supplierId}
+        supplierName={supplierName ?? "Постачальник"}
+        isAdmin={isAdmin}
+      />
+      <div className={styles.workspaceFrame}>
+        <header className={styles.workspaceHeader}>
+          <div>
+            <p>Операційний простір</p>
+            <h1>{supplierName}</h1>
+          </div>
+          {isAdmin ? (
+            <p className={styles.adminNotice} role="status">
+              Адміністратор переглядає дані напряму, без доступу постачальника.
+            </p>
+          ) : (
+            <p className={styles.membershipNotice}>Активний доступ</p>
+          )}
+        </header>
+        <main id="main-content" className={styles.main}>
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

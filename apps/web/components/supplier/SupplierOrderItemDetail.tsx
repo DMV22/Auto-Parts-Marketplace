@@ -3,7 +3,10 @@
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { formatMoney } from "@/lib/catalog/catalog-presentation";
-import { formatOrderDate } from "@/lib/commerce/order-presentation";
+import {
+  formatOrderDate,
+  presentOrderStatus,
+} from "@/lib/commerce/order-presentation";
 import { supplierOrderItemQueryOptions } from "@/lib/query/supplier-queries";
 import styles from "./supplier.module.css";
 
@@ -27,13 +30,16 @@ export function SupplierOrderItemDetail({
   return (
     <section className={styles.workspace} aria-labelledby="supplier-item-title">
       <div className={styles.toolbar}>
-        <h2 id="supplier-item-title">
-          {item.data.productName ?? "Товар із замовлення"}
-        </h2>
+        <div className={styles.heading}>
+          <p>Позиція замовлення</p>
+          <h2 id="supplier-item-title">
+            {item.data.productName ?? "Товар із замовлення"}
+          </h2>
+        </div>
         <Link href={`/supplier/${supplierId}/order-items`}>До списку</Link>
       </div>
       <div className={styles.detail}>
-        <dl className={styles.summary}>
+        <dl className={styles.orderItemSummary}>
           <div>
             <dt>SKU</dt>
             <dd>{item.data.sku ?? "—"}</dd>
@@ -60,16 +66,16 @@ export function SupplierOrderItemDetail({
           </div>
           <div>
             <dt>Статус замовлення</dt>
-            <dd>{item.data.orderStatus}</dd>
+            <dd>{presentOrderStatus(item.data.orderStatus).label}</dd>
           </div>
           <div>
             <dt>Замовлено</dt>
             <dd>{formatOrderDate(item.data.orderedAt)}</dd>
           </div>
         </dl>
-        <p className={styles.meta}>
-          Customer identity, адреса, payment payload і повне замовлення не входять
-          до supplier DTO.
+        <p className={styles.privacyNote}>
+          Тут доступні лише дані цієї проданої позиції. Особисті та платіжні дані
+          покупця не відображаються.
         </p>
       </div>
     </section>

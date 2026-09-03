@@ -3,8 +3,8 @@
 ## Status
 
 - Workstream: UI/UX redesign після функціональних Milestones F0–F8.
-- Поточний етап: U0–U2 завершено; наступний погоджуваний slice — U3.
-- Implementation status: U0–U2 — complete; U3–U6 — не розпочато.
+- Поточний етап: U0–U3 завершено; наступний погоджуваний slice — U4.
+- Implementation status: U0–U3 — complete; U4–U6 — не розпочато.
 - F8 залишається `Conditional`: фінальні accessibility, responsive, Lighthouse та external integration checks виконуються після redesign.
 
 ## Summary
@@ -521,9 +521,38 @@ External provider можливий лише після approval, license review 
 
 ### U3 — Supplier workspace
 
-- Supplier sidebar/mobile Sheet, listings, forms, lifecycle, inventory conflict та OrderItems.
-- Desktop table/mobile row compositions.
-- F6 role/privacy/409 regression.
+**Статус:** Complete. Supplier workspace оновлено без зміни F6 API/query contracts, ownership, Admin bypass, Listing lifecycle або inventory concurrency behavior.
+
+- [x] Додано окремий operational chrome: sticky desktop sidebar і accessible mobile Sheet із current-route state.
+- [x] Supplier identity показує активний доступ, а прямий Admin view — окремий non-membership banner.
+- [x] Listings перебудовано в щільну desktop table та labeled mobile rows зі status/SKU/price/stock/updated hierarchy.
+- [x] Listing create/edit розділено на секції `Товар`, `Пропозиція`, `Публікація`; ProductVariant discovery contract не змінено.
+- [x] Lifecycle actions згруповано за intent, а архівація вимагає явного підтвердження до mutation.
+- [x] Inventory отримав inline numeric editor, current stock/version і explicit conflict/refetch/retry presentation.
+- [x] Supplier OrderItems отримали локалізовані status badges, responsive table rows і supplier-safe detail presentation.
+- [x] Виконано targeted F6 regression, typecheck, scoped lint і static responsive/accessibility review.
+
+#### U3 implementation log
+
+- Створено `SupplierWorkspaceNavigation` із фактичними розділами `Оголошення`, `Залишки`, `Позиції замовлень`; вигадані dashboard, analytics, shipping та message routes з референсів не додавалися.
+- Desktop sidebar використовує graphite operational surface, а mobile navigation повторно використовує наявний Base UI Sheet із title/description, focus trap і close behavior.
+- Active SupplierUser context продовжує визначатися membership query; Admin direct route не підміняється membership і позначається окремим повідомленням.
+- Listings відображають лише фактичні DTO fields: SKU, MPN, condition, price/currency, stock, inventory version, status і updatedAt. Назви товарів або media не вигадуються.
+- Listing form зберігає React Hook Form/Zod, ProductVariant cursor search та patch-only-changed-fields behavior; технічну operator copy замінено зрозумілими назвами.
+- Submit/pause/resume/archive як і раніше походять із centralized frontend projection фактичної backend policy; approve/reject Supplier controls не додавалися.
+- Archive confirmation зберігає початковий focus target і не викликає mutation до явного підтвердження.
+- Inventory conflict зберігає введену кількість, показує актуальний stock/version після refetch і повторює запит лише з оновленим `expectedVersion`.
+- OrderItems залишаються read-only immutable supplier projection без customer identity, address, payment payload, internal Notes або повного Order.
+- Нові images, external assets, dependencies і global tokens не додавалися; використано локальні operational aliases у CSS Module та наявні Lucide/shadcn primitives.
+
+#### U3 validation results
+
+- `pnpm --filter web test -- test/supplier/supplier-workspace-shell.spec.tsx test/supplier/supplier-presentation.spec.ts test/supplier/supplier-listing-form.spec.tsx test/supplier/supplier-listing-detail.spec.tsx test/supplier/inventory-editor.spec.tsx test/supplier/supplier-order-item-detail.spec.tsx` — passed, 6 files / 9 tests.
+- Regression підтверджує inactive/foreign denial, active Supplier route, lifecycle projection, ProductVariant paging/validation, confirmation-before-archive, `409` refetch/retry та supplier-safe OrderItem response.
+- `pnpm --filter web check-types` — passed.
+- Scoped ESLint для змінених U3 TS/TSX/test files — passed.
+- Static responsive/a11y review — passed: active `aria-current`, titled mobile Sheet, semantic tables/captions, labeled mobile rows, visible focus, minimum touch targets, inline quantity errors і live conflict/confirmation feedback збережено.
+- Manual keyboard, screen-reader, 200% zoom, responsive device і Lighthouse validation для Supplier workspace залишається у U6.
 
 ### U4 — Internal and Admin workspace
 
