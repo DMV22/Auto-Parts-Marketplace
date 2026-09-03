@@ -1,10 +1,14 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { InternalWorkspaceShell } from "@/components/internal-ops/InternalWorkspaceShell";
 import { createQueryClient } from "@/lib/query/query-client";
 import { mockApi } from "../mocks/server";
+
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/internal/orders",
+}));
 
 function session(role: "CUSTOMER" | "SUPPORT_MANAGER") {
   return {
@@ -39,6 +43,10 @@ describe("InternalWorkspaceShell", () => {
     );
 
     expect(await screen.findByText("Operational queue")).toBeVisible();
+    expect(screen.getByRole("link", { name: "Замовлення" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
     expect(
       screen.queryByRole("link", { name: "Модерація" }),
     ).not.toBeInTheDocument();

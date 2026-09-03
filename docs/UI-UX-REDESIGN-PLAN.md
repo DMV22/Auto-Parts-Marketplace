@@ -3,8 +3,8 @@
 ## Status
 
 - Workstream: UI/UX redesign після функціональних Milestones F0–F8.
-- Поточний етап: U0–U3 завершено; наступний погоджуваний slice — U4.
-- Implementation status: U0–U3 — complete; U4–U6 — не розпочато.
+- Поточний етап: U0–U4 завершено; наступний погоджуваний slice — U5.
+- Implementation status: U0–U4 — complete; U5–U6 — не розпочато.
 - F8 залишається `Conditional`: фінальні accessibility, responsive, Lighthouse та external integration checks виконуються після redesign.
 
 ## Summary
@@ -556,9 +556,36 @@ External provider можливий лише після approval, license review 
 
 ### U4 — Internal and Admin workspace
 
-- Internal shell, OMS/Returns queues, detail/transitions, Notes, ActivityLog та moderation.
-- High-density table system і explicit role/action hierarchy.
-- F7 privacy/RBAC/moderation regression.
+**Статус:** Complete. Internal/Admin workspace оновлено без зміни F7 API/query contracts, RBAC, Order/Return transitions, Notes privacy, ActivityLog scope або moderation policy.
+
+- [x] Додано спільний operational chrome: sticky desktop sidebar і accessible mobile Sheet із current-route state.
+- [x] Support Manager і Admin отримали явну рольову ієрархію; moderation navigation показується лише Admin.
+- [x] OMS Orders і Returns queues перебудовано в щільні responsive tables із URL filters, cursor navigation та labeled mobile rows.
+- [x] Order/Return detail розділено на основний контекст і action rail; дозволені переходи як і раніше визначаються фактичними policy projections.
+- [x] Notes отримали виразну internal-only hierarchy, append/correction flow та Admin-only redaction confirmation із tombstone response.
+- [x] ActivityLog отримав scope-aware filters, immutable event table і відображення лише дозволеної metadata projection.
+- [x] Admin moderation queue отримала окрему decision surface, supplier-visible reason confirmation та явне відокремлення emergency pause.
+- [x] Виконано targeted F7 regression, lint, typecheck і static responsive/accessibility review.
+
+#### U4 implementation log
+
+- Створено `InternalWorkspaceNavigation` із фактичними маршрутами `Замовлення`, `Повернення`, `Журнал дій` та окремою Admin-only секцією `Модерація`; вигадані dashboard, analytics, CRM або global customer routes не додавалися.
+- Desktop sidebar використовує graphite operational surface, а mobile navigation повторно використовує наявний Base UI Sheet із title/description, focus trap і close behavior.
+- Orders/Returns queues відображають лише фактичні internal DTO fields, зберігають URL-driven filters та cursor pagination; на вузьких екранах таблиці переходять у labeled rows без втрати назв полів.
+- Order detail зберігає immutable OrderItem snapshots, webhook-authoritative payment outcome і фактичну status timeline. Return detail не розширює lifecycle та показує лише дозволений наступний перехід.
+- Notes залишаються internal-only: Support Manager/Admin можуть додавати й виправляти записи через наявний contract, а redaction доступний лише Admin із підтвердженням і tombstone presentation.
+- ActivityLog лишається read-only; Support Manager потребує Order/Return scope, Admin має global view. У metadata не додаються нові поля або sensitive payloads.
+- Moderation actions зберігають фактичну policy: approve/reject для `PENDING_APPROVAL`, emergency pause для `ACTIVE`, supplier-visible reason і catalog/query invalidation після mutation.
+- Нові assets, dependencies і global tokens не додавалися; референсні mockups використано лише для information hierarchy та щільності.
+
+#### U4 validation results
+
+- `pnpm --filter web test -- test/internal-ops/internal-workspace-shell.spec.tsx test/internal-ops/internal-order-detail-screen.spec.tsx test/internal-ops/internal-notes-panel.spec.tsx test/internal-ops/admin-moderation-screen.spec.tsx test/internal-ops/internal-ops-presentation.spec.ts` — passed, 5 files / 6 tests.
+- Regression підтверджує role-aware navigation, дозволений Order transition, Admin redaction із tombstone, supplier-visible moderation reason і catalog invalidation.
+- `pnpm --filter web lint` — passed.
+- `pnpm --filter web check-types` — passed.
+- Static responsive/a11y review — passed: semantic headings/tables/timeline, labeled mobile rows, titled mobile Sheet, visible focus, text-plus-color status badges, focus restoration і `aria-live` mutation feedback збережено.
+- Manual keyboard, screen-reader, 200% zoom, responsive device і Lighthouse validation для Internal/Admin workspace залишається у U6.
 
 ### U5 — Approved media/content integration
 

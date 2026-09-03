@@ -73,27 +73,27 @@ describe("InternalNotesPanel", () => {
     );
 
     expect(await screen.findByText("Sensitive operational note")).toBeVisible();
-    fireEvent.click(screen.getByRole("button", { name: "Старіші notes" }));
+    fireEvent.click(screen.getByRole("button", { name: "Старіші нотатки" }));
     expect(navigation.replace).toHaveBeenCalledWith(
       `/internal/orders/${ORDER_ID}?notesCursor=older-notes`,
       { scroll: false },
     );
-    const redactTrigger = screen.getByRole("button", { name: "Redact" });
+    const redactTrigger = screen.getByRole("button", { name: "Приховати" });
     fireEvent.click(redactTrigger);
     expect(redactTrigger).toHaveAttribute("aria-expanded", "true");
-    const redactionReason = screen.getByLabelText("Причина redaction");
+    const redactionReason = screen.getByLabelText("Причина приховування");
     await waitFor(() => expect(redactionReason).toHaveFocus());
     fireEvent.change(redactionReason, {
       target: { value: "Contains customer data" },
     });
     fireEvent.click(
-      screen.getByRole("button", { name: "Підтвердити redaction" }),
+      screen.getByRole("button", { name: "Підтвердити приховування" }),
     );
 
     await waitFor(() =>
       expect(submittedBody).toEqual({ reason: "Contains customer data" }),
     );
-    expect(await screen.findByText("Note redacted")).toBeVisible();
+    expect(await screen.findByText("Нотатку приховано")).toBeVisible();
     expect(screen.queryByText("Sensitive operational note")).not.toBeInTheDocument();
   });
 });

@@ -36,37 +36,38 @@ export function InternalReturnDetailScreen({ returnRequestId }: { returnRequestI
       ]);
     },
   });
-  if (request.isPending) return <p role="status">Завантажуємо ReturnRequest…</p>;
-  if (request.isError) return <section className={styles.state}><h2>ReturnRequest недоступний</h2><p>Його не знайдено або він недоступний поточній ролі.</p><Link href="/internal/returns">До черги</Link></section>;
+  if (request.isPending) return <section className={styles.state}><h2>Запит на повернення</h2><p role="status">Завантажуємо деталі…</p></section>;
+  if (request.isError) return <section className={styles.state}><h2>Запит недоступний</h2><p>Його не знайдено або він недоступний поточній ролі.</p><Link href="/internal/returns">До черги</Link></section>;
   const targets = nextReturnStatuses(request.data.status);
   const rejectionReasonRequired = targetStatus === "REJECTED";
   return (
     <section className={styles.workspace} aria-labelledby="return-detail-title">
-      <div className={styles.toolbar}><div className={styles.heading}><h2 id="return-detail-title">ReturnRequest <span translate="no">{returnRequestId}</span></h2><ReturnStatusBadge status={request.data.status} /></div><Link href="/internal/returns">До черги</Link></div>
-      <div className={styles.panel}>
-        <dl className={styles.summary}>
-          <div><dt>Order</dt><dd translate="no">{request.data.orderId}</dd></div>
-          <div><dt>OrderItem</dt><dd translate="no">{request.data.orderItemId}</dd></div>
-          <div><dt>Створено</dt><dd>{formatInternalDate(request.data.createdAt)}</dd></div>
-          <div><dt>Клієнт</dt><dd>{request.data.customer.type === "GUEST" ? "Guest" : request.data.customer.name}</dd></div>
-          <div><dt>Email</dt><dd>{request.data.customer.type === "GUEST" ? "Не розкривається" : request.data.customer.email}</dd></div>
-        </dl>
-        <p><strong>Причина:</strong> {request.data.reason}</p>
-        {request.data.decisionReason ? <p><strong>Decision reason:</strong> {request.data.decisionReason}</p> : null}
+      <div className={styles.toolbar}><div className={styles.heading}><p>Повернення</p><h2 id="return-detail-title"><span translate="no">{returnRequestId}</span></h2><ReturnStatusBadge status={request.data.status} /></div><Link href="/internal/returns">До черги</Link></div>
+      <div className={styles.detailLayout}>
+        <div className={styles.detailMain}>
+          <section className={styles.panel}>
+            <div className={styles.panelHeader}><div><span>Зведення</span><h3>Дані запиту</h3></div></div>
+            <dl className={styles.summary}>
+              <div><dt>Замовлення</dt><dd translate="no">{request.data.orderId}</dd></div>
+              <div><dt>Позиція замовлення</dt><dd translate="no">{request.data.orderItemId}</dd></div>
+              <div><dt>Створено</dt><dd><time dateTime={request.data.createdAt}>{formatInternalDate(request.data.createdAt)}</time></dd></div>
+              <div><dt>Клієнт</dt><dd>{request.data.customer.type === "GUEST" ? "Гість" : request.data.customer.name}</dd></div>
+              <div><dt>Email</dt><dd>{request.data.customer.type === "GUEST" ? "Не розкривається" : request.data.customer.email}</dd></div>
+              <div><dt>Кількість</dt><dd>{request.data.quantity}</dd></div>
+            </dl>
+            <div className={styles.reasonBlock}><div><span>Причина запиту</span><p>{request.data.reason}</p></div>{request.data.decisionReason ? <div><span>Причина рішення</span><p>{request.data.decisionReason}</p></div> : null}</div>
+          </section>
+        </div>
+        <aside className={styles.actionRail} aria-label="Дії та внутрішні нотатки">
+          <section className={styles.panel}>
+            <div className={styles.panelHeader}><div><span>Контрольований перехід</span><h3>Наступний статус</h3></div></div>
+            {targets.length ? <div className={styles.form}><div className={styles.field}><label htmlFor="return-target-status">Оберіть статус</label><select id="return-target-status" value={targetStatus} onChange={(event) => setTargetStatus(event.target.value as ReturnRequestStatus | "")}><option value="">Оберіть дію</option>{targets.map((status) => <option key={status} value={status}>{presentReturnStatus(status)}</option>)}</select></div><div className={styles.field}><label htmlFor="return-transition-reason">Причина {rejectionReasonRequired ? "(обов’язково для відхилення)" : "(необов’язково)"}</label><textarea id="return-transition-reason" value={reason} maxLength={500} required={rejectionReasonRequired} autoComplete="off" onChange={(event) => setReason(event.target.value)} /></div><Button type="button" disabled={!canSubmitReturnTransition(targetStatus, reason) || transition.isPending} onClick={() => transition.mutate()}>{transition.isPending ? "Оновлюємо…" : "Підтвердити перехід"}</Button></div> : <p>Запит перебуває у завершальному статусі.</p>}
+            {transition.error ? <p className={styles.error} role="alert">{internalMutationError(transition.error)}</p> : null}
+            {transition.isSuccess ? <p className={styles.success} aria-live="polite">Статус повернення оновлено.</p> : null}
+          </section>
+          <InternalNotesPanel target={{ type: "RETURN_REQUEST", id: returnRequestId }} />
+        </aside>
       </div>
-      <div className={styles.panel}>
-        <h3>Return transition</h3>
-        {targets.length ? (
-          <div className={styles.form}>
-            <div className={styles.field}><label htmlFor="return-target-status">Наступний статус</label><select id="return-target-status" value={targetStatus} onChange={(event) => setTargetStatus(event.target.value as ReturnRequestStatus | "")}><option value="">Оберіть дію</option>{targets.map((status) => <option key={status} value={status}>{presentReturnStatus(status)}</option>)}</select></div>
-            <div className={styles.field}><label htmlFor="return-transition-reason">Причина {rejectionReasonRequired ? "(обов’язково для відхилення)" : "(необов’язково)"}</label><textarea id="return-transition-reason" value={reason} maxLength={500} required={rejectionReasonRequired} autoComplete="off" onChange={(event) => setReason(event.target.value)} /></div>
-            <Button type="button" disabled={!canSubmitReturnTransition(targetStatus, reason) || transition.isPending} onClick={() => transition.mutate()}>{transition.isPending ? "Оновлюємо…" : "Підтвердити transition"}</Button>
-          </div>
-        ) : <p>ReturnRequest перебуває у terminal state.</p>}
-        {transition.error ? <p className={styles.error} role="alert">{internalMutationError(transition.error)}</p> : null}
-        {transition.isSuccess ? <p className={styles.success} aria-live="polite">Transition підтверджено backend response.</p> : null}
-      </div>
-      <InternalNotesPanel target={{ type: "RETURN_REQUEST", id: returnRequestId }} />
     </section>
   );
 }
