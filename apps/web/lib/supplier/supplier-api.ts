@@ -1,4 +1,5 @@
 import { apiRequest } from "@/lib/api/api-client";
+import type { ApiRequestContext } from "@/lib/api/api-client";
 import { AppError } from "@/lib/api/app-error";
 import {
   supplierListingSchema,
@@ -41,8 +42,12 @@ function appendQuery(
   return query ? `${path}?${query}` : path;
 }
 
-export async function getCurrentSupplierMembership(signal?: AbortSignal) {
+export async function getCurrentSupplierMembership(
+  signal?: AbortSignal,
+  requestContext: ApiRequestContext = {},
+) {
   const payload = await apiRequest<unknown>("/api/v1/me/supplier-membership", {
+    ...requestContext,
     signal,
   });
   return parse(supplierMembershipResponseSchema, payload, "Supplier membership");
@@ -87,10 +92,11 @@ export async function getSupplierListings(
   supplierId: string,
   query: SupplierListingsQuery,
   signal?: AbortSignal,
+  requestContext: ApiRequestContext = {},
 ) {
   const payload = await apiRequest<unknown>(
     appendQuery(supplierPath(supplierId, "/listings"), query),
-    { signal },
+    { ...requestContext, signal },
   );
   return parse(supplierListingsResponseSchema, payload, "Supplier listings");
 }

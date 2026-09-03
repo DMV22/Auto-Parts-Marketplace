@@ -38,10 +38,15 @@
   min-width: 0;
 }
 
-.supplierIdentity span,
-.mobileWorkspaceBar span {
+.supplierIdentity span {
   display: block;
   color: #bac4d3;
+  font-size: 0.75rem;
+}
+
+.mobileWorkspaceBar span {
+  display: block;
+  color: var(--muted-foreground);
   font-size: 0.75rem;
 }
 

@@ -88,7 +88,11 @@ export function InternalOrderDetailScreen({
 
           <section className={styles.panel}>
             <div className={styles.panelHeader}><div><span>Незмінний знімок</span><h3>Позиції замовлення</h3></div></div>
-            <div className={styles.tableWrapper}>
+            <div
+              className={styles.tableWrapper}
+              tabIndex={0}
+              aria-label="Прокручувана таблиця позицій замовлення"
+            >
               <table className={styles.table}>
                 <caption className="sr-only">Позиції операційного замовлення</caption>
                 <thead><tr><th scope="col">Товар</th><th scope="col">Постачальник</th><th scope="col">Стан</th><th scope="col">Кількість</th><th scope="col">Ціна</th><th scope="col">Сума</th></tr></thead>

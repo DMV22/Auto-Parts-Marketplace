@@ -1,6 +1,8 @@
 .placeholder {
   position: relative;
   display: grid;
+  min-inline-size: 0;
+  inline-size: 100%;
   aspect-ratio: 4 / 3;
   place-content: center;
   justify-items: center;
@@ -29,7 +31,8 @@
   position: relative;
   z-index: 2;
   display: grid;
-  max-width: min(80%, 18rem);
+  inline-size: min(80%, 18rem);
+  max-inline-size: calc(100% - 1.5rem);
   place-items: center;
   gap: 0.55rem;
   padding: 0.85rem 1rem;

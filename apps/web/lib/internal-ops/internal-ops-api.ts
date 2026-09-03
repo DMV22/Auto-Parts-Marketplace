@@ -1,5 +1,6 @@
 import { AppError } from "@/lib/api/app-error";
 import { apiRequest } from "@/lib/api/api-client";
+import type { ApiRequestContext } from "@/lib/api/api-client";
 import { supplierListingSchema, type SupplierListing } from "@/lib/supplier/supplier-types";
 import {
   activityResponseSchema,
@@ -57,10 +58,11 @@ function withQuery(
 export async function getInternalOrders(
   query: InternalOrdersQuery,
   signal?: AbortSignal,
+  requestContext: ApiRequestContext = {},
 ) {
   const payload = await apiRequest<unknown>(
     withQuery("/api/v1/internal/orders", { ...query, limit: query.limit ?? 20 }),
-    { signal },
+    { ...requestContext, signal },
   );
   return parse(internalOrdersResponseSchema, payload, "Internal Orders");
 }

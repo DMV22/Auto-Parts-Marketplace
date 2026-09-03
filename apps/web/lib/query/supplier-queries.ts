@@ -1,4 +1,5 @@
 import { queryOptions } from "@tanstack/react-query";
+import type { ApiRequestContext } from "@/lib/api/api-client";
 import {
   getCurrentSupplierMembership,
   getSupplierListing,
@@ -18,10 +19,13 @@ function stableQuery(values: object): string {
   return JSON.stringify(values);
 }
 
-export function supplierMembershipQueryOptions() {
+export function supplierMembershipQueryOptions(
+  requestContext: ApiRequestContext = {},
+) {
   return queryOptions({
     queryKey: queryKeys.supplier.membership,
-    queryFn: ({ signal }) => getCurrentSupplierMembership(signal),
+    queryFn: ({ signal }) =>
+      getCurrentSupplierMembership(signal, requestContext),
     retry: false,
     staleTime: 30_000,
   });
@@ -63,10 +67,12 @@ export function supplierProductVariantQueryOptions(
 export function supplierListingsQueryOptions(
   supplierId: string,
   query: SupplierListingsQuery,
+  requestContext: ApiRequestContext = {},
 ) {
   return queryOptions({
     queryKey: queryKeys.supplier.listings(supplierId, stableQuery(query)),
-    queryFn: ({ signal }) => getSupplierListings(supplierId, query, signal),
+    queryFn: ({ signal }) =>
+      getSupplierListings(supplierId, query, signal, requestContext),
     retry: false,
     staleTime: 10_000,
   });

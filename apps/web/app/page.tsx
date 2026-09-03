@@ -71,6 +71,7 @@ export default function Home() {
               width={1280}
               height={720}
               priority
+              fetchPriority="high"
               sizes="(max-width: 767px) 100vw, 52vw"
             />
             <span className={styles.inspectionLabel}>FITMENT / 01</span>

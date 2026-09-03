@@ -410,6 +410,11 @@
   background: var(--surface);
 }
 
+.tableWrapper:focus-visible {
+  outline: 3px solid var(--ring);
+  outline-offset: 2px;
+}
+
 .table {
   width: 100%;
   min-width: 60rem;

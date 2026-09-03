@@ -1,4 +1,5 @@
 import { queryOptions } from "@tanstack/react-query";
+import type { ApiRequestContext } from "@/lib/api/api-client";
 import {
   getActivityLog,
   getInternalNotes,
@@ -22,10 +23,14 @@ function stableQuery(query: object): string {
   return JSON.stringify(query);
 }
 
-export function internalOrdersQueryOptions(query: InternalOrdersQuery) {
+export function internalOrdersQueryOptions(
+  query: InternalOrdersQuery,
+  requestContext: ApiRequestContext = {},
+) {
   return queryOptions({
     queryKey: queryKeys.internalOps.orders(stableQuery(query)),
-    queryFn: ({ signal }) => getInternalOrders(query, signal),
+    queryFn: ({ signal }) =>
+      getInternalOrders(query, signal, requestContext),
     retry: false,
     staleTime: 10_000,
   });
