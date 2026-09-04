@@ -46,6 +46,9 @@ describe("AppHeader", () => {
       queryKeys.auth.session,
       customerSessionProjectionFixture,
     );
+    queryClient.setQueryData(queryKeys.internalOps.orders("{}"), {
+      data: [{ id: "must-be-removed-on-sign-out" }],
+    });
     mockApi.use(
       http.post("*/api/auth/sign-out", () => HttpResponse.json({ success: true })),
       http.get("*/api/auth/get-session", () => HttpResponse.json(null)),
@@ -64,6 +67,7 @@ describe("AppHeader", () => {
     await waitFor(() =>
       expect(queryClient.getQueryData(queryKeys.auth.session)).toBeNull(),
     );
+    expect(queryClient.getQueryData(queryKeys.internalOps.orders("{}"))).toBeUndefined();
     expect(refresh).toHaveBeenCalledOnce();
     expect(await screen.findByRole("link", { name: "Увійти" })).toBeVisible();
   });

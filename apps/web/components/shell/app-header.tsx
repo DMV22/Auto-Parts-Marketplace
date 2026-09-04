@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CartDrawer } from "@/components/cart/CartDrawer";
+import { SupplierWorkspaceLink } from "@/components/supplier/SupplierWorkspaceLink";
 import { signOut } from "@/lib/auth/auth-api";
 import type { UserRole } from "@/lib/auth/session";
 import { queryKeys } from "@/lib/query/query-keys";
@@ -78,6 +79,17 @@ export function AppHeader() {
               session.data.user.isActive ? (
                 <Link className={styles.workspaceLink} href="/garage">
                   Мій гараж
+                </Link>
+              ) : null}
+              {session.data.user.role === "SUPPLIER_USER" &&
+              session.data.user.isActive ? (
+                <SupplierWorkspaceLink className={styles.workspaceLink} />
+              ) : null}
+              {(session.data.user.role === "SUPPORT_MANAGER" ||
+                session.data.user.role === "ADMIN") &&
+              session.data.user.isActive ? (
+                <Link className={styles.workspaceLink} href="/internal/orders">
+                  Internal Ops
                 </Link>
               ) : null}
               <span className={styles.identity}>
