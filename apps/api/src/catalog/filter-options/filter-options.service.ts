@@ -45,16 +45,24 @@ export class FilterOptionsService {
         _max: { price: true },
       }),
     ]);
+    const currencyOptions = currencies
+      .slice(0, COLLECTION_LIMIT)
+      .map((currency) => ({
+        code: currency.currency,
+        minimumPrice: currency._min.price!.toString(),
+        maximumPrice: currency._max.price!.toString(),
+      }));
+    const defaultCurrency =
+      currencyOptions.find(({ code }) => code === 'UAH')?.code ??
+      currencyOptions[0]?.code ??
+      null;
 
     return {
       data: {
         brands: brands.slice(0, COLLECTION_LIMIT),
         categories: categories.slice(0, COLLECTION_LIMIT),
-        currencies: currencies.slice(0, COLLECTION_LIMIT).map((currency) => ({
-          code: currency.currency,
-          minimumPrice: currency._min.price!.toString(),
-          maximumPrice: currency._max.price!.toString(),
-        })),
+        defaultCurrency,
+        currencies: currencyOptions,
       },
       meta: {
         truncated:

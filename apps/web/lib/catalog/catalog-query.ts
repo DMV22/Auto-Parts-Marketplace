@@ -168,12 +168,20 @@ export function resolveCatalogQuery(
     if (Object.keys(update).length > 0) state = { ...state, ...update };
   }
 
+  const declaredDefaultCurrency =
+    options?.data.defaultCurrency &&
+    options.data.currencies.some(
+      ({ code }) => code === options.data.defaultCurrency,
+    )
+      ? options.data.defaultCurrency
+      : undefined;
   const onlyCurrency =
     options?.data.currencies.length === 1
       ? options.data.currencies[0]
       : undefined;
-  if (!state.currency && onlyCurrency) {
-    state = { ...state, currency: onlyCurrency.code };
+  const defaultCurrency = declaredDefaultCurrency ?? onlyCurrency?.code;
+  if (!state.currency && defaultCurrency) {
+    state = { ...state, currency: defaultCurrency };
   }
 
   const searchParams = serializeCatalogQuery(state);

@@ -488,7 +488,7 @@ pnpm --filter web build
 ### G3 contract handoff
 
 - `GET /api/v1/catalog/filter-options` є public read-only endpoint без query parameters.
-- Response містить `data.brands[]` і `data.categories[]` як `{ id, name }`, а `data.currencies[]` як `{ code, minimumPrice, maximumPrice }`; Decimal prices серіалізуються рядками.
+- Response містить `data.brands[]` і `data.categories[]` як `{ id, name }`, `data.defaultCurrency` як доступний currency code або `null`, а `data.currencies[]` як `{ code, minimumPrice, maximumPrice }`; Decimal prices серіалізуються рядками.
 - Vocabulary і price ranges будуються лише з `ACTIVE` Listings; out-of-stock `ACTIVE` Listings залишаються частиною public options.
 - Collections мають deterministic sorting і server cap `100`; `meta.truncated = true`, якщо хоча б одна collection має більше значень.
 - Targeted validation: unit `1/1`, integration `2/2`, E2E `1/1` — passed; E2E підтверджує anonymous access і відхилення query parameters.
