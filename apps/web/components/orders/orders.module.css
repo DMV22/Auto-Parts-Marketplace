@@ -421,7 +421,7 @@
 @media (min-width: 64rem) {
   .orderListHeader,
   .orderCard {
-    grid-template-columns: minmax(13rem, 1.35fr) minmax(9rem, 0.9fr) minmax(4rem, 0.4fr) minmax(7rem, 0.65fr) minmax(8rem, 0.7fr) auto;
+    grid-template-columns: minmax(13rem, 1.35fr) minmax(9rem, 0.9fr) minmax(4rem, 0.4fr) minmax(7rem, 0.65fr) minmax(8rem, 0.7fr) minmax(7rem, 0.55fr);
     align-items: center;
     column-gap: 1rem;
   }
