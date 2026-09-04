@@ -36,7 +36,7 @@ export default defineConfig({
   },
   webServer: [
     {
-      command: "pnpm --filter api start",
+      command: "pnpm --filter api exec node dist/src/main.js",
       env: { ...inheritedEnvironment, PORT: "3001" },
       reuseExistingServer: false,
       timeout: 120_000,

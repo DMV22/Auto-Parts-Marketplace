@@ -10,6 +10,7 @@ export function useAuthCompletion(returnTo: string) {
   const router = useRouter();
 
   return async () => {
+    queryClient.removeQueries();
     await queryClient.fetchQuery({
       ...sessionQueryOptions(),
       staleTime: 0,

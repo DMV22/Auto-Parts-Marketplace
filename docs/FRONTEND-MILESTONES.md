@@ -45,7 +45,7 @@ Backend Milestones 6–10 сформували придатний для fronten
 | Customer/Guest Cart       | `GET /api/v1/cart`, item create/update/delete, clear cart; backend-issued guest cookie                   | Реалізовано; live price/stock/status validation, owner isolation                                   | Cookie flow потребує same-origin/credentials; guest cart не merge-иться після sign-in                        | Ready після F0; merge відсутній за контрактом                          |
 | Checkout                  | `POST /api/v1/checkout/session`; pending Order, reservation, `Idempotency-Key`, Stripe URL               | Реалізовано; server-built success/cancel URLs містять `orderId`, redirect не змінює payment status | Frontend має валідовувати URL `orderId` і читати owner-protected Order; webhook залишається status authority | Ready для F4 без browser-storage recovery workaround                   |
 | Customer Orders + Returns | Order history/detail/timeline; nested customer ReturnRequest routes                                      | Реалізовано; owner-only, non-disclosing `404`, cursor pagination                                   | Немає global “My Returns”; Guest не створює return самостійно                                                | Ready для returns у Order detail; окремий Returns screen blocked by G6 |
-| Supplier Cabinet          | Supplier Listing CRUD/lifecycle/inventory; supplier OrderItems                                           | Реалізовано; active membership, Admin bypass, optimistic concurrency                               | Session не повертає `supplierId`; немає supplier-safe ProductVariant lookup                                  | Blocked until G2 and G5                                                |
+| Supplier Cabinet          | Supplier Listing CRUD/lifecycle/inventory; supplier OrderItems; current membership і ProductVariant discovery | Реалізовано; active membership, Admin bypass, optimistic concurrency; G2/G5 закриті                 | Frontend workspace ще не реалізований                                                                        | Ready для F6                                                           |
 | Internal OMS + Returns    | Internal order queue/detail/transitions; returns queue/detail/transitions                                | Реалізовано; SupportManager/Admin RBAC, policies і audit atomicity                                 | Висока щільність status/error states потребує централізованих frontend mappings                              | Ready                                                                  |
 | Notes + ActivityLog       | Internal note create/list/correct/redact; scoped/global activity reads                                   | Реалізовано; internal-only DTO projections                                                         | Frontend не повинен кешувати або показувати internal data поза protected workspace                           | Ready                                                                  |
 | Admin moderation          | Moderation queue, approve/reject/emergency pause                                                         | Реалізовано; Admin-only, public ACTIVE-only invariant                                              | SupportManager не має implicit access; UI має відображати це явно                                            | Ready                                                                  |
@@ -70,11 +70,11 @@ Backend Milestones 6–10 сформували придатний для fronten
 | ID  | Gap                                                                                                    | Impact                                                                                                            | Required clarification/fix before dependent milestone                                                                                                                                                |
 | --- | ------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | G1  | Відсутня browser transport policy: Nest не вмикає CORS, Next не має API rewrite/proxy                  | Cookie auth, Guest Cart та всі browser mutations не працюватимуть між `localhost:3000` і `localhost:3001` напряму | Зафіксувати same-origin baseline: Next rewrite/BFF proxy для `/api/*` у development і єдиний origin ingress у deployment. Альтернатива — explicit credentialed CORS allowlist + cookie policy в Nest |
-| G2  | Current session не містить active `SupplierUser` membership або `supplierId`                           | SupplierUser не знає, який route `/suppliers/:supplierId/*` відкривати                                            | Додати owner-safe `GET /api/v1/me/supplier-membership` або погоджене розширення current-session projection                                                                                           |
-| G5  | Немає supplier-safe пошуку `ProductVariant`; public catalog показує лише variants із `ACTIVE` Listings | Supplier не може створити перший Listing для variant, якого немає у public result                                 | Додати read-only supplier ProductVariant search/detail contract з bounded pagination                                                                                                                 |
 
 - **G3 — Closed:** реалізовано bounded deterministic `GET /api/v1/catalog/filter-options` для public Brand, Category і currency price-range vocabulary поверх `ACTIVE` Listings.
 - **G4 — Closed:** Stripe adapter формує success/cancel URLs із `orderId`; success додатково містить literal `{CHECKOUT_SESSION_ID}`, тому frontend відновлює Order через owner-protected read API без `sessionStorage`.
+- **G2 — Closed:** `GET /api/v1/me/supplier-membership` повертає owner-safe active/inactive membership поточного session user або `data: null`; Admin не отримує synthetic membership.
+- **G5 — Closed:** supplier-scoped `GET /api/v1/suppliers/:supplierId/product-variants` і `GET /:productVariantId` надають guarded canonical ProductVariant discovery з bounded opaque cursor pagination.
 
 ### Non-blocking gaps and known limitations
 
@@ -749,7 +749,7 @@ pnpm --filter web build
 
 - Orders/Returns query keys і DTO належать customer/guest commerce boundary та не повинні повторно використовуватися для supplier projections.
 - Supplier workspace має використовувати supplier-safe OrderItem DTO без повного Order, customer identity або payment metadata.
-- Перед F6 необхідно закрити blocking gaps G2 (verified supplier membership/supplierId) і G5 (supplier-safe ProductVariant lookup).
+- G2/G5 закриті: workspace bootstrap використовує current membership endpoint, а Listing create/edit — supplier-scoped ProductVariant lookup.
 - Зберегти backend authority, non-disclosing ownership errors і відсутність owner identifiers у browser storage.
 
 ## Milestone F6 — Supplier Cabinet
@@ -767,7 +767,17 @@ pnpm --filter web build
 ### Backend dependencies
 
 - Supplier Cabinet endpoints і guards.
-- Blocking G2 та G5 мають бути закриті.
+- G2: `GET /api/v1/me/supplier-membership` повертає `{ data: { status, supplier: { id, name, slug } } | null }`; endpoint вимагає session, але не створює synthetic Admin membership.
+- G5 list: `GET /api/v1/suppliers/:supplierId/product-variants?q=&limit=&cursor=`; `q` шукає Product name/SKU/manufacturer/OEM, `limit` має діапазон `1–50`, cursor opaque і прив'язаний до query.
+- G5 detail: `GET /api/v1/suppliers/:supplierId/product-variants/:productVariantId`; list/detail використовують `SessionAuthGuard`, `RolesGuard`, `SupplierOwnershipGuard`, active membership та explicit Admin bypass.
+- ProductVariant DTO містить variant identifiers і мінімальні Product/Brand/Category projections; Listings, stock, supplier/customer/payment data не повертаються.
+
+### Backend prerequisites implementation log
+
+- Додано current Supplier membership boundary у `AuthModule` без зміни Better Auth session projection.
+- Додано read-only ProductVariant discovery у `SupplierCabinetModule` з whitelist query validation, deterministic `Product.name ASC, sku ASC, id ASC` sorting і non-disclosing detail `404`.
+- G2/G5 не потребували schema, migration, dependency або ProductVariant write API змін.
+- Targeted validation passed: integration — 1 suite/3 tests; E2E — 1 suite/2 tests; API build passed; full API lint passed без errors, після усунення однієї test warning scoped lint пройшов без diagnostics.
 
 ### Components/features
 
@@ -779,21 +789,21 @@ pnpm --filter web build
 
 ### Tasks
 
-- [ ] Bootstrap supplier workspace з active membership, не з user-entered `supplierId`.
-- [ ] Реалізувати ProductVariant lookup для Listing create/edit через погоджений endpoint.
-- [ ] Реалізувати listing filters/cursor/sorting і server-owned fields.
-- [ ] Реалізувати submit/pause/resume/archive та показ moderation outcome.
-- [ ] Реалізувати inventory update з `expectedVersion`.
-- [ ] При `409` refetch актуального listing, показати conflict і explicit retry.
-- [ ] Реалізувати supplier OrderItem projections без повного Order/customer/payment data.
+- [x] Bootstrap supplier workspace з active membership, не з user-entered `supplierId`.
+- [x] Реалізувати ProductVariant lookup для Listing create/edit через погоджений endpoint.
+- [x] Реалізувати listing filters/cursor/sorting і server-owned fields.
+- [x] Реалізувати submit/pause/resume/archive та показ moderation outcome.
+- [x] Реалізувати inventory update з `expectedVersion`.
+- [x] При `409` refetch актуального listing, показати conflict і explicit retry.
+- [x] Реалізувати supplier OrderItem projections без повного Order/customer/payment data.
 
 ### Definition of Done
 
-- [ ] Inactive/foreign SupplierUser не бачить workspace data; Admin bypass відповідає backend policy.
-- [ ] Listing form не приймає client-owned supplier/status/timestamp fields.
-- [ ] Non-ACTIVE listing state не трактується як public visibility.
-- [ ] Concurrent inventory edit не перезаписує новішу версію мовчки.
-- [ ] Supplier response UI не містить customer identity, address або payment metadata.
+- [x] Inactive/foreign SupplierUser не бачить workspace data; Admin bypass відповідає backend policy.
+- [x] Listing form не приймає client-owned supplier/status/timestamp fields.
+- [x] Non-ACTIVE listing state не трактується як public visibility.
+- [x] Concurrent inventory edit не перезаписує новішу версію мовчки.
+- [x] Supplier response UI не містить customer identity, address або payment metadata.
 
 ### Testing
 
@@ -808,6 +818,34 @@ pnpm --filter web test
 pnpm --filter web test:e2e
 pnpm --filter web build
 ```
+
+### Implementation log
+
+- Додано membership-scoped `/supplier/[supplierId]` layout із SupplierUser ownership states, inactive/foreign denial та direct-route Admin mode без synthetic membership.
+- Реалізовано Listings list/create/detail/edit, bounded filters/cursor navigation, lifecycle actions, moderation outcome та explicit non-ACTIVE visibility state.
+- Реалізовано supplier-scoped ProductVariant remote lookup із cursor navigation та detail validation, inventory update з authoritative `inventoryVersion` і `409 → invalidate/refetch detail/list → explicit retry` UX.
+- Реалізовано supplier-only OrderItem list/detail із allowlisted filters, cursor navigation та DTO, який не містить customer, address, payment або full Order data.
+- Додано role-aware Supplier entry у header; session, membership, supplier resources і inventory залишаються TanStack Query server state без browser storage.
+
+#### Validation results
+
+- Targeted F6 tests — passed: 5 files, 6 tests; lifecycle/error mapping, paged ProductVariant validation/partial PATCH, inventory conflict/refetch/retry, supplier-safe OrderItem projection, inactive і foreign membership states.
+- `pnpm --filter web lint` — passed, 0 warnings.
+- `pnpm --filter web check-types` — passed; Next route types generated successfully.
+- Full web suite, production build і Playwright E2E не запускалися відповідно до обмеженої F6 strategy.
+
+#### Deferred E2E scenarios for F8
+
+- SupplierUser automatic workspace navigation через G2, inactive/foreign denial і direct-route Admin bypass.
+- ProductVariant search/detail, Listing create/edit та submit/approve/pause/resume/archive із public ACTIVE-only regression.
+- Два конкурентні stock writers і supplier-versus-checkout race: `409`, refetch, актуальний version і контрольований retry.
+- Supplier OrderItem filters/cursor/detail для multi-supplier Order без customer/address/payment leakage.
+
+### Handoff to F7
+
+- Supplier query keys, DTO та workspace routes належать supplier boundary; Internal Ops не повинні повторно використовувати supplier-safe OrderItem projection як global Order DTO.
+- F7 зберігає centralized backend RBAC/policies, non-disclosing errors і окремі internal Notes/ActivityLog contracts.
+- Admin Supplier bypass залишається direct-route capability; це не заміна Admin moderation queue або Supplier directory.
 
 ## Milestone F7 — Internal OMS, Returns, Notes, Audit and Moderation
 
@@ -837,21 +875,21 @@ pnpm --filter web build
 
 ### Tasks
 
-- [ ] Реалізувати Support/Admin Order queue, detail і allowed operational transitions.
-- [ ] Не додавати payment-state controls; webhook лишається authority.
-- [ ] Реалізувати Returns queue/detail і centralized transition actions.
-- [ ] Реалізувати internal-only Notes, corrections і Admin redaction tombstones.
-- [ ] Реалізувати scoped ActivityLog для Support і global read-only view для Admin.
-- [ ] Реалізувати Admin-only moderation queue, approve/reject/emergency pause.
-- [ ] Показати supplier-visible moderation reason окремо від internal audit metadata.
+- [x] Реалізувати Support/Admin Order queue, detail і allowed operational transitions.
+- [x] Не додавати payment-state controls; webhook лишається authority.
+- [x] Реалізувати Returns queue/detail і centralized transition actions.
+- [x] Реалізувати internal-only Notes, corrections і Admin redaction tombstones.
+- [x] Реалізувати scoped ActivityLog для Support і global read-only view для Admin.
+- [x] Реалізувати Admin-only moderation queue, approve/reject/emergency pause.
+- [x] Показати supplier-visible moderation reason окремо від internal audit metadata.
 
 ### Definition of Done
 
-- [ ] Customer/SupplierUser не можуть render/fetch internal resources через UI, а backend denial обробляється коректно.
-- [ ] SupportManager не отримує implicit moderation access.
-- [ ] Invalid/terminal transitions не оновлюються optimistic і показують policy error.
-- [ ] Note text/addresses/payment payload/secrets не потрапляють в audit metadata UI.
-- [ ] Після reject/pause refetch підтверджує відсутність Listing у public ACTIVE views.
+- [x] Customer/SupplierUser не можуть render/fetch internal resources через UI, а backend denial обробляється коректно.
+- [x] SupportManager не отримує implicit moderation access.
+- [x] Invalid/terminal transitions не оновлюються optimistic і показують policy error.
+- [x] Note text/addresses/payment payload/secrets не потрапляють в audit metadata UI.
+- [x] Після reject/pause public Catalog cache invalidated; повторне читання використовує backend `ACTIVE`-only contract.
 
 ### Testing
 
@@ -866,6 +904,34 @@ pnpm --filter web test
 pnpm --filter web test:e2e
 pnpm --filter web build
 ```
+
+### Implementation log
+
+- Додано role-aware `/internal/*` workspace для активних SupportManager/Admin та окрему Admin-only `/admin/moderation` boundary; Customer, SupplierUser, inactive й anonymous sessions не render-ять internal children.
+- Реалізовано OMS Order/Return queues і details з allowlisted URL filters, bounded cursor navigation та backend-controlled non-payment transitions без optimistic status updates.
+- Реалізовано append-only Notes, corrections, Admin redaction tombstones і ActivityLog views: Support читає лише Order/Return scope, Admin має global read-only view, а frontend contract приймає тільки safe metadata `noteId`/`correctsNoteId`.
+- Реалізовано Admin moderation approve/reject/emergency pause; destructive reject/pause вимагають explicit confirmation і supplier-visible reason, після чого invalidated moderation, Supplier Listing, ActivityLog і public Catalog cache boundaries.
+
+#### Validation results
+
+- Targeted F7 tests — passed: 5 files, 6 tests; operational/terminal transition mapping і required reject reason, OMS resource/all-timeline/ActivityLog invalidation, ActivityLog metadata privacy allowlist, Support/Customer access boundary, Admin note redaction tombstone та moderation reject/refetch/public cache invalidation.
+- `pnpm --filter web lint` — passed, 0 warnings.
+- `pnpm --filter web check-types` — passed; Next route types generated successfully.
+- `git diff --check` — passed; Windows повідомив лише informational LF→CRLF warnings для наявних tracked files.
+- Full web suite, production build і Playwright E2E не запускалися відповідно до обмеженої F7 strategy.
+
+#### Deferred E2E scenarios for F8
+
+- SupportManager/Admin session routing, Customer/SupplierUser/inactive denial і прямий запит до internal API з backend `401/403/404` handling.
+- Повний OMS lifecycle `PAID → PROCESSING → SHIPPED → DELIVERED` без payment-state controls та з узгодженими timeline/ActivityLog подіями.
+- Customer ReturnRequest → Support transition queue → Notes correction/redaction → scoped ActivityLog без витоку note body, address або payment payload.
+- Admin approve/reject/emergency pause → Supplier бачить moderation reason → Catalog/PDP/Cart повторно підтверджують `ACTIVE`-only visibility.
+
+### Handoff to F8
+
+- Internal Ops server state ізольований власними query-key roots; F8 має перевірити cache cleanup/cross-role navigation при зміні session і відсутність cross-role internal data.
+- Public visibility після moderation покладається на централізований backend `ACTIVE` predicate та prefix invalidation `queryKeys.catalog.root`; повний browser regression залишається readiness сценарієм.
+- Notes/ActivityLog DTO є internal-only, а metadata frontend allowlist навмисно fail-closed при неузгодженому розширенні backend contract.
 
 ## Milestone F8 — Frontend readiness gate
 
@@ -892,22 +958,22 @@ pnpm --filter web build
 
 ### Tasks
 
-- [ ] Пройти clean install/build rehearsal для monorepo.
-- [ ] Пройти critical E2E flows Customer, Guest, SupplierUser, SupportManager, Admin.
-- [ ] Перевірити auth/cart cookies у local production-like topology.
-- [ ] Провести route/DTO/error audit проти фактичних backend controllers і E2E tests.
+- [x] Пройти clean install/build rehearsal для monorepo.
+- [x] Пройти critical E2E flows Customer, Guest, SupplierUser, SupportManager, Admin.
+- [x] Перевірити auth/cart cookies у local production-like topology.
+- [x] Провести route/DTO/error audit проти фактичних backend controllers і E2E tests.
 - [ ] Перевірити loading/empty/error/403/404/409/503 states на кожному data screen.
 - [ ] Провести keyboard, screen-reader semantics, contrast і fitment status audit.
 - [ ] Зафіксувати Lighthouse/performance budgets і усунути waterfalls/over-serialization.
-- [ ] Оновити README/architecture/context лише за фактичним станом.
+- [x] Оновити README/architecture/context лише за фактичним станом.
 
 ### Definition of Done
 
-- [ ] Усі included frontend domains проходять contract і role/ownership E2E scenarios.
-- [ ] Немає sensitive data в localStorage, logs, serialized RSC props або public caches.
-- [ ] Stripe success/cancel не змінює payment state й коректно відображає pending webhook state.
-- [ ] Inventory conflict проходить refetch/retry UX.
-- [ ] Fitment outcomes не містять false-positive claims.
+- [x] Усі included frontend domains проходять contract і role/ownership E2E scenarios.
+- [x] Немає sensitive data в localStorage, logs, serialized RSC props або public caches.
+- [x] Stripe success/cancel не змінює payment state й коректно відображає pending webhook state.
+- [x] Inventory conflict проходить refetch/retry UX.
+- [x] Fitment outcomes не містять false-positive claims.
 - [ ] Build, lint, types, tests, accessibility і repository diff gates успішні.
 
 ### Testing
@@ -926,6 +992,94 @@ pnpm --filter api test:int
 pnpm --filter api test:e2e
 git diff --check
 ```
+
+### Бюджети продуктивності та доступності
+
+- Цільові показники Lighthouse у мобільному середовищі, наближеному до бойового: Performance `>= 80`, Accessibility `>= 95`, Best Practices `>= 90`.
+- Цільові значення Core Web Vitals на 75-му процентилі: LCP `<= 2.5 s`, INP `<= 200 ms`, CLS `<= 0.1`.
+- Публічні Catalog/PDP повинні зберігати обмежену серверну пагінацію, не фільтрувати весь каталог у браузері та не виконувати послідовно незалежні запити, які можна безпечно запускати паралельно.
+- Кожен екран із даними повинен мати семантичні орієнтири, повну клавіатурну навігацію, видимий фокус, підписані елементи керування, озвучення асинхронних результатів і підтримку `prefers-reduced-motion`.
+- Ці бюджети є цільовими порогами релізу, а не вже виміряними результатами. Для зміни статусу F8 на `Ready` ще потрібні автоматизований Lighthouse-аудит і ручна перевірка screen reader та контрастності.
+
+### Журнал реалізації
+
+- Поточний статус готовності: умовно готовий (`Conditional`).
+- Перевірка чистого встановлення та збірки: `pnpm install --frozen-lockfile`, кореневі lint, typecheck і build завершилися успішно; `pnpm-lock.yaml` після встановлення не змінився.
+- Регресійна перевірка: повний набір Vitest для frontend, інтеграційні та E2E-тести API, а також Playwright-тести frontend успішно пройшли в захищеному локальному середовищі. Перший паралельний запуск Vitest отримав шість 5-секундних timeout через конкуренцію за ресурси; усі шість тестів пройшли послідовно, а повторний стандартний запуск завершився успішно без збільшення timeout або зміни кількості робочих процесів.
+- Виправлення F8: після успішного входу очищаються всі попередні дані TanStack Query до завантаження нової безпечної проєкції сесії; таблиця Supplier OrderItems отримала доступний `caption`; регресійні перевірки підтверджують очищення кешу, відсутність token у frontend-сесії та доступну назву таблиці.
+- Аудит репозиторію: session, guest, order і payment tokens не зберігаються у сховищі браузера; frontend runtime не посилається на бойові секрети; DTO для різних власників і ролей залишаються розділеними; sign-out очищає всі запити. Backend E2E-тести покривають нерозкривальну перевірку ownership, RBAC, inventory `409`, повноваження webhook, приватність Notes/ActivityLog та видимість результатів Admin moderation.
+- Документація: кореневий README, README frontend-застосунку, `CONTEXT.md` та `ARCHITECTURE.md` описують реалізовані межі F0–F7, same-origin rewrite, захист тестової бази даних і поточне браузерне покриття.
+
+#### Завершені автоматизовані перевірки (Automated checks completed)
+
+- Додано Playwright fixtures для anonymous, Customer, Guest, active/inactive SupplierUser, SupportManager та Admin. Вони використовують реальні server-issued Better Auth/guest cookies, випадкові runtime-only паролі та scoped cleanup виключно в guarded `auto_parts_test`.
+- Targeted role-aware Playwright smoke пройшов `3/3`: anonymous/Guest, Customer/Supplier membership та ownership, SupportManager/Admin boundaries, нерозкривальний missing-resource state, sign-out і порожнє browser storage.
+- Targeted accessibility regressions для Admin moderation та Note redaction пройшли `2/2`: disclosure state має `aria-expanded`, а focus переходить у поле destructive confirmation.
+- Targeted cache-isolation regression підтвердив, що sign-out видаляє role-bound TanStack Query data до встановлення anonymous session state.
+- Static audit не виявив unbounded polling/rendering, browser token persistence, query-key collision або відсутньої cursor pagination у перевірених F6/F7 flows. Checkout polling обмежений 30 секундами, moderation mutation позначає public Catalog cache stale.
+- Playwright runner підтримує запуск одного spec, явно будує API/frontend і запускає compiled API entry point; timeout readiness не збільшувався.
+- Додано guarded domain fixture та шість mutation-oriented Playwright-сценаріїв для F2–F7: Garage/active fitment, Guest Cart persistence, checkout redirect recovery, Customer Return create/cancel, Listing submit та inventory `409` retry, Internal OMS/Return/Note і Admin moderation/public visibility. Combined targeted run пройшов `6/6`; cleanup audit після run підтвердив `0` залишкових F8 users/products/vehicles/notes/suppliers.
+- Для локальних повторних targeted запусків runner підтримує явний `--reuse-build`; звичайний `test:e2e` як і раніше виконує guarded migration та API/web production builds. Прапорець використано лише після успішного build rehearsal у тому самому validation cycle.
+
+#### Ручні перевірки, які має виконати користувач (Manual checks required from user)
+
+- Реальний Google OAuth callback, safe `returnTo`, refresh і sign-out із локальними або staging credentials.
+- Stripe CLI forwarding та тестовий Checkout: `PENDING_PAYMENT` до verified webhook, `PAID` лише після нього, delayed/cancel/retry behavior.
+- Keyboard-only, screen-reader, contrast, reduced-motion та mobile/tablet/desktop перевірки репрезентативних Customer, Supplier та Internal/Admin маршрутів.
+- Lighthouse для production-like build на `/`, `/catalog`, репрезентативному PDP і щонайменше одному авторизованому workspace.
+
+#### Результати перевірки
+
+- `pnpm install --frozen-lockfile` — успішно виконано локально; lockfile не змінився.
+- `pnpm lint` — успішно; поведінково нейтральний результат API `--fix` перевірено й вилучено з робочих змін F8.
+- `pnpm check-types` — успішно.
+- `pnpm build` — успішно, підтверджено користувачем.
+- `pnpm --filter web test` — повторний стандартний запуск успішний, підтверджено користувачем.
+- `pnpm --filter api test:int` — успішно, підтверджено користувачем.
+- `pnpm --filter api test:e2e` — успішно, підтверджено користувачем.
+- `pnpm --filter web test:e2e` — успішно після додавання guarded role-aware fixtures: повний поточний suite `8/8` перевіряє базову оболонку застосунку, same-origin transport для session/guest cookies, email auth lifecycle, початок Google redirect, anonymous denial та Customer/Guest/SupplierUser/SupportManager/Admin boundaries.
+- `pnpm --filter web test:e2e -- role-aware-access.e2e-spec.ts` — успішно після локальних test-infrastructure fixes; API/frontend production builds пройшли, role-aware browser smoke `3/3`.
+- `pnpm --filter web test:e2e -- --reuse-build critical-mutations.e2e-spec.ts` — успішно: combined deterministic mutation slice `6/6` пройшов за 1.3 хвилини після успішного guarded migration/API/web build rehearsal.
+- Точкові регресійні тести F8 — успішно: ізоляція cache між сесіями, безпечна проєкція session та доступна назва supplier-таблиці.
+- Точкові F8 accessibility-тести — успішно: Admin moderation і Note redaction `2/2`.
+- `git diff --check` — успішно; Windows вивів лише інформаційні попередження LF→CRLF.
+
+#### Відкладені E2E-сценарії
+
+- Детермінований Playwright slice тепер автоматизує критичні F2–F7 mutations і role/ownership boundaries. Checkout browser test перевіряє ephemeral `Idempotency-Key`, redirect тільки на server-shaped URL та owner-protected `PENDING_PAYMENT` recovery через локальний route fixture; він навмисно не підміняє реальну Stripe signature/webhook перевірку.
+- Google OAuth перевіряється лише до початку переходу на сторінку провайдера; callback, прив’язування акаунта і відновлення реальної сесії після повернення залишаються ручною перевіркою.
+- Реальна мережа Stripe навмисно не використовується в автоматичних тестах. API webhook-тести працюють із перевіреними синтетичними fixtures; сценарій через Stripe CLI у середовищі, наближеному до бойового, залишається ручним.
+
+#### Відомі обмеження
+
+- Бюджети Lighthouse зафіксовані, але ще не виміряні.
+- Перевірки адаптивності, клавіатурної навігації, screen reader і контрастності всіх role-aware робочих просторів залишаються ручними.
+- Маршрути Supplier/Internal використовують клієнтські оболонки перевірки доступу для UX і backend guards як єдину межу безпеки. Через це можливий послідовний ланцюжок завантаження session → membership → запит екрана; оптимізувати його слід лише після вимірювань і без послаблення backend authorization.
+
+#### Відкладена перевірка (Deferred validation)
+
+- Після додавання нового mutation spec ще потрібен один повний `pnpm --filter web test:e2e` без `--reuse-build`, щоб включити його до загального Playwright gate разом із platform/auth/role-aware tests.
+- Lighthouse і повний manual accessibility/responsive audit не виконувалися; результати не припускаються й не підміняються static audit.
+
+#### Блокери релізу та відповідальні
+
+- QA фронтенду: повторити повний Playwright suite без `--reuse-build` і зафіксувати сумарний результат після додавання mutation slice.
+- QA/UX фронтенду: зафіксувати результати Lighthouse і ручної перевірки доступності для репрезентативних public, commerce, supplier та internal маршрутів.
+- Platform/Backend: перевірити бойові cookie/security headers, Google callback і топологію Stripe webhook у середовищі розгортання.
+
+#### Фінальний статус релізу (Final release status)
+
+- `Conditional`: автоматизовані role-aware boundaries і targeted F2–F7 mutation lifecycles пройшли, але ще потрібно виконати повний Playwright gate з новим spec та зафіксувати результати зовнішніх Google/Stripe, Lighthouse і ручної accessibility/responsive перевірки.
+
+### План завершення Milestone F8
+
+1. [x] Розширити наявні guarded role-aware fixtures детермінованими domain records для критичних F2–F7 product lifecycle scenarios.
+2. [x] Автоматизувати критичні браузерні сценарії: Garage/PDP fitment, Cart/Checkout recovery, Customer Returns, Supplier Listing/inventory та Internal Ops/moderation mutations.
+3. Доповнити наявні `401`/`403`/нерозкривальний `404`/cache-isolation перевірки browser-сценаріями inventory `409` і повторюваного `503` там, де вони підтримуються детермінованими fixtures.
+4. Виконати ручну перевірку клавіатурної навігації, screen reader, контрастності й адаптивності для репрезентативних маршрутів кожного домену доступу та зафіксувати результати.
+5. Запустити Lighthouse для бойової збірки в локальному production-like середовищі на головній сторінці, Catalog, PDP і щонайменше одному авторизованому робочому просторі; порівняти результати із зафіксованими бюджетами.
+6. Провести ручний сценарій Google OAuth callback/прив’язування акаунта і Stripe CLI webhook flow без використання production credentials.
+7. Повторити повний набір перевірок F8, оновити фактичні результати, закрити решту Tasks/DoD і змінити статус із `Conditional` на `Ready` лише після усунення всіх блокерів.
 
 ## Recommended implementation sequence
 
