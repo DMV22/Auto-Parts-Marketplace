@@ -11,7 +11,7 @@
     "check-types": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "node ./test/e2e/run-playwright.mjs",
+    "test:e2e": "node ./test/e2e/run-playwright.mjs --grep-invert \"Lighthouse budgets\"",
     "test:a11y": "node ./test/e2e/run-playwright.mjs accessibility.e2e-spec.ts",
     "test:lighthouse": "node ./test/e2e/run-playwright.mjs lighthouse.e2e-spec.ts"
   },

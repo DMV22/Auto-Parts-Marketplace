@@ -39,6 +39,25 @@ pnpm --filter web build
 pnpm --filter web test:e2e
 ```
 
-The guarded E2E runner requires `TEST_DATABASE_URL` to target exactly `auto_parts_test`, applies committed migrations, builds the web app and uses an already-installed Chrome/Edge channel. It does not require live Stripe credentials or download browsers. Playwright covers platform/auth and deterministic critical F2–F7 mutations; real Google callback, Stripe webhook forwarding, Lighthouse and manual accessibility/responsive checks remain F8 release evidence.
+The guarded E2E runner requires `TEST_DATABASE_URL` to target exactly `auto_parts_test`, applies committed migrations, builds the web app and uses an already-installed Chrome/Edge channel. It does not require live Stripe credentials or download browsers. The default `test:e2e` command covers platform/auth, role isolation, accessibility and deterministic critical F2–F7 mutations; Lighthouse is a separate measured gate because an accepted local performance exception must not make the product regression command fail.
+
+Run the automated accessibility smoke against an existing production build:
+
+```bash
+pnpm --filter web build
+pnpm --filter web test:a11y --reuse-build
+```
+
+Lighthouse uses three runs and evaluates their median. Run one route at a time to keep local validation bounded:
+
+```bash
+pnpm --filter web test:lighthouse --reuse-build --grep "on home$"
+pnpm --filter web test:lighthouse --reuse-build --grep "on catalog$"
+pnpm --filter web test:lighthouse --reuse-build --grep "on PDP$"
+pnpm --filter web test:lighthouse --reuse-build --grep "on Supplier Listings$"
+pnpm --filter web test:lighthouse --reuse-build --grep "on Internal Orders$"
+```
+
+Real Google callback, Stripe webhook forwarding and manual screen-reader/responsive checks remain external F8 release evidence. Never place OAuth codes, access tokens, cookies, Stripe secrets or customer data in reports.
 
 See [Frontend milestones](../../docs/FRONTEND-MILESTONES.md) and [Architecture](../../docs/ARCHITECTURE.md).

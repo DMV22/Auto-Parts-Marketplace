@@ -4,7 +4,7 @@
 
 Auto Parts Marketplace is intended to let customers discover compatible automotive parts and suppliers manage marketplace inventory through a web application backed by a NestJS API and PostgreSQL.
 
-The repository currently implements the backend foundation plus the F0–F7 web experience for discovery, owner-isolated commerce, Supplier Cabinet and Internal Ops. It does not implement supplier fulfillment, shipping, refunds or external operational integrations; do not invent those workflows without an accepted milestone.
+The repository currently implements the backend foundation, the F0–F7 web experience for discovery, owner-isolated commerce, Supplier Cabinet and Internal Ops, and UI redesign slices U0–U5. U6/F8 remain `Conditional` pending external/manual evidence. It does not implement supplier fulfillment, shipping, refunds or external operational integrations; do not invent those workflows without an accepted milestone.
 
 ## Current system
 
@@ -106,7 +106,7 @@ Order/payment transitions are explicit application-service operations guarded by
 
 - supplier fulfillment and shipping workflows;
 - payouts, refunds and external CRM/notification integrations;
-- real-provider Google/Stripe release smoke, measured Lighthouse baselines and full manual accessibility/responsive evidence;
+- complete real-provider Google/Stripe release smoke and full manual accessibility/responsive evidence; measured Lighthouse baselines exist with an accepted local simulated-performance exception;
 - production database, secret management, backups, monitoring and deployment architecture.
 
 These capabilities belong to later milestones and must build on the established persistence, auth and ownership boundaries.
