@@ -43,6 +43,7 @@ describe('Catalog filter options API (e2e)', () => {
           data: {
             brands: [{ id: BRAND_ID, name: 'Filter E2E Brand' }],
             categories: [{ id: CATEGORY_ID, name: 'Filter E2E Category' }],
+            defaultCurrency: 'UAH',
             currencies: [
               {
                 code: 'UAH',

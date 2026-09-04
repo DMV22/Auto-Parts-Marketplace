@@ -10,6 +10,7 @@ const optionsState = {
     data: {
       brands: [],
       categories: [],
+      defaultCurrency: "EUR",
       currencies: [
         { code: "EUR", minimumPrice: "22", maximumPrice: "449" },
       ],
