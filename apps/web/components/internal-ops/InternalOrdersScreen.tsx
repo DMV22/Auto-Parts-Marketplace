@@ -35,12 +35,19 @@ export function InternalOrdersScreen({ query }: { query: InternalOrdersQuery }) 
     router.push(`/internal/orders${search.size ? `?${search}` : ""}`);
   }
 
-  if (orders.isPending) return <p role="status">Завантажуємо чергу замовлень…</p>;
+  if (orders.isPending) {
+    return (
+      <section className={styles.state}>
+        <h2>Черга замовлень</h2>
+        <p role="status">Завантажуємо операційні дані…</p>
+      </section>
+    );
+  }
   if (orders.isError) {
     return (
       <section className={styles.state}>
         <h2>Черга замовлень недоступна</h2>
-        <p>Перевірте session/role або повторіть запит.</p>
+        <p>Перевірте доступ або повторіть запит.</p>
         <Button type="button" variant="outline" onClick={() => void orders.refetch()}>
           Спробувати ще раз
         </Button>
@@ -51,10 +58,11 @@ export function InternalOrdersScreen({ query }: { query: InternalOrdersQuery }) 
   return (
     <section className={styles.workspace} aria-labelledby="internal-orders-title">
       <header className={styles.heading}>
+        <p>Операційні дані</p>
         <h2 id="internal-orders-title">Черга замовлень</h2>
-        <p>Payment outcome доступний лише для читання; payment state змінює Stripe webhook.</p>
+        <p>Переглядайте стан виконання. Результат оплати доступний лише для читання.</p>
       </header>
-      <form className={styles.filters} onSubmit={applyFilters}>
+      <form className={styles.filters} data-layout="orders" onSubmit={applyFilters}>
         <div className={styles.field}>
           <label htmlFor="internal-order-status">Статус</label>
           <select id="internal-order-status" name="status" defaultValue={query.status ?? ""}>
@@ -74,33 +82,37 @@ export function InternalOrdersScreen({ query }: { query: InternalOrdersQuery }) 
           </select>
         </div>
         <div className={styles.field}>
-          <label htmlFor="payment-outcome">Payment outcome</label>
+          <label htmlFor="payment-outcome">Результат оплати</label>
           <select id="payment-outcome" name="paymentOutcome" defaultValue={query.paymentOutcome ?? ""}>
             <option value="">Усі</option>
-            <option value="PENDING">Pending</option>
-            <option value="PAID">Paid</option>
-            <option value="FAILED_OR_EXPIRED">Failed / expired</option>
-            <option value="NOT_APPLICABLE">Not applicable</option>
+            <option value="PENDING">Очікується</option>
+            <option value="PAID">Оплачено</option>
+            <option value="FAILED_OR_EXPIRED">Не вдалося або прострочено</option>
+            <option value="NOT_APPLICABLE">Не застосовується</option>
           </select>
         </div>
         <DateField id="orders-from" name="createdFrom" label="Створено від" value={query.createdFrom} />
         <DateField id="orders-to" name="createdTo" label="Створено до" value={query.createdTo} />
-        <Button type="submit">Застосувати</Button>
+        <div className={styles.filterActions}>
+          <Link href="/internal/orders">Скинути</Link>
+          <Button type="submit">Застосувати</Button>
+        </div>
       </form>
 
       {orders.data.data.length === 0 ? (
         <div className={styles.state}>Замовлень за цими фільтрами немає.</div>
       ) : (
         <div className={styles.tableWrapper}>
-          <table className={styles.table}>
+          <table className={`${styles.table} ${styles.ordersTable}`}>
             <caption className="sr-only">Internal OMS — черга замовлень</caption>
             <thead>
               <tr>
                 <th scope="col">Замовлення</th>
                 <th scope="col">Статус</th>
                 <th scope="col">Клієнт</th>
-                <th scope="col">Payment</th>
+                <th scope="col">Оплата</th>
                 <th scope="col">Сума</th>
+                <th scope="col">Позиції</th>
                 <th scope="col">Дата</th>
                 <th scope="col">Дія</th>
               </tr>
@@ -108,13 +120,14 @@ export function InternalOrdersScreen({ query }: { query: InternalOrdersQuery }) 
             <tbody>
               {orders.data.data.map((order) => (
                 <tr key={order.orderId}>
-                  <td translate="no">{order.orderId}</td>
-                  <td><OrderStatusBadge status={order.status} /></td>
-                  <td>{order.customerName ?? (order.customerType === "GUEST" ? "Guest" : "Без імені")}</td>
-                  <td>{order.paymentOutcome}</td>
-                  <td>{formatMoney(order.totalAmount, order.currency)}</td>
-                  <td>{formatInternalDate(order.createdAt)}</td>
-                  <td><Link href={`/internal/orders/${order.orderId}`}>Деталі</Link></td>
+                  <td data-label="Замовлення"><span className={styles.identifier} translate="no">{order.orderId}</span></td>
+                  <td data-label="Статус"><OrderStatusBadge status={order.status} /></td>
+                  <td data-label="Клієнт">{order.customerName ?? (order.customerType === "GUEST" ? "Гість" : "Без імені")}<span className={styles.meta}>{order.customerType === "GUEST" ? "Гостьове замовлення" : "Клієнт"}</span></td>
+                  <td data-label="Оплата"><PaymentOutcome value={order.paymentOutcome} /></td>
+                  <td data-label="Сума" className={styles.numericValue}>{formatMoney(order.totalAmount, order.currency)}</td>
+                  <td data-label="Позиції" className={styles.numericValue}>{order.itemCount}</td>
+                  <td data-label="Дата"><time dateTime={order.createdAt}>{formatInternalDate(order.createdAt)}</time></td>
+                  <td data-label="Дія"><Link className={styles.rowAction} href={`/internal/orders/${order.orderId}`}>Деталі</Link></td>
                 </tr>
               ))}
             </tbody>
@@ -128,6 +141,18 @@ export function InternalOrdersScreen({ query }: { query: InternalOrdersQuery }) 
       ) : null}
     </section>
   );
+}
+
+function PaymentOutcome({
+  value,
+}: Readonly<{ value: "PENDING" | "PAID" | "FAILED_OR_EXPIRED" | "NOT_APPLICABLE" }>) {
+  const presentation = {
+    PENDING: { label: "Очікується", tone: "warning" },
+    PAID: { label: "Оплачено", tone: "positive" },
+    FAILED_OR_EXPIRED: { label: "Не підтверджено", tone: "negative" },
+    NOT_APPLICABLE: { label: "Не застосовується", tone: "neutral" },
+  }[value];
+  return <span className={styles.paymentOutcome} data-tone={presentation.tone}>{presentation.label}</span>;
 }
 
 function DateField({ id, name, label, value }: { id: string; name: string; label: string; value?: string }) {

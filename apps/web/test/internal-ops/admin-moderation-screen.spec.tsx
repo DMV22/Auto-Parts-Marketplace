@@ -76,11 +76,11 @@ describe("AdminModerationScreen", () => {
     );
 
     expect(await screen.findByText("BRAKE-100")).toBeVisible();
-    const rejectTrigger = screen.getByRole("button", { name: "Reject…" });
+    const rejectTrigger = screen.getByRole("button", { name: "Відхилити…" });
     fireEvent.click(rejectTrigger);
     expect(rejectTrigger).toHaveAttribute("aria-expanded", "true");
     const rejectionReason = screen.getByLabelText(
-      "Supplier-visible rejection reason",
+      "Причина відхилення для постачальника",
     );
     await waitFor(() => expect(rejectionReason).toHaveFocus());
     fireEvent.change(
@@ -88,14 +88,14 @@ describe("AdminModerationScreen", () => {
       { target: { value: "Unsafe description" } },
     );
     fireEvent.click(
-      screen.getByRole("button", { name: "Підтвердити reject" }),
+      screen.getByRole("button", { name: "Підтвердити відхилення" }),
     );
 
     await waitFor(() =>
       expect(submittedBody).toEqual({ reason: "Unsafe description" }),
     );
     expect(
-      await screen.findByText("Listings за цими фільтрами відсутні."),
+      await screen.findByText("Оголошень за цими фільтрами немає."),
     ).toBeVisible();
     expect(screen.queryByText("BRAKE-100")).not.toBeInTheDocument();
     expect(queryClient.getQueryState(publicCatalogKey)?.isInvalidated).toBe(

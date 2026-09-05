@@ -36,23 +36,41 @@ export function SupplierInventoryScreen({
   return (
     <section className={styles.workspace} aria-labelledby="inventory-title">
       <header className={styles.heading}>
+        <p>Операційні дані</p>
         <h2 id="inventory-title">Залишки</h2>
-        <p>Кожна зміна використовує актуальний inventoryVersion.</p>
+        <p>Оновлюйте доступну кількість і перевіряйте актуальну версію перед повтором.</p>
       </header>
       {listings.data.data.length === 0 ? (
         <div className={styles.state}>Немає оголошень для редагування.</div>
       ) : (
-        <ul className={styles.list}>
+        <div className={styles.inventoryGrid}>
+          <div className={styles.inventoryHeader} aria-hidden="true">
+            <span>SKU / Деталь</span>
+            <span>Статус</span>
+            <span>Поточний залишок</span>
+            <span>Нова кількість</span>
+            <span>Версія</span>
+            <span>Дія</span>
+          </div>
+        <ul className={styles.inventoryList}>
           {listings.data.data.map((listing) => (
-            <li key={listing.id} className={styles.card}>
-              <div>
-                <strong>{listing.productVariant.sku}</strong>
+            <li key={listing.id} className={styles.inventoryRow}>
+              <div className={styles.inventoryIdentity}>
+                <strong className={styles.identifier}>
+                  {listing.productVariant.sku}
+                </strong>
+                <span className={styles.meta}>
+                  MPN {listing.productVariant.manufacturerPartNumber}
+                </span>
+              </div>
+              <div className={styles.inventoryListingStatus}>
                 <ListingStatusBadge status={listing.status} />
               </div>
               <InventoryEditor supplierId={supplierId} listing={listing} />
             </li>
           ))}
         </ul>
+        </div>
       )}
       {listings.data.meta.nextCursor ? (
         <p className={styles.warning}>
@@ -110,16 +128,22 @@ export function InventoryEditor({
   const feedback = update.error ? inventoryError(update.error) : null;
   const invalidQuantity =
     !/^\d+$/.test(quantity) || Number(quantity) > 2_147_483_647;
+  const quantityErrorId = `stock-${listing.id}-error`;
 
   return (
-    <div className={styles.stack}>
+    <div className={styles.inventoryEditor}>
+      <div className={styles.inventoryCurrent}>
+        <span>Поточний залишок</span>
+        <strong>{listing.stockQuantity}</strong>
+      </div>
       <div className={styles.field}>
-        <label htmlFor={`stock-${listing.id}`}>Кількість</label>
+        <label htmlFor={`stock-${listing.id}`}>Нова кількість</label>
         <input
           id={`stock-${listing.id}`}
           inputMode="numeric"
           value={quantity}
           aria-invalid={invalidQuantity}
+          aria-describedby={invalidQuantity ? quantityErrorId : undefined}
           disabled={listing.status === "ARCHIVED" || update.isPending}
           onChange={(event) => {
             preserveAttemptRef.current = false;
@@ -127,15 +151,16 @@ export function InventoryEditor({
             setQuantity(event.target.value);
           }}
         />
+        {invalidQuantity ? (
+          <span id={quantityErrorId} className={styles.fieldError}>
+            Вкажіть ціле невід’ємне число.
+          </span>
+        ) : null}
       </div>
-      <p className={styles.meta}>
-        Актуальний залишок: {listing.stockQuantity}; версія: {listing.inventoryVersion}
-      </p>
-      {feedback ? (
-        <p className={styles.error} role="alert">
-          {feedback.message}
-        </p>
-      ) : null}
+      <div className={styles.inventoryVersion}>
+        <span>Версія</span>
+        <strong>{listing.inventoryVersion}</strong>
+      </div>
       <Button
         type="button"
         disabled={
@@ -145,6 +170,21 @@ export function InventoryEditor({
       >
         {update.isPending ? "Оновлюємо…" : feedback?.conflict ? "Повторити" : "Зберегти"}
       </Button>
+      {feedback ? (
+        <div
+          className={feedback.conflict ? styles.inventoryConflict : styles.error}
+          role="alert"
+        >
+          <strong>{feedback.conflict ? "Залишок уже змінився" : "Помилка оновлення"}</strong>
+          <p>{feedback.message}</p>
+          {feedback.conflict ? (
+            <p>
+              Актуальний залишок: {listing.stockQuantity} · Версія:{" "}
+              {listing.inventoryVersion}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

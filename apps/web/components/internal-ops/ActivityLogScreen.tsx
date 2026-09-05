@@ -45,26 +45,36 @@ export function ActivityLogScreen({ query }: { query: ActivityQuery }) {
   return (
     <section className={styles.workspace} aria-labelledby="activity-title">
       <header className={styles.heading}>
-        <h2 id="activity-title">ActivityLog</h2>
-        <p>{isAdmin ? "Admin має global read-only audit." : "SupportManager читає audit лише в scope конкретного Order або ReturnRequest."}</p>
+        <p>Аудит</p>
+        <h2 id="activity-title">Журнал дій</h2>
+        <p>{isAdmin ? "Перегляд усіх дозволених подій без можливості редагування." : "Вкажіть конкретне замовлення або повернення для перегляду його історії."}</p>
       </header>
-      <form className={styles.filters} onSubmit={applyFilters}>
-        <div className={styles.field}><label htmlFor="activity-resource-type">Resource type</label><select id="activity-resource-type" name="resourceType" defaultValue={query.resourceType ?? ""}><option value="">Усі</option>{resources.map((resource) => <option key={resource} value={resource}>{resource}</option>)}</select></div>
-        <div className={styles.field}><label htmlFor="activity-resource-id">Resource ID</label><input id="activity-resource-id" name="resourceId" defaultValue={query.resourceId ?? ""} autoComplete="off" spellCheck={false} /></div>
-        {isAdmin ? <div className={styles.field}><label htmlFor="activity-actor-id">Actor ID</label><input id="activity-actor-id" name="actorId" defaultValue={query.actorId ?? ""} autoComplete="off" spellCheck={false} /></div> : null}
-        <div className={styles.field}><label htmlFor="activity-action">Action</label><input id="activity-action" name="action" defaultValue={query.action ?? ""} placeholder="Наприклад, NOTE_CREATED…" autoComplete="off" spellCheck={false} /></div>
+      <form className={styles.filters} data-layout="activity" onSubmit={applyFilters}>
+        <div className={styles.field}><label htmlFor="activity-resource-type">Тип ресурсу</label><select id="activity-resource-type" name="resourceType" defaultValue={query.resourceType ?? ""}><option value="">Усі</option>{resources.map((resource) => <option key={resource} value={resource}>{resourceLabel(resource)}</option>)}</select></div>
+        <div className={styles.field}><label htmlFor="activity-resource-id">ID ресурсу</label><input id="activity-resource-id" name="resourceId" defaultValue={query.resourceId ?? ""} placeholder="UUID ресурсу…" autoComplete="off" spellCheck={false} /></div>
+        {isAdmin ? <div className={styles.field}><label htmlFor="activity-actor-id">ID виконавця</label><input id="activity-actor-id" name="actorId" defaultValue={query.actorId ?? ""} placeholder="UUID користувача…" autoComplete="off" spellCheck={false} /></div> : null}
+        <div className={styles.field}><label htmlFor="activity-action">Дія</label><input id="activity-action" name="action" defaultValue={query.action ?? ""} placeholder="Наприклад, NOTE_CREATED…" autoComplete="off" spellCheck={false} /></div>
         <div className={styles.field}><label htmlFor="activity-from">Створено від</label><input id="activity-from" name="createdFrom" type="datetime-local" defaultValue={toDateTimeLocal(query.createdFrom)} autoComplete="off" /></div>
         <div className={styles.field}><label htmlFor="activity-to">Створено до</label><input id="activity-to" name="createdTo" type="datetime-local" defaultValue={toDateTimeLocal(query.createdTo)} autoComplete="off" /></div>
-        <Button type="submit">Застосувати</Button>
+        <div className={styles.filterActions}><Link href="/internal/activity">Скинути</Link><Button type="submit">Застосувати</Button></div>
       </form>
-      {!isAdmin && !hasSupportScope ? <div className={styles.warning}>Оберіть ORDER або RETURN_REQUEST і введіть Resource ID.</div> : null}
-      {activity.isPending && activity.fetchStatus !== "idle" ? <p role="status">Завантажуємо audit…</p> : null}
-      {activity.isError ? <div className={styles.error} role="alert">ActivityLog недоступний. Перевірте scope та query values.</div> : null}
-      {activity.data?.data.length === 0 ? <div className={styles.state}>Audit events за цими фільтрами відсутні.</div> : null}
+      {!isAdmin && !hasSupportScope ? <div className={styles.warning}>Оберіть замовлення або повернення та введіть ID ресурсу.</div> : null}
+      {activity.isPending && activity.fetchStatus !== "idle" ? <p role="status">Завантажуємо журнал…</p> : null}
+      {activity.isError ? <div className={styles.error} role="alert">Журнал недоступний. Перевірте область пошуку та значення фільтрів.</div> : null}
+      {activity.data?.data.length === 0 ? <div className={styles.state}>Подій за цими фільтрами немає.</div> : null}
       {activity.data?.data.length ? (
-        <div className={styles.tableWrapper}><table className={styles.table}><caption className="sr-only">Internal ActivityLog events</caption><thead><tr><th scope="col">Дата</th><th scope="col">Actor</th><th scope="col">Resource</th><th scope="col">Action</th><th scope="col">Transition</th><th scope="col">Reason / metadata</th></tr></thead><tbody>{activity.data.data.map((item) => <tr key={item.id}><td>{formatInternalDate(item.createdAt)}</td><td>{item.actorRole ?? "SYSTEM"}<br /><span className={styles.meta} translate="no">{item.actorUserId ?? "—"}</span></td><td>{item.resourceType}<br /><span className={styles.meta} translate="no">{item.resourceId}</span></td><td>{item.action}</td><td>{item.previousStatus ?? "—"} → {item.newStatus ?? "—"}</td><td>{item.reason ?? "—"}{item.metadata ? <ul className={styles.metadata}>{Object.entries(item.metadata).map(([key, value]) => <li key={key}>{key}: <span translate="no">{value}</span></li>)}</ul> : null}</td></tr>)}</tbody></table></div>
+        <div className={styles.tableWrapper}><table className={styles.table}><caption className="sr-only">Події внутрішнього журналу дій</caption><thead><tr><th scope="col">Дата</th><th scope="col">Виконавець</th><th scope="col">Ресурс</th><th scope="col">Дія</th><th scope="col">Перехід</th><th scope="col">Причина / metadata</th></tr></thead><tbody>{activity.data.data.map((item) => <tr key={item.id}><td data-label="Дата"><time dateTime={item.createdAt}>{formatInternalDate(item.createdAt)}</time></td><td data-label="Виконавець"><code>{item.actorRole ?? "SYSTEM"}</code><span className={styles.meta} translate="no">{item.actorUserId ?? "—"}</span></td><td data-label="Ресурс"><code>{item.resourceType}</code><span className={styles.meta} translate="no">{item.resourceId}</span></td><td data-label="Дія"><code>{item.action}</code></td><td data-label="Перехід"><span className={styles.transitionValue}>{item.previousStatus ?? "—"} <span aria-hidden="true">→</span> {item.newStatus ?? "—"}</span></td><td data-label="Причина / metadata">{item.reason ?? "—"}{item.metadata ? <ul className={styles.metadata}>{Object.entries(item.metadata).map(([key, value]) => <li key={key}>{key}: <span translate="no">{value}</span></li>)}</ul> : null}</td></tr>)}</tbody></table></div>
       ) : null}
       {activity.data?.pageInfo.nextCursor ? <div className={styles.pagination}><Link href={internalCursorHref("/internal/activity", query, activity.data.pageInfo.nextCursor, "limit")}>Наступна сторінка</Link></div> : null}
     </section>
   );
+}
+
+function resourceLabel(resource: ActivityResource): string {
+  return {
+    ORDER: "Замовлення",
+    RETURN_REQUEST: "Повернення",
+    LISTING: "Оголошення",
+    NOTE: "Нотатка",
+  }[resource];
 }

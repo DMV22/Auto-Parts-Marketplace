@@ -11,7 +11,9 @@
     "check-types": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "node ./test/e2e/run-playwright.mjs"
+    "test:e2e": "node ./test/e2e/run-playwright.mjs",
+    "test:a11y": "node ./test/e2e/run-playwright.mjs accessibility.e2e-spec.ts",
+    "test:lighthouse": "node ./test/e2e/run-playwright.mjs lighthouse.e2e-spec.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
@@ -30,6 +32,8 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@lhci/cli": "^0.15.1",
     "@playwright/test": "^1.62.1",
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
@@ -43,6 +47,7 @@
     "eslint": "^9.39.1",
     "jsdom": "^30.0.1",
     "msw": "^2.15.0",
+    "puppeteer-core": "^25.10.0",
     "tailwindcss": "^4.3.3",
     "typescript": "5.9.2",
     "vitest": "^4.1.10"

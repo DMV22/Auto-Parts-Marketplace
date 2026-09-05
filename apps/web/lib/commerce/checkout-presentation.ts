@@ -26,7 +26,7 @@ export function presentCheckoutStatus(
     return {
       tone: "success",
       title: "Оплату підтверджено",
-      message: "Замовлення підтверджене сервером після обробки Stripe webhook.",
+      message: "Статус підтверджено після обробки платежу.",
       polling: false,
     };
   }
@@ -44,7 +44,7 @@ export function presentCheckoutStatus(
     return {
       tone: "warning",
       title: "Підтвердження займає більше часу",
-      message: "Статус залишається pending. Оновіть його вручну трохи пізніше.",
+      message: "Оплата ще обробляється. Оновіть статус вручну трохи пізніше.",
       polling: false,
     };
   }
@@ -57,8 +57,8 @@ export function presentCheckoutStatus(
         : "Очікуємо підтвердження оплати",
     message:
       mode === "cancel"
-        ? "Повернення зі Stripe не змінює статус. Чекаємо авторитетну відповідь API."
-        : "Не закривайте сторінку: статус оновиться після валідного Stripe webhook.",
+        ? "Повернення з платіжної сторінки не скасовує замовлення автоматично. Перевіряємо актуальний стан."
+        : "Не закривайте сторінку: статус оновиться після підтвердження платежу.",
     polling: true,
   };
 }
@@ -66,7 +66,7 @@ export function presentCheckoutStatus(
 export function presentCheckoutError(error: unknown): string {
   if (error instanceof AppError) {
     if (error.kind === "not_found") {
-      return "Замовлення не знайдено або воно належить іншому owner context.";
+      return "Замовлення не знайдено або воно недоступне в цьому контексті.";
     }
     if (error.kind === "network" || error.kind === "unavailable") {
       return "Сервіс тимчасово недоступний. Повторіть перевірку статусу.";

@@ -12,10 +12,15 @@ export function ProductVariantCard({
   fitmentState: "pending" | "resolved";
 }>) {
   return (
-    <article className={styles.variant}>
+    <article
+      className={styles.variant}
+      data-fitment={
+        fitmentState === "pending" ? "pending" : variant.fitment.status
+      }
+    >
       <header className={styles.header}>
         <div>
-          <p className={styles.label}>Артикул</p>
+          <p className={styles.label}>Модифікація</p>
           <h3 translate="no">{variant.sku}</h3>
         </div>
         {fitmentState === "pending" ? (

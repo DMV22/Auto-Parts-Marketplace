@@ -115,7 +115,7 @@ describe("SupplierListingForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "Зберегти зміни" }));
     await waitFor(() => expect(patchBody).toEqual({ price: "125" }));
 
-    fireEvent.change(screen.getByLabelText("Пошук ProductVariant"), {
+    fireEvent.change(screen.getByLabelText("Пошук варіанта товару"), {
       target: { value: "brake" },
     });
     expect(await screen.findByText(/PAGE-1/)).toBeVisible();
@@ -124,13 +124,13 @@ describe("SupplierListingForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "Обрати" }));
 
     expect(
-      await screen.findByText(/Не вдалося перевірити обраний ProductVariant/),
+      await screen.findByText(/Не вдалося перевірити обраний варіант товару/),
     ).toBeVisible();
     fireEvent.click(
       screen.getByRole("button", { name: "Повторити перевірку" }),
     );
     expect(
-      await screen.findByText(/ProductVariant більше недоступний/),
+      await screen.findByText(/варіант товару більше недоступний/),
     ).toBeVisible();
     expect(
       screen.getByRole("button", { name: "Зберегти зміни" }),

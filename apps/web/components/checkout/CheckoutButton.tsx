@@ -81,8 +81,8 @@ export function CheckoutButton({
       </Button>
       <p className={styles.hint} aria-live="polite">
         {checkout.isPending
-          ? "Не повторюйте дію: для цієї спроби використовується один Idempotency-Key."
-          : "Фінальні ціна, залишок і валюта будуть перевірені сервером."}
+          ? "Створюємо одну безпечну спробу оплати. Не закривайте сторінку."
+          : "Ціну, наявність і валюту буде повторно перевірено перед оплатою."}
       </p>
       {failure ? (
         <p id={errorId} className={styles.error} role="alert">

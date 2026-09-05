@@ -1,9 +1,11 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { ArrowRightIcon, PlusIcon } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/catalog/catalog-presentation";
+import { formatOrderDate } from "@/lib/commerce/order-presentation";
 import { supplierListingsQueryOptions } from "@/lib/query/supplier-queries";
 import type { SupplierListingsQuery } from "@/lib/supplier/supplier-types";
 import { ListingStatusBadge } from "./ListingStatusBadge";
@@ -22,7 +24,7 @@ export function SupplierListingsScreen({
     return (
       <section className={styles.state}>
         <h2>Не вдалося завантажити оголошення</h2>
-        <p>Доступ міг змінитися або API тимчасово недоступний.</p>
+        <p>Доступ міг змінитися або сервіс тимчасово недоступний.</p>
         <Button type="button" variant="outline" onClick={() => void listings.refetch()}>
           Спробувати ще раз
         </Button>
@@ -34,10 +36,15 @@ export function SupplierListingsScreen({
     <section className={styles.workspace} aria-labelledby="supplier-listings-title">
       <div className={styles.toolbar}>
         <div className={styles.heading}>
+          <p>Керування пропозиціями</p>
           <h2 id="supplier-listings-title">Оголошення</h2>
-          <p>Статус публікації та операційні дані визначає backend.</p>
+          <p>Контролюйте публікацію, ціну й доступний залишок.</p>
         </div>
-        <Link href={`/supplier/${supplierId}/listings/new`}>
+        <Link
+          className={styles.primaryLink}
+          href={`/supplier/${supplierId}/listings/new`}
+        >
+          <PlusIcon aria-hidden="true" />
           Створити оголошення
         </Link>
       </div>
@@ -86,38 +93,63 @@ export function SupplierListingsScreen({
           <p>Змініть фільтри або створіть перше оголошення.</p>
         </div>
       ) : (
-        <ul className={styles.list}>
-          {listings.data.data.map((listing) => (
-            <li key={listing.id} className={styles.card}>
-              <div className={styles.stack}>
-                <div className={styles.statusRow}>
-                  <ListingStatusBadge status={listing.status} />
-                  <strong>{listing.productVariant.sku}</strong>
-                </div>
-                <dl className={styles.summary}>
-                  <div>
-                    <dt>Ціна</dt>
-                    <dd>{formatMoney(listing.price, listing.currency)}</dd>
-                  </div>
-                  <div>
-                    <dt>Залишок</dt>
-                    <dd>{listing.stockQuantity}</dd>
-                  </div>
-                  <div>
-                    <dt>Inventory version</dt>
-                    <dd>{listing.inventoryVersion}</dd>
-                  </div>
-                </dl>
-                {listing.status !== "ACTIVE" ? (
-                  <p className={styles.muted}>Не показується у public Catalog/PDP/Cart.</p>
-                ) : null}
-              </div>
-              <Link href={`/supplier/${supplierId}/listings/${listing.id}`}>
-                Відкрити
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <div className={styles.tableWrapper}>
+          <table className={styles.table}>
+            <caption className="sr-only">Оголошення поточного постачальника</caption>
+            <thead>
+              <tr>
+                <th scope="col">SKU / Деталь</th>
+                <th scope="col">Стан</th>
+                <th scope="col">Ціна</th>
+                <th scope="col">Залишок</th>
+                <th scope="col">Статус</th>
+                <th scope="col">Оновлено</th>
+                <th scope="col">Дія</th>
+              </tr>
+            </thead>
+            <tbody>
+              {listings.data.data.map((listing) => (
+                <tr key={listing.id}>
+                  <td data-label="SKU / Деталь">
+                    <strong className={styles.identifier}>
+                      {listing.productVariant.sku}
+                    </strong>
+                    <span className={styles.meta}>
+                      MPN {listing.productVariant.manufacturerPartNumber}
+                    </span>
+                  </td>
+                  <td data-label="Стан">{conditionLabel(listing.condition)}</td>
+                  <td data-label="Ціна" className={styles.numericValue}>
+                    {formatMoney(listing.price, listing.currency)}
+                  </td>
+                  <td data-label="Залишок" className={styles.numericValue}>
+                    {listing.stockQuantity}
+                    <span className={styles.meta}>
+                      версія {listing.inventoryVersion}
+                    </span>
+                  </td>
+                  <td data-label="Статус">
+                    <ListingStatusBadge status={listing.status} />
+                  </td>
+                  <td data-label="Оновлено">
+                    <time dateTime={listing.updatedAt}>
+                      {formatOrderDate(listing.updatedAt)}
+                    </time>
+                  </td>
+                  <td data-label="Дія">
+                    <Link
+                      className={styles.rowAction}
+                      href={`/supplier/${supplierId}/listings/${listing.id}`}
+                    >
+                      Відкрити
+                      <ArrowRightIcon aria-hidden="true" />
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
       {listings.data.meta.nextCursor ? (
@@ -129,6 +161,12 @@ export function SupplierListingsScreen({
       ) : null}
     </section>
   );
+}
+
+function conditionLabel(condition: "NEW" | "USED" | "REMANUFACTURED"): string {
+  if (condition === "NEW") return "Новий";
+  if (condition === "USED") return "Вживаний";
+  return "Відновлений";
 }
 
 function nextPageHref(

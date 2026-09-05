@@ -68,7 +68,7 @@ describe("ProductDetailPage", () => {
       }),
     );
 
-    render(
+    const { container } = render(
       <QueryClientProvider client={createQueryClient()}>
         <ProductDetailPage productId={PRODUCT_ID} />
       </QueryClientProvider>,
@@ -81,7 +81,13 @@ describe("ProductDetailPage", () => {
     expect(screen.getByText("Потрібне уточнення")).toBeVisible();
     expect(screen.getByText("Сумісність не підтверджена")).toBeVisible();
     expect(screen.getByText("Для цієї модифікації немає достатніх даних про сумісність.")).toBeVisible();
-    expect(screen.getByText("Зображення ще не додано")).toBeVisible();
+    expect(screen.getByRole("img", { name: "Зображення товару відсутнє" })).toBeVisible();
+    expect(container.querySelector("img")).toHaveAttribute(
+      "src",
+      expect.stringContaining("product-technical-fallback.webp"),
+    );
+    expect(screen.getByText(/100,00.*103,00/)).toBeVisible();
+    expect(screen.getByText("3 з 4 пропозицій зараз у наявності")).toBeVisible();
     expect(
       productRequests.some(
         (request) =>
@@ -89,7 +95,7 @@ describe("ProductDetailPage", () => {
       ),
     ).toBe(true);
 
-    fireEvent.click(screen.getByRole("button", { name: "Показати сумісність без авто" }));
+    fireEvent.click(screen.getByRole("button", { name: "Показати без авто" }));
 
     await waitFor(() =>
       expect(screen.getAllByText("Сумісність не підтверджена")).toHaveLength(4),

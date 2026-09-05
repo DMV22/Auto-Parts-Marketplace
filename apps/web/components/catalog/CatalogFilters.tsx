@@ -1,24 +1,20 @@
 import type { ChangeEvent } from "react";
 import type {
   CatalogQueryState,
-  CatalogSort,
   ListingCondition,
 } from "@/lib/catalog/catalog-query";
 import type { CatalogFilterOptionsResponse } from "@/lib/catalog/catalog-types";
 import { conditionLabel } from "@/lib/catalog/catalog-presentation";
 import styles from "./CatalogFilters.module.css";
 
-type Props = {
-  model: {
-    state: CatalogQueryState;
-    searchDraft: string;
-  };
+export type CatalogFiltersProps = {
+  headingId: string;
+  state: CatalogQueryState;
   optionsState:
     | { kind: "loading" }
     | { kind: "error"; onRetry: () => void }
     | { kind: "ready"; options: CatalogFilterOptionsResponse };
   actions: {
-    changeSearch: (value: string) => void;
     changeFilter: (update: Partial<CatalogQueryState>) => void;
     changeCurrency: (currency: string | null) => void;
     reset: () => void;
@@ -26,11 +22,11 @@ type Props = {
 };
 
 export function CatalogFilters({
-  model,
+  headingId,
+  state,
   optionsState,
   actions,
-}: Readonly<Props>) {
-  const { state, searchDraft } = model;
+}: Readonly<CatalogFiltersProps>) {
   const options = optionsState.kind === "ready" ? optionsState.options : undefined;
   const select =
     <T extends string>(handler: (value: T | null) => void) =>
@@ -38,22 +34,11 @@ export function CatalogFilters({
         handler((event.target.value || null) as T | null);
 
   return (
-    <aside className={styles.panel} aria-labelledby="catalog-filters-title">
+    <aside className={styles.panel} aria-labelledby={headingId}>
       <div className={styles.heading}>
-        <h2 id="catalog-filters-title">Фільтри</h2>
+        <h2 id={headingId}>Фільтри</h2>
         <button type="button" onClick={actions.reset}>Скинути</button>
       </div>
-
-      <label className={styles.field}>
-        <span>Пошук</span>
-        <input
-          type="search"
-          value={searchDraft}
-          maxLength={120}
-          placeholder="Назва, SKU або номер деталі"
-          onChange={(event) => actions.changeSearch(event.target.value)}
-        />
-      </label>
 
       {optionsState.kind === "loading" ? <p role="status" className={styles.hint}>Завантажуємо доступні фільтри…</p> : null}
       {optionsState.kind === "error" ? (
@@ -143,18 +128,6 @@ export function CatalogFilters({
         </p>
       ) : null}
 
-      <label className={styles.field}>
-        <span>Сортування</span>
-        <select
-          value={state.sort}
-          onChange={select<CatalogSort>((sort) => actions.changeFilter({ sort: sort ?? "newest" }))}
-        >
-          <option value="newest">Спочатку нові</option>
-          <option value="name_asc">Назва: А–Я</option>
-          <option value="name_desc">Назва: Я–А</option>
-          {state.currency ? <><option value="price_asc">Ціна: від меншої</option><option value="price_desc">Ціна: від більшої</option></> : null}
-        </select>
-      </label>
     </aside>
   );
 }

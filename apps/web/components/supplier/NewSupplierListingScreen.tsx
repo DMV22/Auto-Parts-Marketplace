@@ -11,9 +11,11 @@ export function NewSupplierListingScreen({
   return (
     <section className={styles.workspace} aria-labelledby="new-listing-title">
       <header className={styles.heading}>
+        <p>Оголошення</p>
         <h2 id="new-listing-title">Нове оголошення</h2>
         <p>
-          Supplier, status, timestamps і початковий stock визначаються сервером.
+          Створіть пропозицію для наявного варіанта товару. Спочатку вона буде
+          збережена як чернетка.
         </p>
       </header>
       <div className={styles.detail}>
