@@ -1,83 +1,143 @@
 .header {
-  position: relative;
-  border-bottom: 1px solid var(--border);
-  background: color-mix(in oklch, var(--background) 94%, transparent);
+  position: sticky;
+  z-index: 40;
+  inset-block-start: 0;
+  border-block-end: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  backdrop-filter: blur(12px);
 }
 
 .navigation {
-  display: flex;
-  width: min(100% - 2rem, 72rem);
-  min-height: 4rem;
+  display: grid;
+  width: min(100% - 2rem, var(--container-storefront));
+  min-height: 4.5rem;
   margin-inline: auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
+  gap: clamp(1rem, 3vw, 2.5rem);
 }
 
 .brand {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: 0.32rem;
   color: var(--foreground);
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-size: 1.08rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  line-height: 1;
   text-decoration: none;
-  overflow-wrap: anywhere;
 }
 
-.sessionArea,
-.actions,
-.account,
-.primaryNavigation {
+.brandAccent {
+  color: var(--signal);
+}
+
+.desktopShoppingNavigation,
+.desktopSessionArea,
+.utilities,
+.actions {
   display: flex;
   align-items: center;
+}
+
+.desktopShoppingNavigation {
+  gap: 0.25rem;
+}
+
+.desktopSessionArea,
+.utilities,
+.actions {
   gap: 0.75rem;
 }
 
-.actions a {
-  border-radius: var(--radius-md);
-  padding: 0.45rem 0.7rem;
-  color: var(--foreground);
-  font-size: 0.875rem;
-  font-weight: 600;
-  text-decoration: none;
+.utilities {
+  justify-content: flex-end;
+  min-width: 0;
 }
 
-.actions .primaryLink {
-  background: var(--primary);
-  color: var(--primary-foreground);
-}
-
-.workspaceLink {
+.navigationLink,
+.workspaceLink,
+.authLink,
+.primaryLink,
+.mobileNavigationLink,
+.mobilePrimaryLink {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
   border-radius: var(--radius-md);
-  padding: 0.45rem 0.7rem;
   color: var(--foreground);
   font-size: 0.875rem;
   font-weight: 650;
+  line-height: 1.2;
   text-decoration: none;
+  transition:
+    color var(--duration-fast) ease,
+    background-color var(--duration-fast) ease,
+    border-color var(--duration-fast) ease;
 }
 
-.brand:hover,
-.actions a:hover,
-.workspaceLink:hover {
-  color: var(--primary);
+.navigationLink,
+.workspaceLink,
+.authLink {
+  padding-inline: 0.75rem;
 }
 
-.actions .primaryLink:hover {
-  background: color-mix(in oklch, var(--primary) 86%, var(--background));
+.navigationLink:hover,
+.workspaceLink:hover,
+.authLink:hover {
+  background: var(--surface-inset);
+  color: var(--foreground);
+}
+
+.navigationLink[aria-current="page"],
+.workspaceLink[aria-current="page"],
+.authLink[aria-current="page"] {
+  background: var(--accent);
+  color: var(--accent-foreground);
+  box-shadow: inset 0 -2px 0 var(--signal);
+}
+
+.primaryLink,
+.mobilePrimaryLink {
+  border: 1px solid var(--primary);
+  background: var(--primary);
+  color: var(--primary-foreground);
+  padding-inline: 1rem;
+}
+
+.primaryLink:hover,
+.mobilePrimaryLink:hover {
+  border-color: color-mix(in srgb, var(--primary) 84%, var(--foreground));
+  background: color-mix(in srgb, var(--primary) 84%, var(--foreground));
   color: var(--primary-foreground);
 }
 
+.brand:hover {
+  color: var(--signal);
+}
+
 .brand:focus-visible,
-.actions a:focus-visible,
-.workspaceLink:focus-visible {
-  outline: 3px solid color-mix(in oklch, var(--ring) 50%, transparent);
+.navigationLink:focus-visible,
+.workspaceLink:focus-visible,
+.authLink:focus-visible,
+.primaryLink:focus-visible,
+.mobileNavigationLink:focus-visible,
+.mobilePrimaryLink:focus-visible {
+  outline: 3px solid var(--ring);
   outline-offset: 3px;
 }
 
 .identity {
   display: grid;
+  min-width: 0;
+  max-width: 12rem;
   color: var(--muted-foreground);
   font-size: 0.75rem;
-  line-height: 1.2;
-  text-align: right;
+  line-height: 1.25;
+  text-align: end;
   overflow-wrap: anywhere;
 }
 
@@ -98,24 +158,117 @@
 }
 
 .error {
-  width: min(100% - 2rem, 72rem);
+  width: min(100% - 2rem, var(--container-storefront));
   margin: 0 auto;
-  padding-bottom: 0.75rem;
+  padding-block-end: 0.75rem;
   font-size: 0.8rem;
-  text-align: right;
+  text-align: end;
 }
 
-@media (max-width: 42rem) {
+.mobileMenuTrigger {
+  display: none;
+}
+
+.mobileMenu {
+  background:
+    linear-gradient(180deg, var(--surface), var(--background)),
+    var(--surface);
+}
+
+.mobileMenuBody {
+  display: grid;
+  min-height: 0;
+  gap: 1.5rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 1rem;
+}
+
+.mobileMenuBody nav,
+.mobileAccountSection,
+.mobileAuthActions {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.mobileAccountSection {
+  border-block-start: 1px solid var(--border);
+  padding-block-start: 1.25rem;
+}
+
+.mobileNavigationLink,
+.mobilePrimaryLink {
+  width: 100%;
+  min-height: 2.75rem;
+  justify-content: flex-start;
+  padding-inline: 0.875rem;
+}
+
+.mobileNavigationLink:hover,
+.mobileNavigationLink[aria-current="page"] {
+  background: var(--surface-inset);
+}
+
+.mobileNavigationLink[aria-current="page"] {
+  box-shadow: inset 3px 0 0 var(--signal);
+}
+
+.mobilePrimaryLink {
+  justify-content: center;
+}
+
+.mobileAccountSection .identity {
+  max-width: none;
+  padding: 0.5rem 0.875rem;
+  text-align: start;
+}
+
+@media (max-width: 56rem) {
   .navigation {
-    align-items: flex-start;
-    flex-direction: column;
-    padding-block: 0.85rem;
+    width: min(100% - 1.25rem, var(--container-storefront));
+    min-height: 4rem;
+    grid-template-columns: auto 1fr;
+    gap: 0.75rem;
   }
 
-  .sessionArea,
-  .account,
-  .primaryNavigation {
-    width: 100%;
-    justify-content: space-between;
+  .desktopShoppingNavigation,
+  .desktopSessionArea {
+    display: none;
+  }
+
+  .mobileMenuTrigger {
+    display: inline-flex;
+  }
+
+  .utilities > button {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+  }
+}
+
+@media (max-width: 30rem) {
+  .brand {
+    font-size: 0.92rem;
+    letter-spacing: 0.09em;
+  }
+
+  .utilities {
+    gap: 0.4rem;
+  }
+
+  .error {
+    width: min(100% - 1.25rem, var(--container-storefront));
+    text-align: start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .navigationLink,
+  .workspaceLink,
+  .authLink,
+  .primaryLink,
+  .mobileNavigationLink,
+  .mobilePrimaryLink {
+    transition: none;
   }
 }

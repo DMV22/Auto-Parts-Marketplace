@@ -15,10 +15,10 @@ export function OrdersPage() {
     <main id="main-content" className={styles.main}>
       <header className={styles.header}>
         <p className={styles.eyebrow}>Історія покупок</p>
-        <h1>Ваші замовлення</h1>
+        <h1>Мої замовлення</h1>
         <p>
-          Історія належить поточному Customer або Guest context і не
-          зберігається у browser storage.
+          Переглядайте актуальний статус, склад і суму кожного доступного вам
+          замовлення.
         </p>
       </header>
       <OrdersAccessBoundary>
@@ -76,7 +76,7 @@ function OrderHistory() {
   return (
     <section className={styles.workspace} aria-labelledby="orders-list-title">
       <div className={styles.sectionHeading}>
-        <h2 id="orders-list-title">Історія</h2>
+        <h2 id="orders-list-title">Історія покупок</h2>
         {cursor ? <Link href="/orders">До першої сторінки</Link> : null}
       </div>
       <OrderHistoryList orders={orders.data.data} />

@@ -1,5 +1,5 @@
 .main {
-  width: min(100% - 2rem, 80rem);
+  width: min(100% - 2rem, var(--container-storefront));
   margin-inline: auto;
   padding-block: clamp(2rem, 5vw, 4rem);
 }
@@ -11,7 +11,7 @@
 
 .header h1 {
   margin-block: 0.35rem 0.75rem;
-  font-size: clamp(2rem, 6vw, 3.75rem);
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
   letter-spacing: -0.045em;
   line-height: 1;
   text-wrap: balance;
@@ -19,19 +19,20 @@
 
 .header>p:last-child,
 .resultsHeading p,
-.state,
-.vehicleContext {
+.state {
   color: var(--muted-foreground);
   line-height: 1.6;
 }
 
 .eyebrow {
-  color: var(--muted-foreground);
-  font-size: 0.875rem;
+  color: var(--accent-foreground);
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.75rem;
   font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
-.vehicleContext,
 .notice {
   display: flex;
   align-items: center;
@@ -44,8 +45,6 @@
   padding: 0.8rem 1rem;
 }
 
-.vehicleContext a,
-.vehicleContext button,
 .notice button,
 .state button,
 .pagination button {
@@ -60,8 +59,6 @@
   touch-action: manipulation;
 }
 
-.vehicleContext a:focus-visible,
-.vehicleContext button:focus-visible,
 .notice button:focus-visible,
 .state button:focus-visible,
 .pagination button:focus-visible {
@@ -80,16 +77,26 @@
   gap: 1.5rem;
 }
 
+.desktopFilters {
+  position: sticky;
+  inset-block-start: 5.5rem;
+  align-self: start;
+  max-height: calc(100svh - 7rem);
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
 .results {
   min-inline-size: 0;
 }
 
 .resultsHeading {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-block-end: 1rem;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
 }
 
 .resultsHeading h2 {
@@ -99,7 +106,7 @@
 .grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1rem;
+  gap: 1.1rem;
 }
 
 .state {
@@ -138,10 +145,13 @@
     grid-template-columns: 1fr;
   }
 
-  .vehicleContext,
   .notice {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .desktopFilters {
+    display: none;
   }
 }
 

@@ -1,20 +1,21 @@
 .explanation {
   display: grid;
   gap: 0.55rem;
-  border-inline-start: 3px solid var(--border);
-  padding-inline-start: 0.8rem;
+  border: 1px solid var(--border);
+  background: var(--surface-inset);
+  padding: 0.8rem;
 }
 
 .explanation[data-status="compatible"] {
-  border-inline-start-color: oklch(0.55 0.15 150);
+  border-color: color-mix(in srgb, var(--status-compatible) 45%, var(--border));
 }
 
 .explanation[data-status="incompatible"] {
-  border-inline-start-color: var(--destructive);
+  border-color: color-mix(in srgb, var(--status-incompatible) 45%, var(--border));
 }
 
 .explanation[data-status="caution"] {
-  border-inline-start-color: oklch(0.65 0.13 75);
+  border-color: color-mix(in srgb, var(--status-caution) 45%, var(--border));
 }
 
 .explanation p {

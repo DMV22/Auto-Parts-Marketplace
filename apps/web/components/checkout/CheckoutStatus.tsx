@@ -1,6 +1,12 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import {
+  CircleCheckBigIcon,
+  Clock3Icon,
+  TriangleAlertIcon,
+  XCircleIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -10,6 +16,7 @@ import {
   presentCheckoutStatus,
   type CheckoutReturnMode,
 } from "@/lib/commerce/checkout-presentation";
+import { presentOrderStatus } from "@/lib/commerce/order-presentation";
 import { orderDetailQueryOptions } from "@/lib/query/commerce-queries";
 import styles from "./CheckoutStatus.module.css";
 
@@ -54,6 +61,13 @@ export function CheckoutStatus({
   }
 
   const presentation = presentCheckoutStatus(order.data.status, timedOut, mode);
+  const statusLabel = presentOrderStatus(order.data.status).label;
+  const StatusIcon = {
+    pending: Clock3Icon,
+    success: CircleCheckBigIcon,
+    warning: TriangleAlertIcon,
+    cancelled: XCircleIcon,
+  }[presentation.tone];
 
   function refreshStatus() {
     setTimedOut(false);
@@ -66,8 +80,9 @@ export function CheckoutStatus({
       data-tone={presentation.tone}
       aria-labelledby="checkout-status-title"
     >
+      <StatusIcon className={styles.statusIcon} aria-hidden="true" />
       <div className={styles.statusCopy} aria-live="polite">
-        <span>{order.data.status.replaceAll("_", " ")}</span>
+        <span>{statusLabel}</span>
         <h2 id="checkout-status-title">{presentation.title}</h2>
         <p>{presentation.message}</p>
       </div>

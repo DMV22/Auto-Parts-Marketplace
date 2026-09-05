@@ -5,7 +5,8 @@
 }
 
 .success,
-.error {
+.error,
+.currencyConflict {
   max-width: 18rem;
   font-size: 0.78rem;
   text-align: end;
@@ -17,4 +18,24 @@
 
 .error {
   color: var(--destructive);
+}
+
+.currencyConflict {
+  display: grid;
+  justify-items: end;
+  gap: 0.25rem;
+  color: var(--destructive);
+}
+
+.currencyConflict a {
+  color: var(--primary);
+  font-weight: 750;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.currencyConflict a:focus-visible {
+  border-radius: var(--radius-sm);
+  outline: 3px solid color-mix(in oklch, var(--ring) 50%, transparent);
+  outline-offset: 2px;
 }

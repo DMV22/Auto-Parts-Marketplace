@@ -149,4 +149,4 @@ Only `ADMIN` can use `/api/v1/admin/moderation/listings*`. Reject and emergency 
 
 Internal Notes and ActivityLog never appear in Customer, Supplier, Catalog or commerce DTOs. Tests use suite-owned fixtures in guarded `auto_parts_test` and do not require demo seed or live Stripe.
 
-Fulfillment, shipping, payouts, refunds and frontend CRM/OMS dashboards remain future milestones.
+Fulfillment, shipping, payouts and refunds remain future milestones.

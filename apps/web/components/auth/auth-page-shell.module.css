@@ -1,9 +1,118 @@
 .main {
-  display: grid;
   min-height: calc(100svh - 4rem);
-  place-items: center;
-  padding: clamp(2rem, 7vw, 5rem) 1rem;
   background:
-    radial-gradient(circle at top left, color-mix(in oklch, var(--primary) 8%, transparent), transparent 30rem),
+    linear-gradient(rgb(23 32 51 / 5%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(23 32 51 / 5%) 1px, transparent 1px),
     var(--background);
+  background-size: 2rem 2rem;
+}
+
+.layout {
+  display: grid;
+  width: min(100% - 2rem, var(--container-storefront));
+  min-height: calc(100svh - 4rem);
+  margin-inline: auto;
+  align-items: center;
+  gap: clamp(2rem, 6vw, 6rem);
+  padding-block: clamp(2rem, 7vw, 5rem);
+}
+
+.formSlot {
+  grid-area: form;
+  display: grid;
+  justify-items: center;
+  min-width: 0;
+}
+
+.context {
+  grid-area: context;
+  display: grid;
+  gap: 1rem;
+  max-width: 38rem;
+  border-inline-start: 4px solid var(--signal);
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  padding: clamp(1.25rem, 4vw, 2.25rem);
+  box-shadow: var(--shadow-raised);
+}
+
+.context h2,
+.context p {
+  margin: 0;
+}
+
+.context h2 {
+  max-width: 19ch;
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  line-height: 1.08;
+  text-wrap: balance;
+}
+
+.eyebrow {
+  color: var(--signal);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.intro {
+  max-width: 58ch;
+  color: var(--muted-foreground);
+  line-height: 1.65;
+}
+
+.context ul {
+  display: grid;
+  gap: 0.85rem;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.context li {
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.8rem;
+  color: var(--muted-foreground);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.context li svg {
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 1px solid color-mix(in srgb, var(--status-info) 30%, var(--border));
+  background: color-mix(in srgb, var(--status-info) 7%, var(--surface));
+  padding: 0.55rem;
+  color: var(--status-info);
+}
+
+.context li strong {
+  color: var(--foreground);
+}
+
+@media (min-width: 56rem) {
+  .layout {
+    grid-template-areas: "context form";
+    grid-template-columns: minmax(0, 1.15fr) minmax(22rem, 0.85fr);
+  }
+}
+
+@media (max-width: 55.999rem) {
+  .layout {
+    grid-template-areas:
+      "form"
+      "context";
+  }
+}
+
+@media (max-width: 40rem) {
+  .layout {
+    width: min(100% - 1.25rem, var(--container-storefront));
+  }
+
+  .context {
+    padding: 1rem;
+  }
 }

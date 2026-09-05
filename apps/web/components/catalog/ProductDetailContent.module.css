@@ -1,43 +1,59 @@
 .hero {
   display: grid;
-  gap: 1.5rem;
+  gap: 1rem;
 }
 
-.media,
-.summary {
+.media {
   min-inline-size: 0;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  padding: clamp(0.75rem, 2vw, 1.25rem);
+  box-shadow: var(--shadow-raised);
+}
+
+.media > div {
+  min-block-size: clamp(18rem, 42vw, 34rem);
 }
 
 .summary {
   display: grid;
-  align-content: center;
-  gap: 0.65rem;
+  min-inline-size: 0;
+  align-content: start;
+  gap: 0.85rem;
+  border: 1px solid var(--border);
+  border-block-start: 4px solid var(--signal);
+  background: var(--surface);
+  padding: clamp(1.1rem, 3vw, 1.75rem);
+  box-shadow: var(--shadow-raised);
 }
 
 .summary h1 {
-  max-inline-size: 22ch;
-  font-size: clamp(2rem, 7vw, 3.5rem);
-  line-height: 1.05;
+  max-inline-size: 24ch;
+  font-size: clamp(1.8rem, 5vw, 2.65rem);
+  line-height: 1.08;
   overflow-wrap: anywhere;
   text-wrap: balance;
 }
 
-.brand,
-.eyebrow {
+.taxonomy {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
   color: var(--muted-foreground);
+}
+
+.brand,
+.category,
+.eyebrow {
   font-size: 0.78rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
-.category {
-  inline-size: fit-content;
-  border-radius: 999px;
-  background: var(--secondary);
-  padding: 0.3rem 0.65rem;
-  color: var(--secondary-foreground);
-  font-size: 0.85rem;
+.brand {
+  color: var(--status-info);
 }
 
 .description {
@@ -47,9 +63,53 @@
   overflow-wrap: anywhere;
 }
 
+.commercialSummary {
+  display: grid;
+  gap: 0.3rem;
+  margin-block-start: 0.35rem;
+  border-block: 1px solid var(--border);
+  padding-block: 1rem;
+}
+
+.commercialSummary > span,
+.commercialSummary p,
+.decisionNote {
+  color: var(--muted-foreground);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.commercialSummary strong {
+  font-size: clamp(1.35rem, 4vw, 2rem);
+  line-height: 1.2;
+}
+
+.offersLink {
+  display: inline-flex;
+  min-block-size: 3rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--signal);
+  border-radius: var(--radius-md);
+  background: var(--signal);
+  color: var(--signal-foreground);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.offersLink:hover {
+  background: color-mix(in srgb, var(--signal) 86%, black);
+}
+
+.offersLink:focus-visible {
+  outline: 3px solid var(--ring);
+  outline-offset: 3px;
+}
+
 .variants {
   display: grid;
   gap: 1rem;
+  scroll-margin-block-start: 6rem;
 }
 
 .sectionHeading {
@@ -69,7 +129,7 @@
 
 @media (min-width: 48rem) {
   .hero {
-    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-    align-items: center;
+    grid-template-columns: minmax(0, 1.45fr) minmax(20rem, 0.75fr);
+    align-items: stretch;
   }
 }

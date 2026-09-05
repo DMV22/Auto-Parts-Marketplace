@@ -48,6 +48,9 @@ export function ReturnItemPanel({
   );
   const [reason, setReason] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [confirmingCancellation, setConfirmingCancellation] = useState<
+    string | null
+  >(null);
   const reasonId = useId();
   const feedbackId = useId();
 
@@ -75,6 +78,7 @@ export function ReturnItemPanel({
     mutationFn: (returnRequestId: string) =>
       cancelCustomerReturn(orderId, orderItemId, returnRequestId),
     onSuccess: async () => {
+      setConfirmingCancellation(null);
       setFeedback("Запит на повернення скасовано.");
       await refreshReturns();
     },
@@ -163,14 +167,46 @@ export function ReturnItemPanel({
                   <p>Рішення підтримки: {request.decisionReason}</p>
                 ) : null}
                 {canCancelReturn(request.status) ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={mutationPending}
-                    onClick={() => cancelReturn.mutate(request.id)}
-                  >
-                    {cancelReturn.isPending ? "Скасовуємо…" : "Скасувати запит"}
-                  </Button>
+                  <>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={mutationPending}
+                      aria-expanded={confirmingCancellation === request.id}
+                      aria-controls={`cancel-return-${request.id}`}
+                      onClick={() => setConfirmingCancellation(request.id)}
+                    >
+                      Скасувати запит
+                    </Button>
+                    {confirmingCancellation === request.id ? (
+                      <div className={styles.returnConfirmation} aria-live="polite">
+                        <div id={`cancel-return-${request.id}`}>
+                          <strong>Скасувати цей запит?</strong>
+                          <span>Після скасування його статус буде оновлено.</span>
+                        </div>
+                        <div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            disabled={mutationPending}
+                            onClick={() => setConfirmingCancellation(null)}
+                          >
+                            Залишити запит
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            disabled={mutationPending}
+                            onClick={() => cancelReturn.mutate(request.id)}
+                          >
+                            {cancelReturn.isPending
+                              ? "Скасовуємо…"
+                              : "Підтвердити скасування"}
+                          </Button>
+                        </div>
+                      </div>
+                    ) : null}
+                  </>
                 ) : null}
               </li>
             );

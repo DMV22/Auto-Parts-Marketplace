@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
+import { useId, useState } from "react";
 import { CheckoutButton } from "@/components/checkout/CheckoutButton";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,6 +21,8 @@ import { CartItem } from "./CartItem";
 import styles from "./CartBoundary.module.css";
 
 export function CartBoundary({ compact = false }: Readonly<{ compact?: boolean }>) {
+  const [confirmingClear, setConfirmingClear] = useState(false);
+  const clearConfirmationId = useId();
   const session = useQuery(sessionQueryOptions());
   const access = session.isPending || session.isError
     ? null
@@ -59,7 +62,10 @@ export function CartBoundary({ compact = false }: Readonly<{ compact?: boolean }
   });
   const clear = useMutation({
     mutationFn: clearCart,
-    onSuccess: storeCart,
+    onSuccess: (nextCart) => {
+      setConfirmingClear(false);
+      storeCart(nextCart);
+    },
     onError: refreshCart,
   });
   const cartMutationPending =
@@ -146,38 +152,77 @@ export function CartBoundary({ compact = false }: Readonly<{ compact?: boolean }
         })}
       </ul>
 
-      <section className={styles.summary} aria-labelledby="cart-summary-title">
-        <div>
-          <h2 id="cart-summary-title">Разом</h2>
-          <p>{cart.data.totalQuantity} од.</p>
-        </div>
-        <strong>
-          {cart.data.currency
-            ? formatMoney(cart.data.totalAmount, cart.data.currency)
-            : cart.data.totalAmount}
-        </strong>
-      </section>
+      <aside className={styles.checkoutPanel} aria-label="Підсумок кошика">
+        <section className={styles.summary} aria-labelledby="cart-summary-title">
+          <div>
+            <h2 id="cart-summary-title">Разом</h2>
+            <p>{cart.data.totalQuantity} од.</p>
+          </div>
+          <strong>
+            {cart.data.currency
+              ? formatMoney(cart.data.totalAmount, cart.data.currency)
+              : cart.data.totalAmount}
+          </strong>
+        </section>
 
-      {clearFailure ? (
-        <p className={styles.error} role="alert">
-          {clearFailure.message}
+        <p className={styles.verificationNote}>
+          Ціна, валюта й наявність повторно перевіряються перед оплатою.
         </p>
-      ) : null}
 
-      <div className={styles.footerActions}>
-        <Button
-          type="button"
-          variant="outline"
-          disabled={cartMutationPending}
-          onClick={() => clear.mutate()}
-        >
-          {clear.isPending ? "Очищаємо…" : "Очистити кошик"}
-        </Button>
-        <CheckoutButton
-          disabled={cartMutationPending || checkoutBlocked}
-          onConflict={refreshCart}
-        />
-      </div>
+        {clearFailure ? (
+          <p className={styles.error} role="alert">
+            {clearFailure.message}
+          </p>
+        ) : null}
+
+        <div className={styles.footerActions}>
+          <CheckoutButton
+            disabled={cartMutationPending || checkoutBlocked}
+            onConflict={refreshCart}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            disabled={cartMutationPending}
+            aria-expanded={confirmingClear}
+            aria-controls={`${clearConfirmationId}-panel`}
+            onClick={() => setConfirmingClear(true)}
+          >
+            Очистити кошик
+          </Button>
+          {confirmingClear ? (
+            <section
+              id={`${clearConfirmationId}-panel`}
+              className={styles.clearConfirmation}
+              aria-labelledby={clearConfirmationId}
+              aria-live="polite"
+            >
+              <div>
+                <strong id={clearConfirmationId}>Очистити весь кошик?</strong>
+                <span>Усі позиції буде видалено.</span>
+              </div>
+              <div className={styles.confirmationActions}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={cartMutationPending}
+                  onClick={() => setConfirmingClear(false)}
+                >
+                  Скасувати
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  disabled={cartMutationPending}
+                  onClick={() => clear.mutate()}
+                >
+                  {clear.isPending ? "Очищаємо…" : "Підтвердити очищення"}
+                </Button>
+              </div>
+            </section>
+          ) : null}
+        </div>
+      </aside>
     </div>
   );
 }

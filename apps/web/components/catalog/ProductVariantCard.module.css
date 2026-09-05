@@ -2,9 +2,27 @@
   display: grid;
   gap: 1rem;
   border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  background: var(--card);
-  padding: 1rem;
+  border-inline-start: 4px solid var(--border-strong);
+  background: var(--surface);
+  padding: clamp(1rem, 2vw, 1.25rem);
+  box-shadow: var(--shadow-raised);
+}
+
+.variant[data-fitment="compatible"] {
+  border-inline-start-color: var(--status-compatible);
+}
+
+.variant[data-fitment="incompatible"] {
+  border-inline-start-color: var(--status-incompatible);
+}
+
+.variant[data-fitment="caution"] {
+  border-inline-start-color: var(--status-caution);
+}
+
+.variant[data-fitment="unknown"],
+.variant[data-fitment="pending"] {
+  border-inline-start-color: var(--status-info);
 }
 
 .header {
@@ -33,6 +51,8 @@
 .identifiers {
   display: grid;
   gap: 0.65rem;
+  border-block-start: 1px solid var(--border);
+  padding-block-start: 1rem;
 }
 
 .identifiers div {
@@ -47,12 +67,13 @@
 
 .identifiers dd {
   font-family: var(--font-geist-mono), monospace;
+  font-size: 0.88rem;
   overflow-wrap: anywhere;
 }
 
 @media (min-width: 48rem) {
   .header {
-    grid-template-columns: minmax(10rem, 0.8fr) minmax(0, 1.2fr);
+    grid-template-columns: minmax(12rem, 0.65fr) minmax(0, 1.35fr);
     align-items: start;
   }
 
