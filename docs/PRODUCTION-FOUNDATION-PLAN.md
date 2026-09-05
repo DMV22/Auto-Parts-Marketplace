@@ -2,7 +2,7 @@
 
 ## Status
 
-`Proposed` — topology погоджена, implementation ще не розпочато.
+`In progress` — PF0 завершено; provider resources і deployment ще не створені.
 
 ## Summary
 
@@ -171,18 +171,18 @@ public demo runtime.
 
 **Agent implements**
 
-- [ ] Confirm exact Vercel and Render project root/build behavior for this pnpm
+- [x] Confirm exact Vercel and Render project root/build behavior for this pnpm
       workspace.
-- [ ] Add a non-mutating API lint command or change the existing script so CI
+- [x] Add a non-mutating API lint command or change the existing script so CI
       does not rewrite source files.
-- [ ] Add centralized startup validation for required production variables
+- [x] Add centralized startup validation for required production variables
       without logging their values.
-- [ ] Document local, test and public-demo environment separation.
-- [ ] Define one deployment branch and required quality checks.
+- [x] Document local, test and public-demo environment separation.
+- [x] Define one deployment branch and required quality checks.
 
 **User performs manually**
 
-- [ ] Confirm Git provider/repository visibility and deployment branch.
+- [x] Confirm Git provider/repository visibility policy and deployment branch.
 - [ ] Create free Vercel, Render and Neon accounts if they do not exist.
 
 **Acceptance evidence**
@@ -191,6 +191,51 @@ public demo runtime.
   traffic.
 - Validation logs contain variable names only, never secret values.
 - Local development and guarded test database workflows remain unchanged.
+
+#### PF0 implementation log
+
+- Майбутня deployment branch — `main`. Репозиторій залишається private, доки
+  окрема перевірка повної Git history не підтвердить відсутність secrets.
+- Vercel використовуватиме `apps/web` як project Root Directory і чинний
+  Next.js same-origin rewrite. Render використовуватиме repository root, тому
+  build матиме доступ до кореневих `pnpm-lock.yaml`, `pnpm-workspace.yaml` і
+  Turborepo configuration; точні provider commands будуть зафіксовані у PF3/PF4.
+- Додано pure startup validator, який до `NestFactory.create()` перевіряє
+  database, Better Auth, Google, Stripe, Checkout URLs і `PORT`. Повідомлення
+  містять лише назви змінних і безпечні причини помилок.
+- Production/public-demo profile вимагає HTTPS auth/Checkout origin,
+  non-local PostgreSQL із `sslmode=require`, Stripe test key, webhook secret і
+  відсутність `TEST_DATABASE_URL`. Це навмисно не є contract для майбутніх live
+  payments.
+- Додано `lint:check` у root/web/API. Старий API `lint --fix` збережено як
+  явний developer workflow. Щоб repository gate став зеленим, механічно
+  відформатовано наявні lint findings і видалено тільки неактуальні
+  `eslint-disable` directives без зміни поведінки.
+- Несекретні provider settings надалі можуть бути committed as code, якщо це
+  підтримує free tier; усі credentials і environment values залишаються лише в
+  provider dashboards.
+- Demo credentials не комітяться: Customer може створити власний demo account,
+  а privileged access видається контрольовано. Synthetic hosted data потребує
+  окремого одноразового ручного allowlisted bootstrap; чинний local seed guard
+  не обходиться.
+
+#### PF0 validation results
+
+- `pnpm --filter api test -- environment.spec.ts` — passed: `11/11` tests.
+- Targeted ESLint для startup validator і API bootstrap — passed.
+- `pnpm --filter api build` — passed.
+- `pnpm --dir apps/web build` — passed із `apps/web` як working/root directory;
+  Next.js зібрав усі 17 route entries.
+- `pnpm lint:check` — passed: `2/2` Turborepo tasks, без зміни файлів.
+- Database, migrations, seed, provider APIs і deployment не запускалися.
+
+#### PF0 handoff to PF1
+
+PF1 має додати liveness/readiness, security headers, log-redaction audit і
+вузьке rate limiting. До початку потрібно окремо погодити можливу dependency та
+конкретні demo rate limits. PF1 не повинен створювати provider resources,
+послаблювати auth/RBAC або повертати environment/database metadata з health
+responses.
 
 ### PF1 — API health and minimum security baseline
 
@@ -440,7 +485,9 @@ Commands are run from the repository root. No command below contains a secret.
 | Reproducible install       | `pnpm install --frozen-lockfile`          |
 | Root build                 | `pnpm build`                              |
 | Root typecheck             | `pnpm check-types`                        |
-| Web lint                   | `pnpm --filter web lint`                  |
+| Root non-mutating lint     | `pnpm lint:check`                         |
+| API non-mutating lint      | `pnpm --filter api lint:check`            |
+| Web non-mutating lint      | `pnpm --filter web lint:check`            |
 | Web build                  | `pnpm --filter web build`                 |
 | Web unit/component         | `pnpm --filter web test`                  |
 | Web browser regression     | `pnpm --filter web test:e2e`              |
@@ -452,8 +499,9 @@ Commands are run from the repository root. No command below contains a secret.
 | API E2E                    | `pnpm --filter api test:e2e`              |
 | Whitespace gate            | `git diff --check`                        |
 
-The current `pnpm --filter api lint` script runs ESLint with `--fix`. PF0 must
-provide a non-mutating validation command before that script is used in CI.
+The existing `pnpm --filter api lint` script remains the explicit developer
+autofix workflow. Release and future CI validation use `lint:check`, which never
+rewrites files.
 
 ## Efficient validation sequence
 
@@ -543,16 +591,14 @@ Do not repeat every suite after every small change.
 These decisions do not block creation of the plan but must be resolved before
 their corresponding implementation slice:
 
-1. Which Git branch triggers the public demo deployment, and is the repository
-   public or private?
-2. Should deployment configuration live entirely in provider dashboards or be
-   committed as code where free-tier support permits?
-3. Which manual, allowlisted method will populate Neon with synthetic demo data?
-4. What demo-appropriate rate limits are acceptable, and may a small dependency
+1. Has the complete Git history passed a secret audit so the repository may be
+   made public before connecting it to providers?
+2. Which exact manual, allowlisted implementation will populate Neon with
+   synthetic demo data?
+3. What demo-appropriate rate limits are acceptable, and may a small dependency
    be added if the existing stack cannot implement them safely?
-5. How long may provider logs retain nonsensitive operational metadata?
-6. Will the demo expose shared role credentials, create accounts on demand, or
-   use an operator-assisted access method? Credentials must never be committed.
+4. How long may provider logs retain nonsensitive operational metadata?
+5. Do the required free Vercel, Render and Neon accounts already exist?
 
 ## Required approvals during implementation
 

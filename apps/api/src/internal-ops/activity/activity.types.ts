@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-redundant-type-constituents */
 import { ActivityResourceType as PrismaActivityResourceType } from '../../generated/prisma/enums';
 import type { UserRole } from '../../generated/prisma/enums';
 import type { PageInfo } from '../../commerce/orders/orders.types';
