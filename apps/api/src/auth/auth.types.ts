@@ -25,6 +25,15 @@ export type BetterAuthInstance = {
   };
 };
 
+export type BetterAuthPasswordInstance = BetterAuthInstance & {
+  api: BetterAuthInstance['api'] & {
+    setPassword: (input: {
+      body: { newPassword: string };
+      headers: Headers;
+    }) => Promise<{ status: true }>;
+  };
+};
+
 export type AuthenticatedRequest = ExpressRequest & {
   auth?: AuthSession;
 };

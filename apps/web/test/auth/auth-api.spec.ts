@@ -2,6 +2,7 @@ import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
 import { AppError } from "@/lib/api/app-error";
 import {
+  createAccountPassword,
   getLinkedAuthAccounts,
   linkGoogleAccount,
   signInWithEmail,
@@ -110,6 +111,24 @@ describe("Better Auth API boundary", () => {
     await expect(linkGoogleAccount()).resolves.toBe(
       "https://accounts.google.com/o/oauth2/v2/auth?client_id=test",
     );
+  });
+
+  it("sends only the validated password to the authenticated API boundary", async () => {
+    mockApi.use(
+      http.post("*/api/v1/me/password", async ({ request }) => {
+        expect(await request.json()).toEqual({
+          newPassword: "new-password-123",
+        });
+        return HttpResponse.json({ status: true });
+      }),
+    );
+
+    await expect(
+      createAccountPassword({
+        confirmPassword: "new-password-123",
+        newPassword: "new-password-123",
+      }),
+    ).resolves.toBeUndefined();
   });
 
   it("rejects a malformed social sign-in response", async () => {
