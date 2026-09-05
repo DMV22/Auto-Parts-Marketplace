@@ -35,7 +35,7 @@ The standalone Prisma CLI seed process is the only additional Prisma Client boun
 
 ## Authentication and authorization boundary
 
-`AuthModule` is the single Better Auth integration boundary and reuses the Prisma persistence owner. Supported authentication methods are email/password and Google OAuth. Sessions are persisted; secrets and provider credentials come only from environment variables.
+`AuthModule` is the single Better Auth integration boundary and reuses the Prisma persistence owner. Supported authentication methods are email/password and Google OAuth. Linking Google to an existing account is an explicit, authenticated action: implicit linking is disabled, provider email must match the current account, and provider profile data does not overwrite the local user. Sessions are persisted; secrets and provider credentials come only from environment variables.
 
 Authorization has two independent layers:
 

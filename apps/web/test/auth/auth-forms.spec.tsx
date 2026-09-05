@@ -116,6 +116,18 @@ describe("authentication forms", () => {
     ).toHaveTextContent("Перевірте email і пароль");
   });
 
+  it("explains how to explicitly link Google after an account-not-linked callback", () => {
+    renderForm(
+      <SignInForm returnTo="/garage" oauthError="account_not_linked" />,
+    );
+
+    expect(
+      screen.getByRole("alert", { name: "Google-акаунт ще не підключено" }),
+    ).toHaveTextContent(
+      "Увійдіть за допомогою email і пароля, а потім відкрийте «Безпека акаунта»",
+    );
+  });
+
   it("validates the customer name during sign-up", async () => {
     renderForm(<SignUpForm returnTo="/" />);
 

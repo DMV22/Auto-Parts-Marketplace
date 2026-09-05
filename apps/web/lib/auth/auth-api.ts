@@ -14,6 +14,46 @@ const socialSignInResponseSchema = z.object({
   url: z.url(),
 });
 
+const linkedAuthAccountsSchema = z.array(
+  z.object({
+    id: z.string(),
+    providerId: z.string(),
+  }),
+);
+
+const linkSocialResponseSchema = z.discriminatedUnion("redirect", [
+  socialSignInResponseSchema,
+  z.object({
+    redirect: z.literal(false),
+    status: z.literal(true),
+    url: z.string().optional(),
+  }),
+]);
+
+export type LinkedAuthAccount = z.infer<
+  typeof linkedAuthAccountsSchema
+>[number];
+
+function secureAuthorizationUrl(url: string): string {
+  const authorizationUrl = new URL(url);
+
+  if (authorizationUrl.protocol !== "https:") {
+    throw new AppError("The Google authorization URL is not secure", {
+      kind: "invalid_response",
+    });
+  }
+
+  return authorizationUrl.toString();
+}
+
+function googleSignInErrorCallback(returnTo?: string | null): string {
+  const parameters = new URLSearchParams({
+    returnTo: safeReturnTo(returnTo),
+  });
+
+  return `/sign-in?${parameters.toString()}`;
+}
+
 export async function signUpWithEmail(input: SignUpInput): Promise<void> {
   const payload = signUpSchema.parse(input);
 
@@ -36,6 +76,7 @@ export async function signInWithGoogle(returnTo?: string | null): Promise<string
   const payload = await apiRequest<unknown>("/api/auth/sign-in/social", {
     body: {
       callbackURL: safeReturnTo(returnTo),
+      errorCallbackURL: googleSignInErrorCallback(returnTo),
       provider: "google",
     },
     method: "POST",
@@ -49,15 +90,55 @@ export async function signInWithGoogle(returnTo?: string | null): Promise<string
     });
   }
 
-  const authorizationUrl = new URL(result.data.url);
+  return secureAuthorizationUrl(result.data.url);
+}
 
-  if (authorizationUrl.protocol !== "https:") {
-    throw new AppError("The Google authorization URL is not secure", {
-      kind: "invalid_response",
-    });
+export async function getLinkedAuthAccounts(
+  signal?: AbortSignal,
+): Promise<LinkedAuthAccount[]> {
+  const payload = await apiRequest<unknown>("/api/auth/list-accounts", {
+    cache: "no-store",
+    signal,
+  });
+  const result = linkedAuthAccountsSchema.safeParse(payload);
+
+  if (!result.success) {
+    throw new AppError(
+      "The linked accounts response does not match its contract",
+      {
+        kind: "invalid_response",
+        details: result.error.flatten(),
+      },
+    );
   }
 
-  return authorizationUrl.toString();
+  return result.data;
+}
+
+export async function linkGoogleAccount(): Promise<string | null> {
+  const payload = await apiRequest<unknown>("/api/auth/link-social", {
+    body: {
+      callbackURL: "/account/security?linked=google",
+      errorCallbackURL: "/account/security?linkError=google",
+      provider: "google",
+    },
+    method: "POST",
+  });
+  const result = linkSocialResponseSchema.safeParse(payload);
+
+  if (!result.success) {
+    throw new AppError(
+      "The account-linking response does not match its contract",
+      {
+        kind: "invalid_response",
+        details: result.error.flatten(),
+      },
+    );
+  }
+
+  return result.data.redirect
+    ? secureAuthorizationUrl(result.data.url)
+    : null;
 }
 
 export async function signOut(): Promise<void> {
