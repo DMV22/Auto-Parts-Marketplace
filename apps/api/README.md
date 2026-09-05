@@ -4,6 +4,25 @@ NestJS 11 backend for Auto Parts Marketplace. It uses Prisma 7.9.0, PostgreSQL 1
 
 Run commands from the repository root with Node.js `>=22.12.0 <23` and pnpm 9.
 
+## Environment profiles
+
+- `local`: `NODE_ENV=development`, local `DATABASE_URL`, and an optional guarded
+  `TEST_DATABASE_URL` for test commands.
+- `test`: `NODE_ENV=test`; persistence accepts only a local
+  `TEST_DATABASE_URL` whose database name is `auto_parts_test`.
+- `public-demo`: `NODE_ENV=production`, a non-local TLS PostgreSQL URL, the
+  canonical Vercel HTTPS origin, Stripe test-mode configuration, and no
+  `TEST_DATABASE_URL`.
+
+API startup validates the complete required environment before NestJS begins
+listening. Errors contain variable names and safe validation reasons only; they
+must never contain configured values. Public-demo validation additionally
+requires HTTPS auth/Checkout URLs on one origin, `sslmode=require`, a Stripe
+test key and an endpoint-specific Stripe webhook secret.
+
+`PORT` is optional locally and defaults to `3001`; Render supplies it at
+runtime. See `.env.example` for names and safe placeholders only.
+
 ## Setup and migrations
 
 Create `apps/api/.env` from `apps/api/.env.example`. Keep real credentials outside Git. Docker intentionally exposes PostgreSQL on host port `5433`; both URLs must use that port.
@@ -76,11 +95,15 @@ Integration and e2e tests accept only a local `TEST_DATABASE_URL` targeting `aut
 ## Repository checks
 
 ```bash
-pnpm lint
+pnpm lint:check
 pnpm check-types
 pnpm build
 git diff --check
 ```
+
+`pnpm lint:check` never edits files. `pnpm --filter api lint` remains an
+explicit developer autofix command and must not be used as a CI validation
+gate.
 
 ## Current API boundary
 

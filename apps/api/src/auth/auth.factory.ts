@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { BetterAuthInstance } from './auth.types';
+import { BETTER_AUTH_RATE_LIMIT } from '../security/rate-limit';
 
 const MINIMUM_SECRET_LENGTH = 32;
 
@@ -45,6 +46,7 @@ export async function createBetterAuth(
     emailAndPassword: {
       enabled: true,
     },
+    rateLimit: BETTER_AUTH_RATE_LIMIT,
     account: {
       accountLinking: {
         enabled: true,
