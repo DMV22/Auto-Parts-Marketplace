@@ -8,14 +8,18 @@ import { CheckoutModule } from './commerce/checkout/checkout.module';
 import { OrdersModule } from './commerce/orders/orders.module';
 import { PaymentsModule } from './commerce/payments/payments.module';
 import { GarageModule } from './garage/garage.module';
+import { HealthModule } from './health/health.module';
 import { InternalOpsModule } from './internal-ops/internal-ops.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { SecurityModule } from './security/security.module';
 import { SupplierCabinetModule } from './supplier-cabinet/supplier-cabinet.module';
 import { VehicleTaxonomyModule } from './vehicle-taxonomy/vehicle-taxonomy.module';
 
 @Module({
   imports: [
     PrismaModule,
+    SecurityModule,
+    HealthModule,
     AuthModule,
     VehicleTaxonomyModule,
     GarageModule,

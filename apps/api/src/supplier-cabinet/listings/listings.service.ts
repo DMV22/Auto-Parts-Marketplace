@@ -246,9 +246,13 @@ export class SupplierListingsService {
       select: { status: true, moderationReason: true },
     });
     if (!current) throw new NotFoundException('Listing not found');
-    const nextStatus = resolveSupplierListingTransition(current.status, action, {
-      moderationReason: current.moderationReason,
-    });
+    const nextStatus = resolveSupplierListingTransition(
+      current.status,
+      action,
+      {
+        moderationReason: current.moderationReason,
+      },
+    );
     const result = await this.prisma.listing.updateMany({
       where: { id: listingId, supplierId, status: current.status },
       data: {

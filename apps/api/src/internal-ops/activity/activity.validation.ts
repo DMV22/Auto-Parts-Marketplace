@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
-/* eslint-disable @typescript-eslint/no-redundant-type-constituents */
 import { BadRequestException, Injectable, PipeTransform } from '@nestjs/common';
 import { ActivityResourceType } from '../../generated/prisma/enums';
 import type {
