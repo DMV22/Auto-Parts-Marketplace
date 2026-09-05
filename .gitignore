@@ -16,6 +16,9 @@ node_modules
 coverage
 .lighthouseci
 
+# Generated temporary artifacts
+/tmp/
+
 # Turbo
 .turbo
 
