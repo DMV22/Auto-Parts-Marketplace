@@ -2,8 +2,9 @@
 
 ## Status
 
-`In progress` — PF0–PF2 завершено в repository; Neon resource створено, але
-database migration, Render/Vercel deployment і hosted validation ще не виконані.
+`In progress` — PF0–PF3 завершено на repository side; 12 committed migrations
+застосовано до Neon, але explicit migration-status evidence, Render/Vercel
+deployment і hosted validation ще не виконані.
 
 ## Summary
 
@@ -116,7 +117,8 @@ third-party cookies. Render URL є server-side upstream для Next.js rewrite �
 - the committed API `lint` script includes `--fix` and is unsuitable as a
   read-only CI validation command;
 - public-demo rate limiting and security-header evidence are absent;
-- no hosted PostgreSQL migration/runbook has been rehearsed;
+- hosted PostgreSQL migration sequence виконано; explicit post-migration
+  `prisma:migrate:status` evidence ще очікується;
 - the current seed intentionally accepts only local `auto_parts_dev` and must
   not be pointed at Neon;
 - provider logs have no documented redaction/retention checklist;
@@ -320,7 +322,7 @@ Repository-side PF1 завершено. Після створення Render ser
 
 - [x] Create one dedicated Neon public-demo project/database.
 - [ ] Add its connection values only to approved secret stores.
-- [ ] Review the sanitized database host/name before each migration or data
+- [x] Review the sanitized database host/name before each migration or data
       bootstrap.
 - [ ] Explicitly approve any one-time demo-data operation.
 
@@ -382,27 +384,36 @@ Repository-side PF1 завершено. Після створення Render ser
 - Real Neon URL не використовувався; database connection, Prisma validation,
   generation, migrations, status, seed і external provider calls не запускалися.
 
+#### PF2 manual migration evidence
+
+- Користувач виконав `prisma:demo:preflight`; sanitized output підтвердив Neon
+  direct connection, database `neondb` і `sslmode=require` без розкриття
+  credentials.
+- `prisma:migrate:deploy` знайшов і успішно застосував усі 12 committed
+  migrations. Destructive commands і seed не запускалися.
+- Process-scoped `DATABASE_URL` і `PUBLIC_DEMO_DATABASE_NAME` після операції
+  очищено та перевірено як відсутні.
+- Explicit `prisma:migrate:status` output ще потрібно отримати перед першим
+  успішним Render startup; тому hosted PF2 acceptance залишається pending.
+
 #### PF2 manual completion and handoff to PF3
 
-До hosted acceptance користувач має визначити actual PostgreSQL database name,
-передати direct URL лише через private process environment, виконати preflight і
-надати sanitized host/database на окреме approval. Після approval потрібно
-виконати runbook migration/status sequence та перевірити API readiness against
-Neon. PF3 може готувати Render deployment configuration паралельно, але не має
-автоматично запускати migration або seed.
+До hosted acceptance користувач має виконати explicit migration-status check і
+після Render deploy перевірити API readiness against Neon. PF3 не запускає
+migration або seed автоматично.
 
 ### PF3 — Render API deployment
 
 **Agent implements**
 
-- [ ] Add only the minimal provider configuration needed for a pnpm/Turborepo
+- [x] Add only the minimal provider configuration needed for a pnpm/Turborepo
       monorepo, if dashboard configuration alone is insufficient.
-- [ ] Define reproducible install, Prisma generation, API build and production
+- [x] Define reproducible install, Prisma generation, API build and production
       start commands.
-- [ ] Ensure runtime uses `node dist/main` and the provider `PORT`.
-- [ ] Configure deploy triggers so unrelated documentation-only changes do not
+- [x] Ensure runtime uses `node dist/main` and the provider `PORT`.
+- [x] Configure deploy triggers so unrelated documentation-only changes do not
       cause unnecessary API builds where supported.
-- [ ] Document cold-start behavior and webhook recovery procedure.
+- [x] Document cold-start behavior and webhook recovery procedure.
 
 **User performs manually**
 
@@ -416,6 +427,50 @@ Neon. PF3 може готувати Render deployment configuration парале
 - Liveness and readiness return success over HTTPS.
 - Restarting or redeploying does not depend on local filesystem persistence.
 - A cold request recovers within the documented demo tolerance.
+
+#### PF3 implementation log
+
+- Додано root `render.yaml` для Node/Free/Virginia service з branch `main` і
+  manual first deploy. Repository root залишається build context, щоб pnpm бачив
+  committed workspace lockfile; docs-only changes виключені included-path
+  filter.
+- Build contract: Corepack активує committed `pnpm@9.0.0`, frozen install явно
+  включає dev dependencies для Nest CLI, після чого генеруються Prisma Client і
+  API build. Migration, seed та `preDeployCommand` відсутні.
+- Runtime використовує чинний `pnpm --filter api start:prod` →
+  `node dist/main`; `PORT` не комітиться і надається Render.
+- Prisma CLI-only config і `prisma/seed.ts` виключено з Nest application build.
+  Це повертає production entrypoint до очікуваного `dist/main.js` замість
+  непридатного для чинного `start:prod` шляху `dist/src/main.js`; Prisma schema,
+  migrations, seed і config залишаються доступними для окремих operator
+  commands.
+- У Blueprint закомічено лише `NODE_ENV=production` та назви required variables.
+  Усі credentials/URLs мають `sync: false`; `TEST_DATABASE_URL` відсутній.
+- Створено `docs/RENDER-API-DEPLOYMENT-RUNBOOK.md`: prerequisites, exact manual
+  creation order, HTTPS health smoke, provider-log redaction, cold-start
+  tolerance, Stripe test webhook recovery і rollback.
+- Vercel URL і Render service ще не створені. Через fail-closed API environment
+  validation перший успішний Render deploy потребує stable Vercel origin і
+  hosted Stripe test webhook signing secret; повна Stripe behavior validation
+  залишається PF6.
+
+#### PF3 repository validation results
+
+- Render Blueprint fields звірено з актуальною official Blueprint schema:
+  `runtime`, `plan`, `region`, `autoDeployTrigger`, `healthCheckPath`,
+  `buildFilter` і `sync: false` supported.
+- Local API build підтверджує production artifact і чинний `dist/main` startup
+  contract; provider deployment і external health requests не запускалися.
+- Hosted PF3 acceptance залишається pending до ручного Render setup, HTTPS
+  liveness/readiness, cold-start і log-redaction evidence.
+
+#### PF3 handoff to provider setup and PF4
+
+Користувач має спочатку створити Vercel project shell, потім Render Blueprint
+service, безпечно заповнити environment variables і виконати evidence template з
+Render runbook. Після успішного API smoke PF4 підключить `API_INTERNAL_URL` у
+Vercel і перевірить browser same-origin proxy. Auto-deploy залишається вимкненим
+до green hosted smoke; його увімкнення потребує окремого рішення після checks.
 
 ### PF4 — Vercel web deployment and same-origin proxy
 
@@ -687,8 +742,8 @@ their corresponding implementation slice:
 2. Which separately reviewed implementation will populate Neon with synthetic
    demo data after migrations? PF2 defines its safety contract but intentionally
    does not add an executable hosted seed.
-3. Does the required Render Free account already exist? Vercel and its dedicated
-   Neon integration are available.
+3. Render account існує та підключений до GitHub; Vercel project URL і Render
+   Web Service ще не створені.
 
 PF1 resolved the former rate-limit and logging-policy decisions: approved
 in-memory limits are `10/5/30` per 60 seconds, and provider-default retention is
