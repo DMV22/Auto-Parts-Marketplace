@@ -21,6 +21,7 @@ import type {
   UpdateCartItemInput,
 } from './cart.types';
 import { CartAddItemBodyPipe, CartUpdateItemBodyPipe } from './cart.validation';
+import { DemoRateLimit } from '../../security/rate-limit';
 
 @Controller('api/v1/cart')
 export class CartController {
@@ -42,6 +43,7 @@ export class CartController {
   }
 
   @Post('items')
+  @DemoRateLimit('mutation')
   async add(
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
@@ -54,6 +56,7 @@ export class CartController {
   }
 
   @Patch('items/:itemId')
+  @DemoRateLimit('mutation')
   async update(
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
@@ -67,6 +70,7 @@ export class CartController {
   }
 
   @Delete('items/:itemId')
+  @DemoRateLimit('mutation')
   async remove(
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
@@ -79,6 +83,7 @@ export class CartController {
   }
 
   @Delete()
+  @DemoRateLimit('mutation')
   async clear(
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,

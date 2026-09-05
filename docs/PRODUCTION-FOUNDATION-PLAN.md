@@ -2,7 +2,8 @@
 
 ## Status
 
-`In progress` — PF0 завершено; provider resources і deployment ще не створені.
+`In progress` — PF0–PF1 завершено в repository; provider resources і deployment
+ще не створені.
 
 ## Summary
 
@@ -241,19 +242,19 @@ responses.
 
 **Agent implements**
 
-- [ ] Add lightweight unauthenticated liveness and readiness endpoints.
-- [ ] Liveness verifies the process only; readiness performs a bounded database
+- [x] Add lightweight unauthenticated liveness and readiness endpoints.
+- [x] Liveness verifies the process only; readiness performs a bounded database
       connectivity check without returning database metadata.
-- [ ] Add standard secure response headers without changing application DTOs.
-- [ ] Add narrowly scoped rate limiting for authentication and mutation-heavy
+- [x] Add standard secure response headers without changing application DTOs.
+- [x] Add narrowly scoped rate limiting for authentication and mutation-heavy
       public boundaries. Any new dependency requires explicit approval.
-- [ ] Audit logs so authorization headers, cookies, OAuth codes, Stripe
+- [x] Audit logs so authorization headers, cookies, OAuth codes, Stripe
       signatures, webhook bodies and database URLs are never emitted.
-- [ ] Add targeted tests for health, headers and rate-limit behavior.
+- [x] Add targeted tests for health, headers and rate-limit behavior.
 
 **User performs manually**
 
-- [ ] Approve any required dependency and the demo-appropriate rate limits.
+- [x] Approve any required dependency and the demo-appropriate rate limits.
 - [ ] Configure the readiness path as Render's HTTP health check.
 
 **Acceptance evidence**
@@ -261,6 +262,47 @@ responses.
 - Health responses contain no sensitive or environment-identifying fields.
 - Security headers are visible on representative web/API responses.
 - Normal Catalog and role-aware flows do not receive false-positive throttling.
+
+#### PF1 implementation log
+
+- Додано unauthenticated `GET /api/v1/health/live`, який перевіряє лише процес,
+  і `GET /api/v1/health/ready`, який виконує `SELECT 1` з application-level
+  timeout `2 s`. Обидві відповіді містять тільки `status`; readiness failure
+  повертає `503` без exception, environment або database metadata.
+- Додано `helmet@8.3.0` і `@nestjs/throttler@6.5.0`. Helmet застосовується до
+  API без strict CSP; Next.js додає `X-Content-Type-Options`, `X-Frame-Options`,
+  `Referrer-Policy` і обмежений `Permissions-Policy`. CSP відкладено до hosted
+  OAuth/Stripe validation, щоб не змінити чинні інтеграційні потоки навмання.
+- In-memory demo limits мають фіксоване вікно `60 s`: Better Auth sensitive
+  sign-in/sign-up/linking і authenticated password creation — `10`, Checkout
+  creation — `5`, Guest/Customer Cart mutations — `30`. Catalog/read routes і
+  Stripe webhook не використовують Nest limiter; тому webhook retries та
+  звичайна навігація не потрапляють під ці бюджети.
+- Runtime log audit по `apps/api/src` не знайшов `Logger` або `console` calls.
+  Наявна обробка auth headers, cookies, OAuth/Stripe inputs і database URLs не
+  додає їх до logs. Provider-side request logging потрібно повторно перевірити
+  після створення Render service у PF3/PF7.
+- In-memory throttling є свідомим обмеженням single-instance free demo: counters
+  скидаються після restart і не є production-scale distributed protection.
+
+#### PF1 validation results
+
+- `pnpm --filter api test -- health.service.spec.ts rate-limit.spec.ts
+configure-security-http.spec.ts` — passed: `3/3` suites, `9/9` tests.
+- `pnpm --filter web test -- security-headers.spec.ts` — passed: `1/1` test.
+- Targeted non-mutating ESLint для змінених API та web PF1 files — passed.
+- `pnpm --filter api build` — passed.
+- `git diff --check` — passed; локальні LF → CRLF повідомлення informational.
+- Database connections, migrations, seed, provider APIs і external services не
+  запускалися.
+
+#### PF1 handoff to PF2
+
+Repository-side PF1 завершено. Після створення Render service користувач має
+встановити `/api/v1/health/ready` як HTTP health-check path і підтвердити headers
+та limiter behavior через HTTPS. PF2 має підготувати лише guarded Neon migration
+і synthetic-data runbook; жодне підключення, migration або seed не виконується
+без окремого sanitized-target review та approval.
 
 ### PF2 — Neon database and migration procedure
 
@@ -575,16 +617,16 @@ Do not repeat every suite after every small change.
 
 ## Known limitations and accepted risks
 
-| Risk                                             | Demo treatment                                                | Status                  |
-| ------------------------------------------------ | ------------------------------------------------------------- | ----------------------- |
-| Render sleeps after idle                         | Document cold start; retry recoverable UI requests            | Accepted for free demo  |
-| Stripe event reaches sleeping API                | Checkout normally warms API; rely on sandbox retry/resend     | Must validate           |
-| Neon compute wake-up                             | Bounded readiness and first-request latency measurement       | Accepted if recoverable |
-| Free database lacks production backup guarantees | Synthetic reproducible data; no real PII                      | Must document           |
-| Provider subdomains only                         | Canonical Vercel origin; no custom-domain promise             | Accepted                |
-| API upstream is publicly reachable               | No browser CORS; retain auth/RBAC; add rate/security baseline | Must implement          |
-| Provider logs only                               | Redaction audit and bounded retention expectations            | Must validate           |
-| Lighthouse baseline below original target        | Preserve approved U6 exception and remeasure hosted routes    | Conditional             |
+| Risk                                             | Demo treatment                                             | Status                  |
+| ------------------------------------------------ | ---------------------------------------------------------- | ----------------------- |
+| Render sleeps after idle                         | Document cold start; retry recoverable UI requests         | Accepted for free demo  |
+| Stripe event reaches sleeping API                | Checkout normally warms API; rely on sandbox retry/resend  | Must validate           |
+| Neon compute wake-up                             | Bounded readiness and first-request latency measurement    | Accepted if recoverable |
+| Free database lacks production backup guarantees | Synthetic reproducible data; no real PII                   | Must document           |
+| Provider subdomains only                         | Canonical Vercel origin; no custom-domain promise          | Accepted                |
+| API upstream is publicly reachable               | Auth/RBAC retained; scoped rate/security baseline added    | Revalidate when hosted  |
+| Provider logs only                               | Runtime redaction audit passed; provider logs need smoke   | Revalidate in PF3/PF7   |
+| Lighthouse baseline below original target        | Preserve approved U6 exception and remeasure hosted routes | Conditional             |
 
 ## Open questions
 
@@ -595,10 +637,11 @@ their corresponding implementation slice:
    made public before connecting it to providers?
 2. Which exact manual, allowlisted implementation will populate Neon with
    synthetic demo data?
-3. What demo-appropriate rate limits are acceptable, and may a small dependency
-   be added if the existing stack cannot implement them safely?
-4. How long may provider logs retain nonsensitive operational metadata?
-5. Do the required free Vercel, Render and Neon accounts already exist?
+3. Do the required free Vercel, Render and Neon accounts already exist?
+
+PF1 resolved the former rate-limit and logging-policy decisions: approved
+in-memory limits are `10/5/30` per 60 seconds, and provider-default retention is
+accepted for nonsensitive metadata until the hosted PF7 review.
 
 ## Required approvals during implementation
 
