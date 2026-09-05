@@ -129,7 +129,20 @@ Playwright uses an installed Chrome/Edge channel and a guarded local test databa
 
 ## Next workstream: Production Foundation
 
-Suggested first ticket: **define the production topology and CI quality gate** for separate Next.js, NestJS and PostgreSQL runtime boundaries.
+The approved public-demo topology is Vercel Hobby for Next.js, Render Free for
+NestJS and Neon Free for PostgreSQL. PF0 establishes the environment contract
+and a non-mutating repository lint gate; no hosting resource or deployment has
+been created yet. The future deployment branch is `main`, and the repository
+must remain private until its complete history passes a dedicated secret audit.
+
+Use the non-mutating repository lint command for release/CI validation:
+
+```bash
+pnpm lint:check
+```
+
+The existing `pnpm lint` remains the developer autofix workflow because the API
+package intentionally runs ESLint with `--fix`.
 
 Prerequisites:
 
@@ -139,3 +152,6 @@ Prerequisites:
 - retain the measured Lighthouse baseline for post-deployment comparison.
 
 Read [Architecture](docs/ARCHITECTURE.md), [Current context](docs/CONTEXT.md), [F8](docs/FRONTEND-MILESTONES.md) and [U6](docs/UI-UX-REDESIGN-PLAN.md) before implementation. Do not change auth/session semantics, backend ownership/RBAC, Stripe webhook authority, inventory concurrency, DTO privacy or Prisma schema without a separately reviewed plan. Wishlist, reviews, promotions, VIN lookup, onboarding, shipping, payouts, email flows and analytics are separate product milestones.
+
+The complete staged implementation and approval gates are documented in the
+[Production Foundation plan](docs/PRODUCTION-FOUNDATION-PLAN.md).

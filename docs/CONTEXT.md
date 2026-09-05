@@ -15,7 +15,15 @@ Auto Parts Marketplace is an early-stage marketplace for automotive parts. The r
 - database: PostgreSQL 16 through Docker Compose;
 - authentication: Better Auth `1.6.26`, session-based email/password and Google OAuth;
 - backend tests: Jest, PostgreSQL integration tests and Supertest e2e tests;
-- CI/CD and production deployment: not implemented.
+- Production Foundation PF0: environment/startup contract and non-mutating
+  repository lint gate implemented; CI/CD, provider resources and deployment
+  are not implemented.
+
+The approved future public-demo topology is Vercel Hobby for Next.js, Render
+Free for NestJS and Neon Free for PostgreSQL. Vercel remains the browser-facing
+origin and forwards relative `/api/*` requests to Render. The planned deployment
+branch is `main`; the repository remains private until its full history passes
+a separate secret audit.
 
 Docker maps PostgreSQL container port `5432` to host port `5433` to avoid conflicts with machine-local PostgreSQL installations. Development and tests use separate databases: `auto_parts_dev` and `auto_parts_test`. Connection-string formats are documented in `apps/api/.env.example`; real credentials remain outside Git.
 
@@ -109,6 +117,13 @@ TanStack Query owns server state; local React state is limited to drafts and tra
 
 Secrets and OAuth credentials are environment-only. Demo seed users are domain records without password Accounts, Sessions or Verification records.
 
+Before the API begins listening, a centralized pure validator checks the
+required database, Better Auth, Google, Stripe and Checkout environment
+contract without including configured values in errors. In
+`NODE_ENV=production`, the current public-demo contract requires non-local TLS
+PostgreSQL, one HTTPS Vercel origin for Better Auth and Checkout redirects,
+Stripe test mode, and no `TEST_DATABASE_URL`.
+
 ## Local workflow
 
 Create `apps/api/.env` from the safe example and keep host port `5433` in both database URLs. From the repository root:
@@ -127,7 +142,7 @@ Use `prisma:migrate:dev` only to create a new reviewed forward migration. Applie
 ## Tests and verification
 
 ```bash
-pnpm lint
+pnpm lint:check
 pnpm check-types
 pnpm build
 pnpm --filter api test

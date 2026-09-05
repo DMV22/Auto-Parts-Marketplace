@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { ConflictException, ForbiddenException } from '@nestjs/common';
 import { ReturnRequestStatus, UserRole } from '../../generated/prisma/enums';
 import { resolveReturnTransition } from './return-transition.policy';

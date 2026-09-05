@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '../../generated/prisma/client';
 import type { UserRole } from '../../generated/prisma/enums';
