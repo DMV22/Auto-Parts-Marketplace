@@ -16,6 +16,8 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate:dev": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
+    "prisma:migrate:status": "prisma migrate status",
+    "prisma:demo:preflight": "ts-node src/prisma/public-demo-database-preflight.ts",
     "prisma:seed": "prisma db seed",
     "prisma:studio": "prisma studio",
     "start": "nest start",

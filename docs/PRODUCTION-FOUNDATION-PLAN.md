@@ -2,8 +2,8 @@
 
 ## Status
 
-`In progress` — PF0–PF1 завершено в repository; provider resources і deployment
-ще не створені.
+`In progress` — PF0–PF2 завершено в repository; Neon resource створено, але
+database migration, Render/Vercel deployment і hosted validation ще не виконані.
 
 ## Summary
 
@@ -308,17 +308,17 @@ Repository-side PF1 завершено. Після створення Render ser
 
 **Agent implements**
 
-- [ ] Document the exact `prisma:validate`, `prisma:generate` and
+- [x] Document the exact `prisma:validate`, `prisma:generate` and
       `prisma:migrate:deploy` sequence.
-- [ ] Add a guarded, operator-driven migration runbook with preflight target
+- [x] Add a guarded, operator-driven migration runbook with preflight target
       inspection and post-migration status verification.
-- [ ] Define backup/export expectations appropriate to a free demo database.
-- [ ] Design, but do not silently enable, a one-time synthetic demo-data
+- [x] Define backup/export expectations appropriate to a free demo database.
+- [x] Design, but do not silently enable, a one-time synthetic demo-data
       bootstrap path.
 
 **User performs manually**
 
-- [ ] Create one dedicated Neon public-demo project/database.
+- [x] Create one dedicated Neon public-demo project/database.
 - [ ] Add its connection values only to approved secret stores.
 - [ ] Review the sanitized database host/name before each migration or data
       bootstrap.
@@ -341,6 +341,55 @@ Repository-side PF1 завершено. Після створення Render ser
 - All committed migrations are applied exactly once.
 - API readiness succeeds against Neon.
 - No local test fixtures or development credentials are present in staging.
+
+#### PF2 implementation log
+
+- Підтверджено окремий Free-plan Neon resource з display name
+  `db-auto-parts-marketplace`, створений через Vercel integration і поки не
+  підключений до application runtime. Display name не вважається фактичною
+  PostgreSQL database name; її потрібно окремо звірити в Neon Console перед
+  migration.
+- Додано dependency-free `prisma:demo:preflight`. Він не відкриває database
+  connection і приймає тільки PostgreSQL direct/unpooled Neon host, exact
+  `PUBLIC_DEMO_DATABASE_NAME`, credentials у process environment,
+  `sslmode=require` та відсутній `TEST_DATABASE_URL`. У stdout потрапляють лише
+  sanitized host, database name, connection type і TLS mode.
+- Додано read-only `prisma:migrate:status`. Migration залишається окремою
+  operator command після preflight, sanitized-target review і explicit approval;
+  вона не включена в build, startup або deploy hook.
+- Створено `docs/PUBLIC-DEMO-DATABASE-RUNBOOK.md` з послідовністю
+  `validate → generate → preflight → migrate deploy → migrate status`, безпечним
+  очищенням process environment і забороною `migrate dev`, `db push`, reset та
+  local seed для hosted target.
+- PF2 лише визначає contract майбутнього synthetic bootstrap. Executable hosted
+  seed не додано: він потребує окремого плану й approval та не може створювати
+  password Accounts, Sessions, OAuth tokens, реальні адреси чи payment data.
+- Recovery для Free demo базується на committed migrations і майбутньому
+  idempotent synthetic bootstrap. Production-grade backup/PITR не заявляється;
+  data dumps після demo activity не зберігаються через ризик Accounts/PII.
+
+#### PF2 validation results
+
+- `pnpm --filter api test -- public-demo-database-target.spec.ts` — passed:
+  `1/1` suite, `12/12` tests.
+- `pnpm --filter api prisma:demo:preflight` із явно фіктивним URL — passed;
+  output містив тільки sanitized metadata. `ts-node` `DEP0180` warning є
+  informational і не впливає на guard.
+- Targeted non-mutating ESLint для нових PF2 helper files — passed.
+- `pnpm --filter api build` — passed.
+- Targeted Prettier check і `git diff --check` — passed; LF → CRLF warning
+  informational.
+- Real Neon URL не використовувався; database connection, Prisma validation,
+  generation, migrations, status, seed і external provider calls не запускалися.
+
+#### PF2 manual completion and handoff to PF3
+
+До hosted acceptance користувач має визначити actual PostgreSQL database name,
+передати direct URL лише через private process environment, виконати preflight і
+надати sanitized host/database на окреме approval. Після approval потрібно
+виконати runbook migration/status sequence та перевірити API readiness against
+Neon. PF3 може готувати Render deployment configuration паралельно, але не має
+автоматично запускати migration або seed.
 
 ### PF3 — Render API deployment
 
@@ -635,9 +684,11 @@ their corresponding implementation slice:
 
 1. Has the complete Git history passed a secret audit so the repository may be
    made public before connecting it to providers?
-2. Which exact manual, allowlisted implementation will populate Neon with
-   synthetic demo data?
-3. Do the required free Vercel, Render and Neon accounts already exist?
+2. Which separately reviewed implementation will populate Neon with synthetic
+   demo data after migrations? PF2 defines its safety contract but intentionally
+   does not add an executable hosted seed.
+3. Does the required Render Free account already exist? Vercel and its dedicated
+   Neon integration are available.
 
 PF1 resolved the former rate-limit and logging-policy decisions: approved
 in-memory limits are `10/5/30` per 60 seconds, and provider-default retention is
