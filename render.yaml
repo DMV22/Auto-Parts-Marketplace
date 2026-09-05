@@ -1,0 +1,40 @@
+services:
+  - type: web
+    name: auto-parts-marketplace-api
+    runtime: node
+    plan: free
+    region: virginia
+    branch: main
+    autoDeployTrigger: off
+    buildCommand: corepack enable && pnpm install --frozen-lockfile --prod=false && pnpm --filter api prisma:generate && pnpm --filter api build
+    startCommand: pnpm --filter api start:prod
+    healthCheckPath: /api/v1/health/ready
+    buildFilter:
+      paths:
+        - apps/api/**
+        - packages/**
+        - package.json
+        - pnpm-lock.yaml
+        - pnpm-workspace.yaml
+        - turbo.json
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: BETTER_AUTH_SECRET
+        sync: false
+      - key: BETTER_AUTH_URL
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_CHECKOUT_SUCCESS_URL
+        sync: false
+      - key: STRIPE_CHECKOUT_CANCEL_URL
+        sync: false
