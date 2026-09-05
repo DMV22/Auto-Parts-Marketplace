@@ -1,37 +1,68 @@
 .statusCard,
 .state {
   display: grid;
+  justify-items: start;
   gap: 1.25rem;
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--card);
-  padding: clamp(1.25rem, 4vw, 2rem);
-  box-shadow: var(--shadow-sm);
+  border-block-start: 4px solid var(--status-info);
+  background: var(--surface);
+  padding: clamp(1.25rem, 4vw, 2.25rem);
+  box-shadow: var(--shadow-raised);
+}
+
+.statusCard {
+  justify-items: center;
+  text-align: center;
 }
 
 .statusCard[data-tone="success"] {
-  border-color: color-mix(in oklch, var(--primary) 45%, var(--border));
+  border-block-start-color: var(--status-compatible);
 }
 
-.statusCard[data-tone="warning"],
+.statusCard[data-tone="warning"] {
+  border-block-start-color: var(--status-caution);
+}
+
 .statusCard[data-tone="cancelled"] {
-  border-color: color-mix(in oklch, var(--destructive) 35%, var(--border));
+  border-block-start-color: var(--status-incompatible);
+}
+
+.statusIcon {
+  width: 4.5rem;
+  height: 4.5rem;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  padding: 1rem;
+  color: var(--status-info);
+}
+
+.statusCard[data-tone="success"] .statusIcon {
+  color: var(--status-compatible);
+}
+
+.statusCard[data-tone="warning"] .statusIcon {
+  color: var(--status-caution);
+}
+
+.statusCard[data-tone="cancelled"] .statusIcon {
+  color: var(--status-incompatible);
 }
 
 .statusCopy {
   display: grid;
+  justify-items: center;
   gap: 0.5rem;
 }
 
 .statusCopy span {
   width: fit-content;
+  border: 1px solid var(--border);
   border-radius: 999px;
-  background: var(--muted);
-  padding: 0.25rem 0.6rem;
+  background: var(--surface-inset);
+  padding: 0.3rem 0.65rem;
   color: var(--muted-foreground);
   font-size: 0.75rem;
   font-weight: 800;
-  letter-spacing: 0.04em;
 }
 
 .statusCopy h2,
@@ -39,6 +70,11 @@
 .state h2,
 .state p {
   margin: 0;
+}
+
+.statusCopy h2 {
+  font-size: clamp(1.5rem, 4vw, 2.25rem);
+  text-wrap: balance;
 }
 
 .statusCopy p,
@@ -50,13 +86,21 @@
 .summary {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(8rem, 1fr);
-  gap: 1rem;
+  width: 100%;
+  gap: 0;
   margin: 0;
+  border-block: 1px solid var(--border);
 }
 
 .summary div {
   display: grid;
   gap: 0.25rem;
+  padding: 1rem;
+  text-align: start;
+}
+
+.summary div + div {
+  border-inline-start: 1px solid var(--border);
 }
 
 .summary dt {
@@ -66,30 +110,39 @@
 .summary dd {
   margin: 0;
   overflow-wrap: anywhere;
-  font-weight: 700;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
 }
 
 .actions {
   display: flex;
   align-items: center;
+  justify-content: center;
   flex-wrap: wrap;
   gap: 0.75rem;
 }
 
 .actions a {
-  color: var(--primary);
+  display: inline-flex;
+  min-height: 2.5rem;
+  align-items: center;
+  color: var(--status-info);
   font-weight: 700;
   text-underline-offset: 0.2em;
 }
 
 .actions a:focus-visible {
-  border-radius: var(--radius-sm);
-  outline: 3px solid color-mix(in oklch, var(--ring) 50%, transparent);
+  outline: 3px solid var(--ring);
   outline-offset: 3px;
 }
 
 @media (max-width: 36rem) {
   .summary {
     grid-template-columns: 1fr;
+  }
+
+  .summary div + div {
+    border-block-start: 1px solid var(--border);
+    border-inline-start: 0;
   }
 }

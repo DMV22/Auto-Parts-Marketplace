@@ -1,0 +1,83 @@
+.trigger {
+  min-height: 2.75rem;
+  max-width: 13.5rem;
+  justify-content: flex-start;
+  padding-inline: 0.5rem 0.625rem;
+}
+
+.triggerText {
+  display: grid;
+  min-width: 0;
+  text-align: start;
+}
+
+.triggerText strong,
+.triggerText span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.triggerText strong {
+  color: var(--foreground);
+  font-size: 0.8rem;
+  line-height: 1.1;
+}
+
+.triggerText span {
+  color: var(--muted-foreground);
+  font-size: 0.68rem;
+  line-height: 1.15;
+}
+
+.avatarFallback {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-weight: 800;
+}
+
+.chevron {
+  margin-inline-start: auto;
+  color: var(--muted-foreground);
+}
+
+.content {
+  width: min(17rem, calc(100vw - 1.5rem));
+}
+
+.identity {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.35rem 0.25rem;
+}
+
+.identity strong,
+.identity span {
+  overflow-wrap: anywhere;
+}
+
+.identity strong {
+  color: var(--foreground);
+  font-size: 0.875rem;
+}
+
+.identity span {
+  color: var(--muted-foreground);
+  font-weight: 500;
+}
+
+.inactive {
+  color: var(--destructive) !important;
+}
+
+@media (max-width: 64rem) {
+  .triggerText span {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trigger {
+    transition: none;
+  }
+}

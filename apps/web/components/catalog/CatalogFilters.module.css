@@ -63,6 +63,40 @@
   gap: 0.75rem;
 }
 
+.priceForm {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.priceError {
+  color: var(--destructive);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.priceSubmit {
+  min-block-size: 2.75rem;
+  border-radius: var(--radius-md);
+  background: var(--primary);
+  padding: 0.6rem 0.85rem;
+  color: var(--primary-foreground);
+  font-weight: 750;
+}
+
+.priceSubmit:focus-visible {
+  outline: 3px solid color-mix(in oklch, var(--ring) 50%, transparent);
+  outline-offset: 2px;
+}
+
+.priceSubmit:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.field input[aria-invalid="true"] {
+  border-color: var(--destructive);
+}
+
 .hint,
 .warning {
   color: var(--muted-foreground);

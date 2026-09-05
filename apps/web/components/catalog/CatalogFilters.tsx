@@ -1,59 +1,115 @@
-import type { ChangeEvent } from "react";
+import { useId, useState, type ChangeEvent, type FormEvent } from "react";
 import type {
   CatalogQueryState,
-  CatalogSort,
   ListingCondition,
 } from "@/lib/catalog/catalog-query";
 import type { CatalogFilterOptionsResponse } from "@/lib/catalog/catalog-types";
 import { conditionLabel } from "@/lib/catalog/catalog-presentation";
 import styles from "./CatalogFilters.module.css";
 
-type Props = {
-  model: {
-    state: CatalogQueryState;
-    searchDraft: string;
-  };
+export type CatalogFiltersProps = {
+  headingId: string;
+  state: CatalogQueryState;
   optionsState:
     | { kind: "loading" }
     | { kind: "error"; onRetry: () => void }
     | { kind: "ready"; options: CatalogFilterOptionsResponse };
   actions: {
-    changeSearch: (value: string) => void;
     changeFilter: (update: Partial<CatalogQueryState>) => void;
     changeCurrency: (currency: string | null) => void;
     reset: () => void;
   };
 };
 
+type PriceDraft = {
+  sourceCurrency: string | null;
+  sourceMinPrice: string | null;
+  sourceMaxPrice: string | null;
+  minPrice: string;
+  maxPrice: string;
+  error: string | null;
+};
+
+const PRICE_PATTERN = /^(?:0|[1-9]\d{0,9})(?:\.\d{1,2})?$/;
+
+function createPriceDraft(state: CatalogQueryState): PriceDraft {
+  return {
+    sourceCurrency: state.currency,
+    sourceMinPrice: state.minPrice,
+    sourceMaxPrice: state.maxPrice,
+    minPrice: state.minPrice ?? "",
+    maxPrice: state.maxPrice ?? "",
+    error: null,
+  };
+}
+
+function isCurrentPriceDraft(
+  draft: PriceDraft,
+  state: CatalogQueryState,
+): boolean {
+  return (
+    draft.sourceCurrency === state.currency &&
+    draft.sourceMinPrice === state.minPrice &&
+    draft.sourceMaxPrice === state.maxPrice
+  );
+}
+
 export function CatalogFilters({
-  model,
+  headingId,
+  state,
   optionsState,
   actions,
-}: Readonly<Props>) {
-  const { state, searchDraft } = model;
+}: Readonly<CatalogFiltersProps>) {
   const options = optionsState.kind === "ready" ? optionsState.options : undefined;
+  const priceErrorId = useId();
+  const [storedPriceDraft, setPriceDraft] = useState(() =>
+    createPriceDraft(state),
+  );
+  const priceDraft = isCurrentPriceDraft(storedPriceDraft, state)
+    ? storedPriceDraft
+    : createPriceDraft(state);
   const select =
     <T extends string>(handler: (value: T | null) => void) =>
       (event: ChangeEvent<HTMLSelectElement>) =>
         handler((event.target.value || null) as T | null);
 
+  const updatePriceDraft = (update: Partial<PriceDraft>) => {
+    setPriceDraft({ ...priceDraft, ...update, error: null });
+  };
+
+  const applyPriceRange = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const minPrice = priceDraft.minPrice.trim() || null;
+    const maxPrice = priceDraft.maxPrice.trim() || null;
+
+    if (
+      (minPrice && !PRICE_PATTERN.test(minPrice)) ||
+      (maxPrice && !PRICE_PATTERN.test(maxPrice))
+    ) {
+      setPriceDraft({
+        ...priceDraft,
+        error: "Введіть додатну ціну, використовуючи не більше двох знаків після крапки.",
+      });
+      return;
+    }
+
+    if (minPrice && maxPrice && Number(minPrice) > Number(maxPrice)) {
+      setPriceDraft({
+        ...priceDraft,
+        error: "Мінімальна ціна не може перевищувати максимальну.",
+      });
+      return;
+    }
+
+    actions.changeFilter({ minPrice, maxPrice });
+  };
+
   return (
-    <aside className={styles.panel} aria-labelledby="catalog-filters-title">
+    <aside className={styles.panel} aria-labelledby={headingId}>
       <div className={styles.heading}>
-        <h2 id="catalog-filters-title">Фільтри</h2>
+        <h2 id={headingId}>Фільтри</h2>
         <button type="button" onClick={actions.reset}>Скинути</button>
       </div>
-
-      <label className={styles.field}>
-        <span>Пошук</span>
-        <input
-          type="search"
-          value={searchDraft}
-          maxLength={120}
-          placeholder="Назва, SKU або номер деталі"
-          onChange={(event) => actions.changeSearch(event.target.value)}
-        />
-      </label>
 
       {optionsState.kind === "loading" ? <p role="status" className={styles.hint}>Завантажуємо доступні фільтри…</p> : null}
       {optionsState.kind === "error" ? (
@@ -127,34 +183,54 @@ export function CatalogFilters({
         </select>
       </label>
 
-      <div className={styles.priceFields}>
-        <label className={styles.field}>
-          <span>Ціна від</span>
-          <input inputMode="decimal" value={state.minPrice ?? ""} disabled={!state.currency} onChange={(event) => actions.changeFilter({ minPrice: event.target.value || null })} />
-        </label>
-        <label className={styles.field}>
-          <span>Ціна до</span>
-          <input inputMode="decimal" value={state.maxPrice ?? ""} disabled={!state.currency} onChange={(event) => actions.changeFilter({ maxPrice: event.target.value || null })} />
-        </label>
-      </div>
-      {state.currency ? (
-        <p className={styles.hint}>
-          Доступний діапазон: {options?.data.currencies.find(({ code }) => code === state.currency)?.minimumPrice ?? "—"}–{options?.data.currencies.find(({ code }) => code === state.currency)?.maximumPrice ?? "—"} {state.currency}
-        </p>
-      ) : null}
-
-      <label className={styles.field}>
-        <span>Сортування</span>
-        <select
-          value={state.sort}
-          onChange={select<CatalogSort>((sort) => actions.changeFilter({ sort: sort ?? "newest" }))}
+      <form className={styles.priceForm} onSubmit={applyPriceRange}>
+        <div className={styles.priceFields}>
+          <label className={styles.field}>
+            <span>Ціна від</span>
+            <input
+              inputMode="decimal"
+              value={priceDraft.minPrice}
+              disabled={!state.currency}
+              aria-invalid={Boolean(priceDraft.error)}
+              aria-describedby={priceDraft.error ? priceErrorId : undefined}
+              onChange={(event) =>
+                updatePriceDraft({ minPrice: event.target.value })
+              }
+            />
+          </label>
+          <label className={styles.field}>
+            <span>Ціна до</span>
+            <input
+              inputMode="decimal"
+              value={priceDraft.maxPrice}
+              disabled={!state.currency}
+              aria-invalid={Boolean(priceDraft.error)}
+              aria-describedby={priceDraft.error ? priceErrorId : undefined}
+              onChange={(event) =>
+                updatePriceDraft({ maxPrice: event.target.value })
+              }
+            />
+          </label>
+        </div>
+        {priceDraft.error ? (
+          <p id={priceErrorId} role="alert" className={styles.priceError}>
+            {priceDraft.error}
+          </p>
+        ) : null}
+        {state.currency ? (
+          <p className={styles.hint}>
+            Доступний діапазон: {options?.data.currencies.find(({ code }) => code === state.currency)?.minimumPrice ?? "—"}–{options?.data.currencies.find(({ code }) => code === state.currency)?.maximumPrice ?? "—"} {state.currency}
+          </p>
+        ) : null}
+        <button
+          type="submit"
+          className={styles.priceSubmit}
+          disabled={!state.currency}
         >
-          <option value="newest">Спочатку нові</option>
-          <option value="name_asc">Назва: А–Я</option>
-          <option value="name_desc">Назва: Я–А</option>
-          {state.currency ? <><option value="price_asc">Ціна: від меншої</option><option value="price_desc">Ціна: від більшої</option></> : null}
-        </select>
-      </label>
+          Застосувати ціну
+        </button>
+      </form>
+
     </aside>
   );
 }

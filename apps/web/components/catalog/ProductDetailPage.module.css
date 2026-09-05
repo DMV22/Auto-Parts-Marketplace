@@ -1,9 +1,9 @@
 .main {
   display: grid;
   gap: 1.5rem;
-  inline-size: min(100% - 2rem, 76rem);
+  inline-size: min(100% - 2rem, 80rem);
   margin-inline: auto;
-  padding-block: 1.25rem 3rem;
+  padding-block: 1rem 3.5rem;
 }
 
 .backLink {
@@ -15,6 +15,12 @@
 
 .backLink:hover {
   color: var(--foreground);
+}
+
+@media (max-width: 40rem) {
+  .main {
+    inline-size: min(100% - 1.25rem, 80rem);
+  }
 }
 
 .backLink:focus-visible,

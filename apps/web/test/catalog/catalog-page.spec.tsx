@@ -81,6 +81,7 @@ describe("CatalogPage", () => {
           data: {
             brands: [],
             categories: [],
+            defaultCurrency: "UAH",
             currencies: [
               { code: "UAH", minimumPrice: "80", maximumPrice: "500" },
             ],

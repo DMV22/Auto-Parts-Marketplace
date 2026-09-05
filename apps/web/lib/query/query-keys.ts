@@ -1,8 +1,12 @@
+import type { NoteTarget } from "@/lib/internal-ops/internal-ops-types";
+
 export const queryKeys = {
   auth: {
+    accounts: ["auth", "accounts"] as const,
     session: ["auth", "session"] as const,
   },
   catalog: {
+    root: ["catalog"] as const,
     filterOptions: ["catalog", "filter-options"] as const,
     products: (query: string, savedVehicleId: string | null) =>
       ["catalog", "products", query, savedVehicleId] as const,
@@ -21,6 +25,47 @@ export const queryKeys = {
   },
   garage: {
     vehicles: ["garage", "vehicles"] as const,
+  },
+  internalOps: {
+    ordersRoot: ["internal-ops", "orders"] as const,
+    orders: (query: string) => ["internal-ops", "orders", query] as const,
+    order: (orderId: string) =>
+      ["internal-ops", "order", orderId] as const,
+    orderTimelineRoot: (orderId: string) =>
+      ["internal-ops", "order", orderId, "timeline"] as const,
+    orderTimeline: (orderId: string, cursor: string | null) =>
+      ["internal-ops", "order", orderId, "timeline", cursor] as const,
+    returnsRoot: ["internal-ops", "returns"] as const,
+    returns: (query: string) => ["internal-ops", "returns", query] as const,
+    return: (returnRequestId: string) =>
+      ["internal-ops", "return", returnRequestId] as const,
+    notesRoot: (targetType: NoteTarget["type"], targetId: string) =>
+      ["internal-ops", "notes", targetType, targetId] as const,
+    notes: (targetType: NoteTarget["type"], targetId: string, cursor: string | null) =>
+      ["internal-ops", "notes", targetType, targetId, cursor] as const,
+    activityRoot: ["internal-ops", "activity"] as const,
+    activity: (query: string) =>
+      ["internal-ops", "activity", query] as const,
+    moderationRoot: ["internal-ops", "moderation"] as const,
+    moderation: (query: string) =>
+      ["internal-ops", "moderation", query] as const,
+  },
+  supplier: {
+    membership: ["supplier", "membership"] as const,
+    variants: (supplierId: string, query: string, cursor: string | null) =>
+      ["supplier", supplierId, "variants", query, cursor] as const,
+    variant: (supplierId: string, variantId: string) =>
+      ["supplier", supplierId, "variant", variantId] as const,
+    listings: (supplierId: string, query: string) =>
+      ["supplier", supplierId, "listings", query] as const,
+    listingsRoot: (supplierId: string) =>
+      ["supplier", supplierId, "listings"] as const,
+    listing: (supplierId: string, listingId: string) =>
+      ["supplier", supplierId, "listing", listingId] as const,
+    orderItems: (supplierId: string, query: string) =>
+      ["supplier", supplierId, "order-items", query] as const,
+    orderItem: (supplierId: string, orderItemId: string) =>
+      ["supplier", supplierId, "order-item", orderItemId] as const,
   },
   vehicles: {
     taxonomy: {

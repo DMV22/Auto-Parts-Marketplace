@@ -60,18 +60,25 @@ describe("GarageWorkspace", () => {
       ),
     );
 
-    render(
+    const { container } = render(
       <QueryClientProvider client={createQueryClient()}>
         <GarageWorkspace />
       </QueryClientProvider>,
     );
 
     expect(await screen.findByText("Toyota Corolla")).toBeVisible();
+    expect(container.querySelector("img")).toHaveAttribute(
+      "src",
+      expect.stringContaining("vehicle-silhouette.svg"),
+    );
     fireEvent.click(
       screen.getByRole("button", { name: "Зробити активним" }),
     );
 
-    expect(await screen.findByText("Активне авто")).toBeVisible();
+    expect(
+      await screen.findByRole("heading", { name: "Активне авто" }),
+    ).toBeVisible();
+    expect(screen.getByText("Використовується")).toBeVisible();
     await waitFor(() => expect(listRequests).toBe(2));
   });
 });

@@ -4,21 +4,23 @@
 
 Auto Parts Marketplace is intended to let customers discover compatible automotive parts and suppliers manage marketplace inventory through a web application backed by a NestJS API and PostgreSQL.
 
-The repository currently implements the backend foundation, discovery, commerce, Supplier Cabinet and accepted Milestone 10 Internal Ops boundaries, not complete marketplace workflows. Do not invent supplier fulfillment, shipping, refunds or external operational integrations without an accepted milestone.
+The repository currently implements the backend foundation, the F0–F7 web experience for discovery, owner-isolated commerce, Supplier Cabinet and Internal Ops, and UI redesign slices U0–U5. U6/F8 remain `Conditional` pending external/manual evidence. It does not implement supplier fulfillment, shipping, refunds or external operational integrations; do not invent those workflows without an accepted milestone.
 
 ## Current system
 
-- `apps/web` — Next.js 16 / React 19 application; no marketplace API integration yet.
+- `apps/web` — Next.js 16 / React 19 App Router application for public, Customer/Guest, Supplier and Internal Ops workflows.
 - `apps/api` — NestJS 11 API, Better Auth boundary and Prisma 7.9.0 persistence owner.
 - `packages/ui` — shared presentational React primitives.
 - Docker Compose — PostgreSQL 16 with `auto_parts_dev` and `auto_parts_test`, exposed on host port `5433`.
 - pnpm/Turborepo — workspace task graph, including `.next/**` and API `dist/**` build outputs.
 
-The committed migration chain implements catalog and vehicle taxonomy, identity/supplier ownership, owner-aware commerce, inventory constraints and Internal Ops persistence. The API implements public discovery, Customer/guest commerce, supplier-scoped Cabinet operations, internal OMS/Returns/Notes/audit and Admin Listing moderation. Regression coverage includes migrations, fitment, auth/RBAC, commerce idempotency, supplier isolation, internal privacy and transition policies.
+The committed migration chain implements catalog and vehicle taxonomy, identity/supplier ownership, owner-aware commerce, inventory constraints and Internal Ops persistence. The API implements public discovery, Customer/guest commerce, supplier-scoped Cabinet operations, internal OMS/Returns/Notes/audit and Admin Listing moderation. The web application consumes those contracts through a same-origin `/api/*` rewrite, typed Zod projections and TanStack Query. Regression coverage includes migrations, fitment, auth/RBAC, commerce idempotency, supplier isolation, internal privacy, transition policies, frontend unit/component tests and guarded browser scenarios for role boundaries plus critical F2–F7 mutations.
 
 ## Application boundaries
 
 - `apps/web` owns browser UI and routing. It never imports Prisma Client or connects to PostgreSQL.
+- Browser requests use relative `/api/*` URLs with `credentials: "include"`; Next.js rewrites them server-side to `API_INTERNAL_URL`. Session and guest identities remain HttpOnly cookies and are never copied to browser storage.
+- TanStack Query owns server state. A successful sign-out or identity-changing sign-in clears all prior query data before the new session is projected, preventing cross-role cache reuse.
 - `apps/api` owns HTTP, authentication, authorization, domain services, Prisma schema/migrations and persistence orchestration.
 - Controllers delegate to application/domain services; they do not construct Prisma clients.
 - Shared packages must not depend on application code or own persistence concerns.
@@ -33,7 +35,7 @@ The standalone Prisma CLI seed process is the only additional Prisma Client boun
 
 ## Authentication and authorization boundary
 
-`AuthModule` is the single Better Auth integration boundary and reuses the Prisma persistence owner. Supported authentication methods are email/password and Google OAuth. Sessions are persisted; secrets and provider credentials come only from environment variables.
+`AuthModule` is the single Better Auth integration boundary and reuses the Prisma persistence owner. Supported authentication methods are email/password and Google OAuth. Linking Google to an existing account is an explicit, authenticated action: implicit linking is disabled, provider email must match the current account, and provider profile data does not overwrite the local user. A Google-only user may create a credential password through the authenticated `/api/v1/me/password` boundary; the API delegates to Better Auth's server-only password method and requires its sensitive-session check. Sessions are persisted; secrets and provider credentials come only from environment variables.
 
 Authorization has two independent layers:
 
@@ -104,7 +106,7 @@ Order/payment transitions are explicit application-service operations guarded by
 
 - supplier fulfillment and shipping workflows;
 - payouts, refunds and external CRM/notification integrations;
-- frontend-to-API integration;
+- complete real-provider Google/Stripe release smoke and full manual accessibility/responsive evidence; measured Lighthouse baselines exist with an accepted local simulated-performance exception;
 - production database, secret management, backups, monitoring and deployment architecture.
 
 These capabilities belong to later milestones and must build on the established persistence, auth and ownership boundaries.

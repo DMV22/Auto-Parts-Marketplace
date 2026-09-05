@@ -28,6 +28,7 @@ export function ListingOfferList({
                 </span>
                 <AddToCartButton
                   listingId={listing.id}
+                  currency={listing.currency}
                   inStock={listing.inStock}
                 />
               </div>

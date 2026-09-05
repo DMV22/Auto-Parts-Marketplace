@@ -112,6 +112,10 @@ describe("ReturnItemPanel", () => {
     await waitFor(() => expect(listRequests).toBe(2));
 
     fireEvent.click(screen.getByRole("button", { name: "Скасувати запит" }));
+    expect(cancelRequests).toBe(0);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Підтвердити скасування" }),
+    );
 
     expect(await screen.findByText("Скасовано")).toBeVisible();
     expect(cancelRequests).toBe(1);

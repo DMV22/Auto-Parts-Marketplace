@@ -20,7 +20,10 @@ export function OrderItemSnapshotCard({
       <div>
         <h3>{snapshot.name}</h3>
         <p>
-          {[snapshot.sku ? `SKU: ${snapshot.sku}` : null, snapshot.condition]
+          {[
+            snapshot.sku ? `SKU: ${snapshot.sku}` : null,
+            snapshot.condition,
+          ]
             .filter(Boolean)
             .join(" · ") || "Історичні характеристики недоступні"}
         </p>

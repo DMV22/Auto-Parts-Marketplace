@@ -1,170 +1,141 @@
-# Turborepo starter
+# Auto Parts Marketplace
 
-This Turborepo starter is maintained by the Turborepo core team.
+Full-stack automotive marketplace that connects vehicle-aware product discovery, Customer and Guest commerce, Supplier inventory management, and internal marketplace operations in one role-secured platform.
 
-## Using this example
+The project is implemented as a production-oriented pnpm/Turborepo monorepo. Its current release status is **Conditional**: product milestones F0–F7 and redesign slices U0–U5 are complete, automated regressions are green, and the remaining release evidence is documented under [F8](docs/FRONTEND-MILESTONES.md) and [U6](docs/UI-UX-REDESIGN-PLAN.md).
 
-Run the following command:
+## Product capabilities
 
-```sh
-npx create-turbo@latest
+### Customer and Guest experience
+
+- Vehicle-first Garage with an active vehicle propagated into Catalog and PDP fitment requests.
+- Public catalog with URL-owned search, filters, sorting, bounded pagination and server-authoritative availability.
+- Product detail pages with explicit `compatible`, `incompatible`, `unknown` and `caution` fitment outcomes.
+- Customer and HttpOnly-cookie Guest carts with server-calculated prices, stock, currencies and totals.
+- Stripe Checkout redirect and owner-safe Order recovery; only a verified webhook can confirm payment.
+- Owner-protected Order history, immutable OrderItem snapshots, timeline and Customer Return requests.
+
+### Supplier workspace
+
+- Active-membership-scoped Listing creation, editing and publication lifecycle.
+- Optimistic inventory concurrency through `expectedVersion`, including `409` refetch/retry UX.
+- Supplier-safe OrderItem projections without customer, payment or other Supplier data.
+- Explicit Admin bypass for a known Supplier; no global Supplier directory is exposed.
+
+### Internal and Admin workspace
+
+- SupportManager/Admin Order and Return queues with controlled backend transitions.
+- Internal Notes, redaction and append-only ActivityLog views.
+- Admin-only Listing moderation with supplier-visible reject/pause reasons.
+- Non-disclosing ownership errors and server-enforced role boundaries across every workspace.
+
+## Architecture
+
+```text
+Browser
+  -> Next.js 16 App Router
+     -> React 19 + TanStack Query UI
+     -> same-origin /api rewrite with HttpOnly cookies
+  -> NestJS 11 API
+     -> Better Auth sessions, RBAC and ownership guards
+     -> domain services and server-authoritative transitions
+  -> Prisma 7.9
+  -> PostgreSQL 16
 ```
 
-## What's inside?
+The browser never owns authorization, fitment truth, prices, inventory, payment status or lifecycle transitions. TanStack Query stores server state, while URL parameters store shareable Catalog and queue state. Sign-in and sign-out clear identity-bound cache data to prevent cross-role reuse.
 
-This Turborepo includes the following packages/apps:
+## Repository map
 
-### Apps and Packages
-
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo build
+```text
+apps/web/       Next.js storefront, account and operational workspaces
+apps/api/       NestJS API, Better Auth boundary and Prisma persistence owner
+packages/ui/    Shared presentational primitives
+docs/           Architecture, API plans, milestones and redesign evidence
 ```
 
-Without global `turbo`, use your package manager:
+## Technology
 
-```sh
-cd my-turborepo
-npx turbo build
-pnpm dlx turbo build
-pnpm exec turbo build
+- Frontend: Next.js 16, React 19, TypeScript, TanStack Query, React Hook Form, Zod, Tailwind CSS, CSS Modules and shadcn/ui.
+- Backend: NestJS 11, Better Auth 1.6.26, Prisma 7.9 and PostgreSQL 16.
+- Quality: Vitest, Testing Library, MSW, Jest, Supertest, Playwright, Axe and Lighthouse CI.
+- Tooling: pnpm 9, Turborepo and Docker Compose.
+
+## Quality evidence
+
+- Frontend unit/component regression: **36/36 files and 76/76 tests passed**.
+- Deterministic Playwright coverage includes Customer, Guest, active/inactive SupplierUser, SupportManager and Admin contexts plus critical F2–F7 mutations.
+- Automated Axe audit covers eight representative public, Customer, Supplier and Internal/Admin rendered states.
+- Three-run Lighthouse measurements cover Home, Catalog, PDP, Supplier Listings and Internal Orders without persisting session cookies in reports.
+- Automated accessibility scores are `96–100`, Best Practices scores are `96–100`, and measured CLS is `0` on all representative routes.
+- A local Chrome audit reported Performance `75–78`; slower simulated-mobile measurements and the accepted readiness exception are recorded in the U6 log.
+
+Automated checks complement rather than replace real Google OAuth, Stripe webhook and manual assistive-technology validation. The project must not be described as production-deployed until the remaining F8 evidence and Production Foundation work are complete.
+
+## Local setup
+
+Requirements: Node.js `>=22.12 <23`, pnpm `9`, Docker and Docker Compose.
+
+Create `apps/api/.env` from `apps/api/.env.example` before running Prisma commands. Development uses the local `auto_parts_dev` database; tests accept only the guarded `auto_parts_test` database. Never commit populated Better Auth, Google or Stripe secrets.
+
+```bash
+pnpm install --frozen-lockfile
+docker compose up -d postgres
+pnpm --filter api prisma:validate
+pnpm --filter api prisma:generate
+pnpm --filter api prisma:migrate:deploy
+pnpm --filter api prisma:seed
 ```
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+Run API and web in separate terminals:
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo build --filter=docs
+```bash
+pnpm --filter api start:dev
+pnpm --filter web dev
 ```
 
-Without global `turbo`:
+- Web: `http://localhost:3000`
+- API: `http://localhost:3001`
+- PostgreSQL host port: `5433`
 
-```sh
-npx turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
+The browser calls relative `/api/*` paths. Next.js forwards them to the API while preserving same-origin HttpOnly session and Guest Cart cookies.
+
+## Validation
+
+```bash
+pnpm lint
+pnpm check-types
+pnpm build
+pnpm --filter web test
+pnpm --filter web test:e2e
+pnpm --filter api test:int
+pnpm --filter api test:e2e
+git diff --check
 ```
 
-### Develop
+Playwright uses an installed Chrome/Edge channel and a guarded local test database. It must never run against development, shared or production data. See the [web application README](apps/web/README.md) for targeted Axe and Lighthouse commands.
 
-To develop all apps and packages, run the following command:
+## Documentation
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+- [Current implementation context](docs/CONTEXT.md)
+- [Architecture and security boundaries](docs/ARCHITECTURE.md)
+- [Frontend milestones F0–F8](docs/FRONTEND-MILESTONES.md)
+- [UI/UX redesign plan U0–U6](docs/UI-UX-REDESIGN-PLAN.md)
+- [Backend implementation plan](docs/BACKEND-PLAN.md)
+- [Catalog API plan](docs/CATALOG-API-PLAN.md)
+- [Commerce API plan](docs/COMMERCE-API-PLAN.md)
+- [Supplier Cabinet API plan](docs/SUPPLIER-CABINET-API-PLAN.md)
+- [Internal Ops API plan](docs/INTERNAL-OPS-API-PLAN.md)
 
-```sh
-cd my-turborepo
-turbo dev
-```
+## Next workstream: Production Foundation
 
-Without global `turbo`, use your package manager:
+Suggested first ticket: **define the production topology and CI quality gate** for separate Next.js, NestJS and PostgreSQL runtime boundaries.
 
-```sh
-cd my-turborepo
-npx turbo dev
-pnpm exec turbo dev
-pnpm exec turbo dev
-```
+Prerequisites:
 
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+- complete the remaining manual/external evidence listed in F8;
+- choose hosting and managed PostgreSQL providers;
+- define environment ownership and secret rotation without adding secrets to Git;
+- retain the measured Lighthouse baseline for post-deployment comparison.
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo dev --filter=web
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-```
-
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo login
-```
-
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo login
-pnpm exec turbo login
-pnpm exec turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo link
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo link
-pnpm exec turbo link
-pnpm exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
-
-## Про проєкт
-
-Auto Parts Marketplace — монорепозиторій маркетплейсу автозапчастин, що об'єднує вебвітрину, API та спільні TypeScript-пакети.
-
-### Стек
-
-- Next.js — вебвітрина
-- NestJS — API
-- TypeScript — основна мова розробки
-- pnpm і Turborepo — керування монорепозиторієм та запуск завдань
+Read [Architecture](docs/ARCHITECTURE.md), [Current context](docs/CONTEXT.md), [F8](docs/FRONTEND-MILESTONES.md) and [U6](docs/UI-UX-REDESIGN-PLAN.md) before implementation. Do not change auth/session semantics, backend ownership/RBAC, Stripe webhook authority, inventory concurrency, DTO privacy or Prisma schema without a separately reviewed plan. Wishlist, reviews, promotions, VIN lookup, onboarding, shipping, payouts, email flows and analytics are separate product milestones.

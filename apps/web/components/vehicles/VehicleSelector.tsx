@@ -24,6 +24,7 @@ type VehicleSelectorProps = {
 
 type SelectorFieldProps = {
   id: string;
+  step: number;
   label: string;
   value: string;
   disabled: boolean;
@@ -34,6 +35,7 @@ type SelectorFieldProps = {
 
 function SelectorField({
   id,
+  step,
   label,
   value,
   disabled,
@@ -41,11 +43,17 @@ function SelectorField({
   children,
   onChange,
 }: SelectorFieldProps) {
+  const state = value ? "complete" : disabled ? "disabled" : "current";
+
   return (
-    <div className={styles.field}>
-      <label htmlFor={id}>{label}</label>
+    <div className={styles.field} data-state={state}>
+      <label htmlFor={id}>
+        <span aria-hidden="true">{step}</span>
+        {label}
+      </label>
       <select
         id={id}
+        aria-label={label}
         value={value}
         disabled={disabled}
         onChange={onChange}
@@ -94,6 +102,7 @@ export function VehicleSelector({
       <div className={styles.grid}>
         <SelectorField
           id={`${idPrefix}-vehicle-year`}
+          step={1}
           label="Рік"
           value={value.year?.toString() ?? ""}
           disabled={disabled || years.isPending || years.isError}
@@ -114,6 +123,7 @@ export function VehicleSelector({
 
         <SelectorField
           id={`${idPrefix}-vehicle-make`}
+          step={2}
           label="Марка"
           value={value.makeId ?? ""}
           disabled={disabled || value.year === null || makes.isPending || makes.isError}
@@ -135,6 +145,7 @@ export function VehicleSelector({
 
         <SelectorField
           id={`${idPrefix}-vehicle-model`}
+          step={3}
           label="Модель"
           value={value.modelId ?? ""}
           disabled={disabled || value.makeId === null || models.isPending || models.isError}
@@ -156,6 +167,7 @@ export function VehicleSelector({
 
         <SelectorField
           id={`${idPrefix}-vehicle-generation`}
+          step={4}
           label="Покоління"
           value={value.generationId ?? ""}
           disabled={
@@ -185,6 +197,7 @@ export function VehicleSelector({
 
         <SelectorField
           id={`${idPrefix}-vehicle-engine`}
+          step={5}
           label="Двигун"
           value={value.engineTypeId ?? ""}
           disabled={
