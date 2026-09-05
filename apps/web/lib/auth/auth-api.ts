@@ -3,8 +3,10 @@ import { apiRequest } from "@/lib/api/api-client";
 import { AppError } from "@/lib/api/app-error";
 import { safeReturnTo } from "./auth-navigation";
 import {
+  createAccountPasswordSchema,
   signInSchema,
   signUpSchema,
+  type CreateAccountPasswordInput,
   type SignInInput,
   type SignUpInput,
 } from "./auth-schemas";
@@ -29,6 +31,10 @@ const linkSocialResponseSchema = z.discriminatedUnion("redirect", [
     url: z.string().optional(),
   }),
 ]);
+
+const createPasswordResponseSchema = z.object({
+  status: z.literal(true),
+});
 
 export type LinkedAuthAccount = z.infer<
   typeof linkedAuthAccountsSchema
@@ -139,6 +145,27 @@ export async function linkGoogleAccount(): Promise<string | null> {
   return result.data.redirect
     ? secureAuthorizationUrl(result.data.url)
     : null;
+}
+
+export async function createAccountPassword(
+  input: CreateAccountPasswordInput,
+): Promise<void> {
+  const password = createAccountPasswordSchema.parse(input);
+  const payload = await apiRequest<unknown>("/api/v1/me/password", {
+    body: { newPassword: password.newPassword },
+    method: "POST",
+  });
+  const result = createPasswordResponseSchema.safeParse(payload);
+
+  if (!result.success) {
+    throw new AppError(
+      "The create-password response does not match its contract",
+      {
+        kind: "invalid_response",
+        details: result.error.flatten(),
+      },
+    );
+  }
 }
 
 export async function signOut(): Promise<void> {

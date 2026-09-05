@@ -86,6 +86,46 @@
   gap: 0.25rem;
 }
 
+.credentialMethod {
+  flex-wrap: wrap;
+}
+
+.passwordForm {
+  display: grid;
+  width: 100%;
+  gap: 1rem;
+  border-block-start: 1px solid var(--border);
+  padding-block-start: 1rem;
+}
+
+.passwordFormHeading {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.passwordFormHeading h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.passwordFields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.passwordActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.passwordActions p {
+  color: var(--muted-foreground);
+  font-size: 0.8rem;
+}
+
 .linked {
   display: inline-flex;
   align-items: center;
@@ -131,5 +171,14 @@
   .methods button {
     width: 100%;
     min-height: 2.75rem;
+  }
+
+  .passwordFields {
+    grid-template-columns: 1fr;
+  }
+
+  .passwordActions {
+    align-items: stretch;
+    flex-direction: column;
   }
 }

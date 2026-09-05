@@ -19,3 +19,21 @@ export function authErrorMessage(error: unknown): string {
       return "Не вдалося виконати операцію. Спробуйте ще раз.";
   }
 }
+
+export function passwordSetupErrorMessage(error: unknown): string {
+  if (!(error instanceof AppError)) {
+    return "Не вдалося створити пароль. Спробуйте ще раз.";
+  }
+
+  switch (error.kind) {
+    case "unauthenticated":
+      return "Для безпеки вийдіть і повторно увійдіть через Google, а потім спробуйте ще раз.";
+    case "conflict":
+      return "Пароль уже створено. Оновіть сторінку.";
+    case "network":
+    case "unavailable":
+      return "Сервіс автентифікації тимчасово недоступний.";
+    default:
+      return "Не вдалося створити пароль. Перевірте вимоги та спробуйте ще раз.";
+  }
+}
