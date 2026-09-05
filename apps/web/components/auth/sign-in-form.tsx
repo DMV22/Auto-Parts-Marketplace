@@ -24,7 +24,13 @@ import styles from "./auth-form.module.css";
 import { GoogleAuthButton } from "./google-auth-button";
 import { useAuthCompletion } from "./use-auth-completion";
 
-export function SignInForm({ returnTo }: { returnTo: string }) {
+export function SignInForm({
+  returnTo,
+  oauthError,
+}: {
+  returnTo: string;
+  oauthError?: string | null;
+}) {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const completeAuthentication = useAuthCompletion(returnTo);
   const form = useForm<SignInInput>({
@@ -45,6 +51,16 @@ export function SignInForm({ returnTo }: { returnTo: string }) {
 
   return (
     <FieldGroup>
+      {oauthError === "account_not_linked" ? (
+        <p
+          className={styles.globalError}
+          role="alert"
+          aria-label="Google-акаунт ще не підключено"
+        >
+          Цей Google-акаунт ще не підключено. Увійдіть за допомогою email і
+          пароля, а потім відкрийте «Безпека акаунта» у меню кабінету.
+        </p>
+      ) : null}
       <form className={styles.form} onSubmit={submit} noValidate>
         <Field data-invalid={Boolean(form.formState.errors.email)}>
           <FieldLabel htmlFor="sign-in-email">Email</FieldLabel>
