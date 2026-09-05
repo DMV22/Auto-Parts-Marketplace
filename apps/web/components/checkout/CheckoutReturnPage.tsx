@@ -12,12 +12,19 @@ export function CheckoutReturnPage({
 
   return (
     <main id="main-content" className={styles.main}>
+      <nav aria-label="Етапи оформлення замовлення">
+        <ol className={styles.steps}>
+          <li>Кошик</li>
+          <li>Stripe Checkout</li>
+          <li aria-current="step">Підтвердження</li>
+        </ol>
+      </nav>
       <header className={styles.header}>
-        <p>Stripe Checkout</p>
+        <p>Статус замовлення</p>
         <h1>{success ? "Перевіряємо оплату" : "Checkout не завершено"}</h1>
         <span>
-          Редирект не змінює статус замовлення. Остаточну відповідь надає
-          backend після перевіреного Stripe webhook.
+          Повернення з платіжної сторінки не змінює статус самостійно. Ми
+          показуємо лише актуальний стан замовлення.
         </span>
       </header>
 
@@ -27,8 +34,8 @@ export function CheckoutReturnPage({
         <section className={styles.invalid} aria-labelledby="invalid-order-title">
           <h2 id="invalid-order-title">Некоректне посилання на замовлення</h2>
           <p role="alert">
-            URL не містить валідного orderId. Поверніться до кошика та почніть
-            нову checkout-спробу.
+            Посилання не містить коректного номера замовлення. Поверніться до
+            кошика та повторіть оформлення.
           </p>
         </section>
       )}

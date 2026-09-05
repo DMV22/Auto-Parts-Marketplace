@@ -50,8 +50,9 @@ export function InternalNotesPanel({ target }: { target: NoteTarget }) {
   return (
     <section className={styles.panel} aria-labelledby={`notes-${target.type}-${target.id}`}>
       <header className={styles.heading}>
-        <h3 id={`notes-${target.type}-${target.id}`}>Internal Notes</h3>
-        <p>Текст доступний лише SupportManager/Admin і не копіюється в ActivityLog metadata.</p>
+        <p>Тільки для внутрішніх ролей</p>
+        <h3 id={`notes-${target.type}-${target.id}`}>Внутрішні нотатки</h3>
+        <p>Текст нотаток не потрапляє до відповідей клієнта або постачальника.</p>
       </header>
       <form
         className={styles.form}
@@ -62,7 +63,7 @@ export function InternalNotesPanel({ target }: { target: NoteTarget }) {
       >
         <div className={styles.field}>
           <label htmlFor={`note-body-${target.id}`}>
-            {correctsNoteId ? `Корекція note ${correctsNoteId}` : "Нова internal note"}
+            {correctsNoteId ? `Корекція нотатки ${correctsNoteId}` : "Нова нотатка"}
           </label>
           <textarea
             id={`note-body-${target.id}`}
@@ -70,12 +71,14 @@ export function InternalNotesPanel({ target }: { target: NoteTarget }) {
             value={body}
             maxLength={4000}
             autoComplete="off"
+            placeholder="Додайте контекст для внутрішньої команди…"
             onChange={(event) => setBody(event.target.value)}
           />
+          <span className={styles.characterCount}>{body.length} / 4000</span>
         </div>
         <div className={styles.actions}>
           <Button type="submit" disabled={createNote.isPending || !body.trim()}>
-            {createNote.isPending ? "Додаємо…" : correctsNoteId ? "Додати корекцію" : "Додати note"}
+            {createNote.isPending ? "Додаємо…" : correctsNoteId ? "Додати корекцію" : "Додати нотатку"}
           </Button>
           {correctsNoteId ? (
             <Button type="button" variant="outline" onClick={() => setCorrectsNoteId(null)}>
@@ -85,15 +88,15 @@ export function InternalNotesPanel({ target }: { target: NoteTarget }) {
         </div>
       </form>
       {createNote.error ? <p className={styles.error} role="alert">{internalMutationError(createNote.error)}</p> : null}
-      {createNote.isSuccess ? <p className={styles.success} aria-live="polite">Note додано як append-only запис.</p> : null}
+      {createNote.isSuccess ? <p className={styles.success} aria-live="polite">Нотатку додано до внутрішньої історії.</p> : null}
 
-      {notes.isPending ? <p role="status">Завантажуємо notes…</p> : null}
+      {notes.isPending ? <p role="status">Завантажуємо нотатки…</p> : null}
       {notes.isError ? (
         <div className={styles.error} role="alert">
-          Notes недоступні. <Button type="button" variant="outline" onClick={() => void notes.refetch()}>Повторити</Button>
+          Нотатки недоступні. <Button type="button" variant="outline" onClick={() => void notes.refetch()}>Повторити</Button>
         </div>
       ) : null}
-      {notes.data?.data.length === 0 ? <p className={styles.muted}>Internal notes ще немає.</p> : null}
+      {notes.data?.data.length === 0 ? <p className={styles.muted}>Внутрішніх нотаток ще немає.</p> : null}
       {notes.data ? (
         <ul className={styles.list}>
           {notes.data.data.map((note) => (
@@ -110,10 +113,10 @@ export function InternalNotesPanel({ target }: { target: NoteTarget }) {
       ) : null}
       {notes.data?.pageInfo.nextCursor ? (
         <Button type="button" variant="outline" onClick={() => setCursor(notes.data.pageInfo.nextCursor)}>
-          Старіші notes
+          Старіші нотатки
         </Button>
       ) : null}
-      {cursor ? <Button type="button" variant="outline" onClick={() => setCursor(null)}>До нових notes</Button> : null}
+      {cursor ? <Button type="button" variant="outline" onClick={() => setCursor(null)}>До нових нотаток</Button> : null}
     </section>
   );
 }
@@ -153,7 +156,7 @@ function NoteItem({
   return (
     <article className={styles.note} data-redacted={note.isRedacted}>
       <div className={styles.toolbar}>
-        <strong>{note.isRedacted ? "Note redacted" : note.author.name}</strong>
+        <strong>{note.isRedacted ? "Нотатку приховано" : note.author.name}</strong>
         <span className={styles.meta}>{formatInternalDate(note.createdAt)} · {note.author.role}</span>
       </div>
       {note.isRedacted ? (
@@ -161,22 +164,22 @@ function NoteItem({
       ) : (
         <p>{note.body}</p>
       )}
-      {note.correctsNoteId ? <p className={styles.meta}>Коригує note: <span translate="no">{note.correctsNoteId}</span></p> : null}
+      {note.correctsNoteId ? <p className={styles.meta}>Коригує нотатку: <span translate="no">{note.correctsNoteId}</span></p> : null}
       {!note.isRedacted ? (
         <div className={styles.actions}>
           <Button type="button" variant="outline" onClick={onCorrect}>Створити корекцію</Button>
-          {isAdmin ? <Button ref={triggerRef} type="button" variant="destructive" aria-expanded={confirmRedaction} aria-controls={confirmationId} onClick={() => setConfirmRedaction(true)}>Redact</Button> : null}
+          {isAdmin ? <Button ref={triggerRef} type="button" variant="destructive" aria-expanded={confirmRedaction} aria-controls={confirmationId} onClick={() => setConfirmRedaction(true)}>Приховати</Button> : null}
         </div>
       ) : null}
       {confirmRedaction ? (
-        <div id={confirmationId} className={styles.confirmation} role="group" aria-label="Підтвердження redaction">
+        <div id={confirmationId} className={styles.confirmation} role="group" aria-label="Підтвердження приховування нотатки">
           <div className={styles.field}>
-            <label htmlFor={`redaction-${note.id}`}>Причина redaction</label>
+            <label htmlFor={`redaction-${note.id}`}>Причина приховування</label>
             <textarea ref={reasonRef} id={`redaction-${note.id}`} value={reason} maxLength={500} autoComplete="off" onChange={(event) => setReason(event.target.value)} />
           </div>
           <div className={styles.actions}>
             <Button type="button" variant="destructive" disabled={!reason.trim() || redact.isPending} onClick={() => redact.mutate()}>
-              {redact.isPending ? "Приховуємо…" : "Підтвердити redaction"}
+              {redact.isPending ? "Приховуємо…" : "Підтвердити приховування"}
             </Button>
             <Button type="button" variant="outline" onClick={cancelRedaction}>Скасувати</Button>
           </div>

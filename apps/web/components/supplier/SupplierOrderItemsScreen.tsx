@@ -4,7 +4,10 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/catalog/catalog-presentation";
-import { formatOrderDate } from "@/lib/commerce/order-presentation";
+import {
+  formatOrderDate,
+  presentOrderStatus,
+} from "@/lib/commerce/order-presentation";
 import { supplierOrderItemsQueryOptions } from "@/lib/query/supplier-queries";
 import type { SupplierOrderItemsQuery } from "@/lib/supplier/supplier-types";
 import styles from "./supplier.module.css";
@@ -33,8 +36,9 @@ export function SupplierOrderItemsScreen({
   return (
     <section className={styles.workspace} aria-labelledby="supplier-items-title">
       <header className={styles.heading}>
+        <p>Продані позиції</p>
         <h2 id="supplier-items-title">Позиції замовлень</h2>
-        <p>Лише immutable snapshots товарів цього постачальника.</p>
+        <p>Історичні дані товарів, проданих цим постачальником.</p>
       </header>
       <form className={styles.filters} method="get">
         <div className={styles.field}>
@@ -91,17 +95,31 @@ export function SupplierOrderItemsScreen({
             <tbody>
               {orderItems.data.data.map((item) => (
                 <tr key={item.id}>
-                  <td>
+                  <td data-label="Товар / SKU">
                     <strong>{item.productName ?? "Товар із замовлення"}</strong>
-                    <br />
-                    <span className={styles.meta}>{item.sku ?? "SKU недоступний"}</span>
+                    <span className={`${styles.meta} ${styles.identifier}`}>
+                      {item.sku ?? "SKU недоступний"}
+                    </span>
                   </td>
-                  <td>{item.quantity}</td>
-                  <td>{formatMoney(item.lineTotal, item.currency)}</td>
-                  <td>{item.orderStatus}</td>
-                  <td>{formatOrderDate(item.orderedAt)}</td>
-                  <td>
-                    <Link href={`/supplier/${supplierId}/order-items/${item.id}`}>
+                  <td data-label="Кількість" className={styles.numericValue}>
+                    {item.quantity}
+                  </td>
+                  <td data-label="Сума" className={styles.numericValue}>
+                    {formatMoney(item.lineTotal, item.currency)}
+                  </td>
+                  <td data-label="Статус">
+                    <OrderStatusBadge status={item.orderStatus} />
+                  </td>
+                  <td data-label="Замовлено">
+                    <time dateTime={item.orderedAt}>
+                      {formatOrderDate(item.orderedAt)}
+                    </time>
+                  </td>
+                  <td data-label="Дія">
+                    <Link
+                      className={styles.rowAction}
+                      href={`/supplier/${supplierId}/order-items/${item.id}`}
+                    >
                       Деталі
                     </Link>
                   </td>
@@ -119,6 +137,26 @@ export function SupplierOrderItemsScreen({
         </div>
       ) : null}
     </section>
+  );
+}
+
+function OrderStatusBadge({
+  status,
+}: Readonly<{
+  status:
+    | "PENDING_PAYMENT"
+    | "PAID"
+    | "PROCESSING"
+    | "SHIPPED"
+    | "DELIVERED"
+    | "CANCELLED";
+}>) {
+  const presentation = presentOrderStatus(status);
+  return (
+    <span className={styles.orderStatus} data-tone={presentation.tone}>
+      <span aria-hidden="true" />
+      {presentation.label}
+    </span>
   );
 }
 

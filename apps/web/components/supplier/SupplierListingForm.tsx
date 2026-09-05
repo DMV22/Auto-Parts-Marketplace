@@ -109,13 +109,20 @@ export function SupplierListingForm({
       onSubmit={form.handleSubmit((values) => save.mutate(values))}
       noValidate
     >
-      <div className={styles.field}>
-        <label htmlFor="variant-search">Пошук ProductVariant</label>
+      <fieldset className={styles.formSection}>
+        <legend>1. Товар</legend>
+        <p className={styles.sectionDescription}>
+          Знайдіть точний варіант за назвою, SKU, MPN або OEM.
+        </p>
+        <div className={styles.field}>
+        <label htmlFor="variant-search">Пошук варіанта товару</label>
         <input
           id="variant-search"
+          name="variantSearch"
           type="search"
+          autoComplete="off"
           value={search}
-          placeholder="Назва, SKU, MPN або OEM"
+          placeholder="Наприклад, Bosch або BRK-001…"
           onChange={(event) => {
             setSearch(event.target.value);
             setVariantCursor(null);
@@ -130,12 +137,12 @@ export function SupplierListingForm({
         ) : null}
         {selectedVariantUnavailable ? (
           <p className={styles.error} role="alert">
-            Обраний ProductVariant більше недоступний. Оберіть інший результат.
+            Обраний варіант товару більше недоступний. Оберіть інший результат.
           </p>
         ) : selectedVariantLookupError ? (
           <div className={styles.stack} role="alert">
             <p className={styles.error}>
-              Не вдалося перевірити обраний ProductVariant. Спробуйте ще раз.
+              Не вдалося перевірити обраний варіант товару. Спробуйте ще раз.
             </p>
             <Button
               type="button"
@@ -150,14 +157,14 @@ export function SupplierListingForm({
             Обрано: {selectedVariant.data.data.product.name} · {selectedVariant.data.data.sku}
           </p>
         ) : selectedVariantId ? (
-          <p className={styles.success}>Перевіряємо обраний variant…</p>
+          <p className={styles.success}>Перевіряємо обраний варіант…</p>
         ) : null}
         {deferredSearch.length > 1 ? (
           variants.isPending ? (
             <p role="status">Шукаємо варіанти…</p>
           ) : variants.isError ? (
             <p className={styles.error} role="alert">
-              Не вдалося виконати пошук ProductVariant.
+              Не вдалося виконати пошук варіанта товару.
             </p>
           ) : (
             <>
@@ -226,9 +233,16 @@ export function SupplierListingForm({
         ) : (
           <p className={styles.meta}>Введіть щонайменше два символи.</p>
         )}
-      </div>
+        </div>
+      </fieldset>
 
-      <div className={styles.field}>
+      <fieldset className={styles.formSection}>
+        <legend>2. Пропозиція</legend>
+        <p className={styles.sectionDescription}>
+          Вкажіть фактичний стан і ціну пропозиції.
+        </p>
+        <div className={styles.offerFields}>
+        <div className={styles.field}>
         <label htmlFor="listing-form-condition">Стан</label>
         <select id="listing-form-condition" {...form.register("condition")}>
           <option value="NEW">Новий</option>
@@ -249,12 +263,14 @@ export function SupplierListingForm({
             {form.formState.errors.price.message}
           </p>
         ) : null}
-      </div>
-      <div className={styles.field}>
+        </div>
+        <div className={styles.field}>
         <label htmlFor="listing-form-currency">Валюта</label>
         <input
           id="listing-form-currency"
           maxLength={3}
+          autoComplete="off"
+          spellCheck={false}
           aria-invalid={Boolean(form.formState.errors.currency)}
           {...form.register("currency", {
             setValueAs: (value: string) => value.toUpperCase(),
@@ -265,29 +281,40 @@ export function SupplierListingForm({
             {form.formState.errors.currency.message}
           </p>
         ) : null}
-      </div>
+        </div>
+        </div>
+      </fieldset>
 
-      {save.error ? (
-        <p className={styles.error} role="alert">
-          {listingFormError(save.error)}
+      <fieldset className={styles.formSection}>
+        <legend>3. Публікація</legend>
+        <p className={styles.sectionDescription}>
+          Збереження не публікує оголошення. Надіслати його на перевірку можна
+          після створення чернетки.
         </p>
-      ) : null}
-      <Button
-        type="submit"
-        disabled={
-          save.isPending ||
-          selectedVariantPending ||
-          selectedVariantUnavailable ||
-          selectedVariantLookupError ||
-          (Boolean(listing) && !form.formState.isDirty)
-        }
-      >
-        {save.isPending
-          ? "Зберігаємо…"
-          : listing
-            ? "Зберегти зміни"
-            : "Створити чернетку"}
-      </Button>
+        {save.error ? (
+          <p className={styles.error} role="alert">
+            {listingFormError(save.error)}
+          </p>
+        ) : null}
+        <div className={styles.formActions}>
+          <Button
+            type="submit"
+            disabled={
+              save.isPending ||
+              selectedVariantPending ||
+              selectedVariantUnavailable ||
+              selectedVariantLookupError ||
+              (Boolean(listing) && !form.formState.isDirty)
+            }
+          >
+            {save.isPending
+              ? "Зберігаємо…"
+              : listing
+                ? "Зберегти зміни"
+                : "Створити чернетку"}
+          </Button>
+        </div>
+      </fieldset>
     </form>
   );
 }

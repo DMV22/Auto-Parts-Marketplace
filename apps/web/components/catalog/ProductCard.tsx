@@ -9,18 +9,24 @@ export function ProductCard({ product }: Readonly<{ product: CatalogProduct }>) 
     (total, variant) => total + variant.listings.length,
     0,
   );
+  const inStockCount = product.variants.reduce(
+    (total, variant) =>
+      total + variant.listings.filter((listing) => listing.inStock).length,
+    0,
+  );
+  const titleId = `catalog-product-${product.id}`;
 
   return (
-    <article className={styles.card}>
-      <ProductMedia />
+    <article className={styles.card} aria-labelledby={titleId}>
+      <ProductMedia label={product.category?.name ?? product.brand.name} />
       <div className={styles.body}>
-        <p className={styles.brand}>{product.brand.name}</p>
-        <h2>
-          <Link href={`/products/${product.id}`}>{product.name}</Link>
-        </h2>
-        {product.category ? (
-          <p className={styles.category}>{product.category.name}</p>
-        ) : null}
+        <div className={styles.meta}>
+          <p className={styles.brand}>{product.brand.name}</p>
+          {product.category ? (
+            <p className={styles.category}>{product.category.name}</p>
+          ) : null}
+        </div>
+        <h2 id={titleId}>{product.name}</h2>
         <div className={styles.commercial}>
           <p className={styles.price}>
             {product.minimumPrice
@@ -30,6 +36,12 @@ export function ProductCard({ product }: Readonly<{ product: CatalogProduct }>) 
           <p>
             {offerCount} {offerCount === 1 ? "пропозиція" : "пропозицій"}
           </p>
+        </div>
+        <div className={styles.footer}>
+          <p data-available={inStockCount > 0}>
+            {inStockCount > 0 ? `${inStockCount} в наявності` : "Наразі немає в наявності"}
+          </p>
+          <Link href={`/products/${product.id}`}>Переглянути деталі</Link>
         </div>
       </div>
     </article>

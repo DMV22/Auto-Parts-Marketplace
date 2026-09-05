@@ -69,6 +69,8 @@ export function GarageWorkspace() {
   });
   const mutationError =
     createVehicle.error ?? activateVehicle.error ?? removeVehicle.error;
+  const activeVehicle = garage.data?.find((vehicle) => vehicle.isActive) ?? null;
+  const savedVehicles = garage.data?.filter((vehicle) => !vehicle.isActive) ?? [];
 
   function startAdding() {
     createVehicle.reset();
@@ -123,7 +125,7 @@ export function GarageWorkspace() {
   }
 
   return (
-    <section className={styles.workspace} aria-labelledby="saved-vehicles-heading">
+    <section className={styles.workspace} aria-label="Керування гаражем">
       <div className={styles.toolbar}>
         <div>
           <h2 id="saved-vehicles-heading">Збережені автомобілі</h2>
@@ -136,8 +138,79 @@ export function GarageWorkspace() {
         ) : null}
       </div>
 
+      {mutationError && !createVehicle.error ? (
+        <p className={styles.error} role="alert">
+          {operationError(mutationError)}
+        </p>
+      ) : null}
+
+      {activeVehicle ? (
+        <section className={styles.activeSection} aria-labelledby="active-vehicle-heading">
+          <div className={styles.sectionHeading}>
+            <div>
+              <p>Контекст сумісності</p>
+              <h2 id="active-vehicle-heading">Активне авто</h2>
+            </div>
+            <span>Одне авто може бути активним одночасно</span>
+          </div>
+          <SavedVehicleCard
+            vehicle={activeVehicle}
+            variant="featured"
+            isActivating={false}
+            isDeleting={
+              removeVehicle.isPending && removeVehicle.variables === activeVehicle.id
+            }
+            onActivate={activate}
+            onDelete={remove}
+          />
+        </section>
+      ) : null}
+
+      {garage.data.length === 0 ? (
+        <div className={styles.empty}>
+          <h3>Гараж поки порожній</h3>
+          <p>Додайте автомобіль, щоб зберегти його точну комплектацію.</p>
+        </div>
+      ) : (
+        <section className={styles.savedSection} aria-labelledby="other-vehicles-heading">
+          <div className={styles.sectionHeading}>
+            <div>
+              <p>{savedVehicles.length} неактивних</p>
+              <h2 id="other-vehicles-heading">Інші автомобілі</h2>
+            </div>
+          </div>
+          {savedVehicles.length === 0 ? (
+            <p className={styles.compactEmpty}>
+              Інших автомобілів немає. Додайте ще один, якщо користуєтеся кількома авто.
+            </p>
+          ) : (
+            <div className={styles.list}>
+              {savedVehicles.map((vehicle) => (
+                <SavedVehicleCard
+                  key={vehicle.id}
+                  vehicle={vehicle}
+                  variant="compact"
+                  isActivating={
+                    activateVehicle.isPending && activateVehicle.variables === vehicle.id
+                  }
+                  isDeleting={
+                    removeVehicle.isPending && removeVehicle.variables === vehicle.id
+                  }
+                  onActivate={activate}
+                  onDelete={remove}
+                />
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
       {isAdding ? (
-        <div className={styles.formPanel}>
+        <section className={styles.formPanel} aria-labelledby="add-vehicle-heading">
+          <div className={styles.formHeading}>
+            <p>Точна комплектація</p>
+            <h2 id="add-vehicle-heading">Додати автомобіль</h2>
+          </div>
           <GarageVehicleForm
             isPending={createVehicle.isPending}
             errorMessage={
@@ -149,38 +222,8 @@ export function GarageWorkspace() {
             }}
             onCreate={(input) => createVehicle.mutateAsync(input).then(() => undefined)}
           />
-        </div>
+        </section>
       ) : null}
-
-      {mutationError && !createVehicle.error ? (
-        <p className={styles.error} role="alert">
-          {operationError(mutationError)}
-        </p>
-      ) : null}
-
-      {garage.data.length === 0 ? (
-        <div className={styles.empty}>
-          <h3>Гараж поки порожній</h3>
-          <p>Додайте автомобіль, щоб зберегти його точну комплектацію.</p>
-        </div>
-      ) : (
-        <div className={styles.list}>
-          {garage.data.map((vehicle) => (
-            <SavedVehicleCard
-              key={vehicle.id}
-              vehicle={vehicle}
-              isActivating={
-                activateVehicle.isPending && activateVehicle.variables === vehicle.id
-              }
-              isDeleting={
-                removeVehicle.isPending && removeVehicle.variables === vehicle.id
-              }
-              onActivate={activate}
-              onDelete={remove}
-            />
-          ))}
-        </div>
-      )}
     </section>
   );
 }

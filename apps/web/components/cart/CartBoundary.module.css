@@ -6,19 +6,31 @@
 
 .items {
   display: grid;
-  gap: 1rem;
+  align-content: start;
+  gap: 0;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
+.checkoutPanel {
+  display: grid;
+  align-content: start;
+  gap: 1rem;
+  border: 1px solid var(--border);
+  border-block-start: 4px solid var(--signal);
+  background: var(--surface);
+  padding: clamp(1rem, 3vw, 1.4rem);
+  box-shadow: var(--shadow-raised);
+}
+
 .summary {
   display: flex;
-  align-items: center;
+  align-items: end;
   justify-content: space-between;
   gap: 1rem;
-  border-block-start: 1px solid var(--border);
-  padding-block-start: 1rem;
+  border-block-end: 1px solid var(--border);
+  padding-block-end: 1rem;
 }
 
 .summary h2,
@@ -39,49 +51,102 @@
 }
 
 .summary > strong {
-  font-size: 1.15rem;
+  font-size: clamp(1.35rem, 3vw, 1.8rem);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.verificationNote {
+  border: 1px dashed color-mix(in srgb, var(--status-compatible) 45%, var(--border));
+  background: color-mix(in srgb, var(--status-compatible) 6%, var(--surface));
+  padding: 0.85rem;
+  color: var(--status-compatible);
+  font-size: 0.82rem;
+  font-weight: 650;
+  line-height: 1.5;
 }
 
 .footerActions {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.footerActions > button {
+  min-height: 2.75rem;
+  width: 100%;
+}
+
+.clearConfirmation {
+  display: grid;
+  gap: 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--status-incompatible) 45%, var(--border));
+  background: color-mix(in srgb, var(--status-incompatible) 5%, var(--surface));
+  padding: 0.85rem;
+}
+
+.clearConfirmation > div:first-child {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.clearConfirmation span {
+  color: var(--muted-foreground);
+  font-size: 0.82rem;
+}
+
+.confirmationActions {
   display: flex;
-  align-items: start;
-  justify-content: space-between;
-  gap: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .primaryLink {
+  display: inline-flex;
+  min-height: 2.75rem;
   width: fit-content;
+  align-items: center;
   border-radius: var(--radius-md);
-  background: var(--primary);
+  background: var(--signal);
   padding: 0.6rem 0.9rem;
-  color: var(--primary-foreground);
+  color: var(--signal-foreground);
   font-weight: 700;
   text-decoration: none;
 }
 
 .primaryLink:hover {
-  background: color-mix(in oklch, var(--primary) 86%, var(--background));
+  background: color-mix(in srgb, var(--signal) 86%, black);
 }
 
 .primaryLink:focus-visible {
-  outline: 3px solid color-mix(in oklch, var(--ring) 50%, transparent);
+  outline: 3px solid var(--ring);
   outline-offset: 3px;
 }
 
 .error {
   margin: 0;
-  color: var(--destructive);
+  color: var(--status-incompatible);
 }
 
 .cart[data-compact] {
+  grid-template-columns: minmax(0, 1fr);
   padding: 1rem;
   overflow-y: auto;
 }
 
-@media (max-width: 40rem) {
-  .footerActions {
-    align-items: stretch;
-    flex-direction: column-reverse;
+.cart[data-compact] .checkoutPanel {
+  position: static;
+  box-shadow: none;
+}
+
+@media (min-width: 64rem) {
+  .cart:not([data-compact]) {
+    grid-template-columns: minmax(0, 1.55fr) minmax(18rem, 0.55fr);
+    align-items: start;
+    gap: 1.5rem;
+  }
+
+  .cart:not([data-compact]) .checkoutPanel {
+    position: sticky;
+    inset-block-start: 5.5rem;
   }
 }

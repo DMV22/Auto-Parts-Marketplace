@@ -96,7 +96,7 @@ export function presentOrderError(error: unknown): OrderErrorPresentation {
     (error.kind === "network" || error.kind === "unavailable")
   ) {
     return {
-      title: "Orders API тимчасово недоступний",
+      title: "Історія замовлень тимчасово недоступна",
       message: "Перевірте з’єднання та повторіть запит.",
       retryable: true,
     };

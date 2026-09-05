@@ -78,7 +78,10 @@ function OrderDetailWorkspace({ orderId }: Readonly<{ orderId: string }>) {
           <OrderStatusBadge status={order.data.status} />
         </div>
         <p className={styles.orderTotal}>
-          Разом: <strong>{formatMoney(order.data.totalAmount, order.data.currency)}</strong>
+          Разом: {" "}
+          <strong>
+            {formatMoney(order.data.totalAmount, order.data.currency)}
+          </strong>
         </p>
       </section>
 

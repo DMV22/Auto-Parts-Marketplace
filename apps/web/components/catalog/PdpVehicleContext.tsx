@@ -1,52 +1,77 @@
 import Link from "next/link";
+import { VehicleContextRail } from "@/components/vehicles/VehicleContextRail";
 import type { CatalogVehicleContextModel } from "./useCatalogVehicleContext";
-import styles from "./PdpVehicleContext.module.css";
 
 export function PdpVehicleContext({
   model,
 }: Readonly<{ model: CatalogVehicleContextModel }>) {
   if (model.kind === "loading") {
     return (
-      <aside className={styles.panel} aria-labelledby="fitment-context-title">
-        <h2 id="fitment-context-title">Перевірка сумісності</h2>
-        <p role="status">Перевіряємо активне авто…</p>
-      </aside>
+      <VehicleContextRail
+        label="Перевірка сумісності"
+        status={{
+          tone: "info",
+          title: "Завантажуємо активне авто",
+          description: "Готуємо точну перевірку для кожної модифікації.",
+        }}
+        live
+      />
     );
   }
 
   if (model.kind === "error") {
     return (
-      <aside className={styles.panel} aria-labelledby="fitment-context-title">
-        <h2 id="fitment-context-title">Перевірка сумісності</h2>
-        <p>Не вдалося застосувати активне авто. Показуємо результат без vehicle context.</p>
-        <Link href="/garage">Перевірити гараж</Link>
-      </aside>
+      <VehicleContextRail
+        label="Перевірка сумісності"
+        status={{
+          tone: "warning",
+          title: "Авто не вдалося застосувати",
+          description: "Показуємо результат без контексту автомобіля.",
+        }}
+        action={<Link href="/garage">Перевірити гараж</Link>}
+      />
     );
   }
 
   if (model.kind === "empty") {
     return (
-      <aside className={styles.panel} aria-labelledby="fitment-context-title">
-        <h2 id="fitment-context-title">Перевірка сумісності</h2>
-        <p>Оберіть автомобіль у гаражі, щоб отримати точну відповідь для кожної модифікації.</p>
-        <Link href="/garage">Вибрати автомобіль</Link>
-      </aside>
+      <VehicleContextRail
+        label="Перевірка сумісності"
+        status={{
+          tone: "neutral",
+          title: "Автомобіль не вибрано",
+          description: "Оберіть авто, щоб перевірити кожну модифікацію.",
+        }}
+        action={<Link href="/garage">Вибрати автомобіль</Link>}
+      />
     );
   }
 
-  const vehicleName = `${model.vehicle.year} ${model.vehicle.generation.model.make.name} ${model.vehicle.generation.model.name}`;
   return (
-    <aside className={styles.panel} aria-labelledby="fitment-context-title">
-      <h2 id="fitment-context-title">Перевірка сумісності</h2>
-      <p>
-        {model.filtering ? "Перевіряємо для" : "Активне авто не застосовано"}:{" "}
-        <strong>{vehicleName}</strong>
-      </p>
-      <button type="button" onClick={model.onToggle}>
-        {model.filtering
-          ? "Показати сумісність без авто"
-          : "Перевірити для активного авто"}
-      </button>
-    </aside>
+    <VehicleContextRail
+      vehicle={model.vehicle}
+      label="Перевірка сумісності"
+      status={
+        model.filtering
+          ? {
+              tone: "info",
+              title: "Авто застосовано до перевірки",
+              description: "Результат нижче є окремим для кожної модифікації.",
+            }
+          : {
+              tone: "neutral",
+              title: "Перевірка без автомобіля",
+              description: "Fitment не підтверджується без vehicle context.",
+            }
+      }
+      action={
+        <button type="button" onClick={model.onToggle}>
+          {model.filtering
+            ? "Показати без авто"
+            : "Перевірити для цього авто"}
+        </button>
+      }
+      live
+    />
   );
 }

@@ -5,6 +5,8 @@ export type ApiRequestOptions = Omit<RequestInit, "body"> & {
   baseUrl?: string;
 };
 
+export type ApiRequestContext = Pick<ApiRequestOptions, "baseUrl" | "headers">;
+
 function requestUrl(path: string, baseUrl: string): string {
   if (!path.startsWith("/api/")) {
     throw new TypeError("API paths must start with /api/");

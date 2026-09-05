@@ -24,11 +24,13 @@ export function ReturnStatusBadge({ status }: { status: ReturnRequestStatus }) {
 function orderTone(status: InternalOrderStatus) {
   if (status === "DELIVERED" || status === "PAID") return "positive";
   if (status === "PENDING_PAYMENT" || status === "PROCESSING") return "warning";
+  if (status === "CANCELLED") return "negative";
   return "neutral";
 }
 
 function returnTone(status: ReturnRequestStatus) {
   if (status === "COMPLETED" || status === "APPROVED") return "positive";
   if (status === "REQUESTED" || status === "UNDER_REVIEW") return "warning";
+  if (status === "REJECTED" || status === "CANCELLED") return "negative";
   return "neutral";
 }

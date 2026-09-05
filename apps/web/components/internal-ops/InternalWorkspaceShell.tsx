@@ -6,26 +6,13 @@ import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import type { UserRole } from "@/lib/auth/session";
 import { sessionQueryOptions } from "@/lib/query/session-query";
+import { InternalWorkspaceNavigation } from "./InternalWorkspaceNavigation";
 import styles from "./internal-ops.module.css";
 
 export function InternalWorkspaceShell({ children }: { children: ReactNode }) {
   return (
     <InternalAccessBoundary allowedRoles={["SUPPORT_MANAGER", "ADMIN"]}>
-      <div className={styles.shell}>
-        <header className={styles.heading}>
-          <p>Internal CRM / OMS</p>
-          <h1>Операційний центр</h1>
-        </header>
-        <nav className={styles.navigation} aria-label="Internal Operations">
-          <Link href="/internal/orders">Замовлення</Link>
-          <Link href="/internal/returns">Повернення</Link>
-          <Link href="/internal/activity">ActivityLog</Link>
-          <AdminNavigation />
-        </nav>
-        <main id="main-content" className={styles.main}>
-          {children}
-        </main>
-      </div>
+      <InternalWorkspaceFrame>{children}</InternalWorkspaceFrame>
     </InternalAccessBoundary>
   );
 }
@@ -33,18 +20,37 @@ export function InternalWorkspaceShell({ children }: { children: ReactNode }) {
 export function AdminAccessBoundary({ children }: { children: ReactNode }) {
   return (
     <InternalAccessBoundary allowedRoles={["ADMIN"]}>
-      <main id="main-content" className={styles.shell}>
-        {children}
-      </main>
+      <InternalWorkspaceFrame>{children}</InternalWorkspaceFrame>
     </InternalAccessBoundary>
   );
 }
 
-function AdminNavigation() {
+function InternalWorkspaceFrame({ children }: { children: ReactNode }) {
   const session = useQuery(sessionQueryOptions());
-  return session.data?.user.role === "ADMIN" ? (
-    <Link href="/admin/moderation">Модерація</Link>
-  ) : null;
+  if (!session.data) return null;
+
+  return (
+    <div className={styles.shell}>
+      <InternalWorkspaceNavigation
+        name={session.data.user.name}
+        role={session.data.user.role}
+      />
+      <div className={styles.workspaceFrame}>
+        <header className={styles.workspaceHeader}>
+          <div>
+            <p>Операційний простір</p>
+            <h1>Внутрішні операції</h1>
+          </div>
+          <span className={styles.roleNotice}>
+            {session.data.user.role === "ADMIN" ? "Admin" : "Support Manager"}
+          </span>
+        </header>
+        <main id="main-content" className={styles.main}>
+          {children}
+        </main>
+      </div>
+    </div>
+  );
 }
 
 function InternalAccessBoundary({
@@ -56,7 +62,7 @@ function InternalAccessBoundary({
 }) {
   const session = useQuery(sessionQueryOptions());
   if (session.isPending) {
-    return <AccessState message="Перевіряємо internal session…" />;
+    return <AccessState message="Перевіряємо доступ…" />;
   }
   if (session.isError) {
     return (
@@ -75,19 +81,19 @@ function InternalAccessBoundary({
     return (
       <AccessState
         title="Потрібен вхід"
-        message="Увійдіть під дозволеною internal роллю."
+        message="Увійдіть як менеджер підтримки або адміністратор."
         action={<Link href="/sign-in?returnTo=%2Finternal%2Forders">Увійти</Link>}
       />
     );
   }
   if (!session.data.user.isActive) {
-    return <AccessState title="Акаунт неактивний" message="Internal workspace недоступний." />;
+    return <AccessState title="Акаунт неактивний" message="Операційний центр недоступний." />;
   }
   if (!allowedRoles.includes(session.data.user.role)) {
     return (
       <AccessState
         title="Доступ заборонено"
-        message="Поточна роль не має доступу до цього internal workspace."
+        message="Поточна роль не має доступу до операційного центру."
       />
     );
   }

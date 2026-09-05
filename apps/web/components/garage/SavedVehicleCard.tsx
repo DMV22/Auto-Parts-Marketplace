@@ -1,5 +1,7 @@
 "use client";
 
+import { CalendarDaysIcon, CircleCheckIcon, GaugeIcon, Layers3Icon } from "lucide-react";
+import Image from "next/image";
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { GarageVehicle } from "@/lib/garage/garage-types";
@@ -7,6 +9,7 @@ import styles from "./SavedVehicleCard.module.css";
 
 type SavedVehicleCardProps = {
   vehicle: GarageVehicle;
+  variant: "featured" | "compact";
   isActivating: boolean;
   isDeleting: boolean;
   onActivate: (id: string) => void;
@@ -15,6 +18,7 @@ type SavedVehicleCardProps = {
 
 export function SavedVehicleCard({
   vehicle,
+  variant,
   isActivating,
   isDeleting,
   onActivate,
@@ -31,82 +35,121 @@ export function SavedVehicleCard({
   }
 
   return (
-    <article className={styles.card} aria-labelledby={`vehicle-${vehicle.id}`}>
-      <div className={styles.heading}>
-        <div>
-          <h3 id={`vehicle-${vehicle.id}`}>{title}</h3>
-          <p>{vehicle.label ?? "Без власної назви"}</p>
-        </div>
-        {vehicle.isActive ? (
-          <span className={styles.active}>Активне авто</span>
-        ) : null}
+    <article
+      className={styles.card}
+      data-variant={variant}
+      data-active={vehicle.isActive}
+      aria-labelledby={`vehicle-${vehicle.id}`}
+    >
+      <div className={styles.media} aria-hidden="true">
+        <Image
+          src="/images/vehicles/vehicle-silhouette.svg"
+          alt=""
+          width={640}
+          height={280}
+          sizes={
+            variant === "featured"
+              ? "(max-width: 767px) 100vw, 24rem"
+              : "(max-width: 767px) 8rem, 11rem"
+          }
+        />
       </div>
 
-      <dl className={styles.details}>
-        <div>
-          <dt>Рік</dt>
-          <dd>{vehicle.year}</dd>
+      <div className={styles.content}>
+        <div className={styles.heading}>
+          <div>
+            <p>{vehicle.label ?? "Збережений автомобіль"}</p>
+            <h3 id={`vehicle-${vehicle.id}`}>{title}</h3>
+          </div>
+          {vehicle.isActive ? (
+            <span className={styles.active}>
+              <CircleCheckIcon aria-hidden="true" />
+              Використовується
+            </span>
+          ) : null}
         </div>
-        <div>
-          <dt>Покоління</dt>
-          <dd>{vehicle.generation.name ?? vehicle.generation.code}</dd>
-        </div>
-        <div>
-          <dt>Двигун</dt>
-          <dd>{vehicle.engine?.name ?? "Не вказано"}</dd>
-        </div>
-      </dl>
 
-      <div className={styles.actions}>
-        {!vehicle.isActive ? (
-          <Button
-            type="button"
-            variant="outline"
-            disabled={isActivating || isDeleting}
-            onClick={() => onActivate(vehicle.id)}
-          >
-            {isActivating ? "Активуємо…" : "Зробити активним"}
-          </Button>
+        <dl className={styles.details}>
+          <div>
+            <dt>
+              <CalendarDaysIcon aria-hidden="true" />
+              Рік
+            </dt>
+            <dd>{vehicle.year}</dd>
+          </div>
+          <div>
+            <dt>
+              <Layers3Icon aria-hidden="true" />
+              Покоління
+            </dt>
+            <dd>{vehicle.generation.name ?? vehicle.generation.code}</dd>
+          </div>
+          <div>
+            <dt>
+              <GaugeIcon aria-hidden="true" />
+              Двигун
+            </dt>
+            <dd>{vehicle.engine?.name ?? "Не вказано"}</dd>
+          </div>
+        </dl>
+
+        {vehicle.isActive && variant === "featured" ? (
+          <p className={styles.contextNote}>
+            Використовується як контекст для перевірки сумісності в каталозі.
+          </p>
         ) : null}
-        <Button
-          ref={deleteTriggerRef}
-          type="button"
-          variant="destructive"
-          disabled={isActivating || isDeleting}
-          aria-expanded={isConfirmingDelete}
-          aria-controls={confirmationId}
-          onClick={() => setIsConfirmingDelete(true)}
-        >
-          Видалити
-        </Button>
-      </div>
 
-      {isConfirmingDelete ? (
-        <div
-          id={confirmationId}
-          className={styles.confirmation}
-          role="group"
-          aria-label="Підтвердження видалення"
-        >
-          <p>Видалити цей автомобіль із гаража?</p>
+        <div className={styles.actions}>
+          {!vehicle.isActive ? (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isActivating || isDeleting}
+              onClick={() => onActivate(vehicle.id)}
+            >
+              {isActivating ? "Активуємо…" : "Зробити активним"}
+            </Button>
+          ) : null}
           <Button
+            ref={deleteTriggerRef}
             type="button"
             variant="destructive"
-            disabled={isDeleting}
-            onClick={() => onDelete(vehicle.id)}
+            disabled={isActivating || isDeleting}
+            aria-expanded={isConfirmingDelete}
+            aria-controls={confirmationId}
+            onClick={() => setIsConfirmingDelete(true)}
           >
-            {isDeleting ? "Видаляємо…" : "Так, видалити"}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={isDeleting}
-            onClick={cancelDelete}
-          >
-            Не видаляти
+            Видалити
           </Button>
         </div>
-      ) : null}
+
+        {isConfirmingDelete ? (
+          <div
+            id={confirmationId}
+            className={styles.confirmation}
+            role="group"
+            aria-label="Підтвердження видалення"
+          >
+            <p>Видалити цей автомобіль із гаража?</p>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={isDeleting}
+              onClick={() => onDelete(vehicle.id)}
+            >
+              {isDeleting ? "Видаляємо…" : "Так, видалити"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isDeleting}
+              onClick={cancelDelete}
+            >
+              Не видаляти
+            </Button>
+          </div>
+        ) : null}
+      </div>
     </article>
   );
 }

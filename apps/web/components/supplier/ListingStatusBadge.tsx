@@ -6,7 +6,8 @@ export function ListingStatusBadge({
   status,
 }: Readonly<{ status: ListingStatus }>) {
   return (
-    <span className={styles.badge} data-public={status === "ACTIVE"}>
+    <span className={styles.badge} data-status={status}>
+      <span className={styles.badgeMarker} aria-hidden="true" />
       {presentListingStatus(status)}
     </span>
   );
