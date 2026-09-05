@@ -6,6 +6,7 @@ import {
   CarFrontIcon,
   ChevronDownIcon,
   ClipboardListIcon,
+  KeyRoundIcon,
   LogOutIcon,
   ShieldCheckIcon,
   Undo2Icon,
@@ -204,6 +205,13 @@ export function AccountMenu({
                   icon={ShieldCheckIcon}
                 />
               ) : null}
+
+              <AccountMenuLink
+                href="/account/security"
+                label="Безпека акаунта"
+                pathname={pathname}
+                icon={KeyRoundIcon}
+              />
             </DropdownMenuGroup>
           </>
         ) : null}

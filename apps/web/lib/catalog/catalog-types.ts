@@ -9,6 +9,7 @@ export const catalogFilterOptionsResponseSchema = z.object({
   data: z.object({
     brands: z.array(optionSchema),
     categories: z.array(optionSchema),
+    defaultCurrency: currencySchema.nullable(),
     currencies: z.array(
       z.object({
         code: currencySchema,

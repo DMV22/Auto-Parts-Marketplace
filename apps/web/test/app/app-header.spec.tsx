@@ -114,6 +114,9 @@ describe("AppHeader", () => {
       "href",
       "/garage",
     );
+    expect(
+      within(accountMenu).getByRole("menuitem", { name: "Безпека акаунта" }),
+    ).toHaveAttribute("href", "/account/security");
     fireEvent.click(
       within(accountMenu).getByRole("menuitem", { name: "Вийти" }),
     );

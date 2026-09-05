@@ -19,6 +19,16 @@ type AppliedFilter = {
   remove: () => void;
 };
 
+function priceFilterLabel(state: CatalogQueryState): string {
+  const currency = state.currency ? ` ${state.currency}` : "";
+
+  if (state.minPrice && state.maxPrice) {
+    return `Ціна: ${state.minPrice}–${state.maxPrice}${currency}`;
+  }
+  if (state.minPrice) return `Ціна від ${state.minPrice}${currency}`;
+  return `Ціна до ${state.maxPrice}${currency}`;
+}
+
 export function countAppliedCatalogFilters(state: CatalogQueryState): number {
   return [
     Boolean(state.q),
@@ -64,7 +74,7 @@ export function CatalogAppliedFilters({
   if (state.minPrice || state.maxPrice) {
     filters.push({
       key: "price",
-      label: `Ціна: ${state.minPrice ?? "0"}–${state.maxPrice ?? "∞"} ${state.currency ?? ""}`.trim(),
+      label: priceFilterLabel(state),
       remove: () => onChange({ minPrice: null, maxPrice: null }),
     });
   }

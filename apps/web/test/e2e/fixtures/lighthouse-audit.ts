@@ -15,6 +15,7 @@ export type LighthouseAuditResult = {
   output: string;
   passed: boolean;
   performance: number;
+  runs: number;
 };
 
 export async function runLighthouseAudit(input: {
@@ -44,7 +45,9 @@ export async function runLighthouseAudit(input: {
           : {}),
         LHCI_TARGET_URL: input.url,
       },
-      timeout: 90_000,
+      // Three throttled runs stay below the five-minute command budget while
+      // producing a stable median instead of a noisy single sample.
+      timeout: 240_000,
     },
   );
   const output = redactCookie(
@@ -72,44 +75,67 @@ export async function runLighthouseAudit(input: {
       performance: number;
     };
   }>;
-  const entry = manifest[0];
-  if (!entry) throw new Error(`Lighthouse did not emit a report for ${input.label}`);
+  if (manifest.length === 0) {
+    throw new Error(`Lighthouse did not emit a report for ${input.label}`);
+  }
 
-  const rawReport = readFileSync(entry.jsonPath, "utf8");
-  const rawHtmlReport = readFileSync(entry.htmlPath, "utf8");
   const sensitiveValues = input.sessionCookie
     ? input.sessionCookie
         .split("; ")
         .map((pair) => pair.slice(pair.indexOf("=") + 1))
         .filter(Boolean)
     : [];
-  if (
-    sensitiveValues.some(
-      (value) => rawReport.includes(value) || rawHtmlReport.includes(value),
-    )
-  ) {
-    removeSensitiveReportDirectory(input.label);
-    throw new Error(`Lighthouse report leaked the ${input.label} session cookie`);
-  }
-  const report = JSON.parse(rawReport) as {
-    audits: {
-      "cumulative-layout-shift": { numericValue: number };
-      "largest-contentful-paint": { numericValue: number };
+  const reports = manifest.map((entry) => {
+    const rawReport = readFileSync(entry.jsonPath, "utf8");
+    const rawHtmlReport = readFileSync(entry.htmlPath, "utf8");
+    if (
+      sensitiveValues.some(
+        (value) => rawReport.includes(value) || rawHtmlReport.includes(value),
+      )
+    ) {
+      removeSensitiveReportDirectory(input.label);
+      throw new Error(`Lighthouse report leaked the ${input.label} session cookie`);
+    }
+
+    return JSON.parse(rawReport) as {
+      audits: {
+        "cumulative-layout-shift": { numericValue: number };
+        "largest-contentful-paint": { numericValue: number };
+      };
     };
-  };
+  });
+
+  const reportMetric = (
+    select: (report: (typeof reports)[number]) => number,
+  ) => median(reports.map(select));
+  const summaryMetric = (
+    select: (entry: (typeof manifest)[number]) => number,
+  ) => median(manifest.map(select));
 
   return {
-    accessibility: entry.summary.accessibility,
-    bestPractices: entry.summary["best-practices"],
-    cumulativeLayoutShift:
-      report.audits["cumulative-layout-shift"].numericValue,
+    accessibility: summaryMetric((entry) => entry.summary.accessibility),
+    bestPractices: summaryMetric(
+      (entry) => entry.summary["best-practices"],
+    ),
+    cumulativeLayoutShift: reportMetric(
+      (report) => report.audits["cumulative-layout-shift"].numericValue,
+    ),
     label: input.label,
-    largestContentfulPaint:
-      report.audits["largest-contentful-paint"].numericValue,
+    largestContentfulPaint: reportMetric(
+      (report) => report.audits["largest-contentful-paint"].numericValue,
+    ),
     output,
     passed: result.status === 0,
-    performance: entry.summary.performance,
+    performance: summaryMetric((entry) => entry.summary.performance),
+    runs: manifest.length,
   };
+}
+
+function median(values: number[]): number {
+  const sorted = [...values].sort((left, right) => left - right);
+  const middle = Math.floor(sorted.length / 2);
+  if (sorted.length % 2 === 1) return sorted[middle]!;
+  return (sorted[middle - 1]! + sorted[middle]!) / 2;
 }
 
 function removeSensitiveReportDirectory(label: string): void {

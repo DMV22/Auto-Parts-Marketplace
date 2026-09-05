@@ -13,6 +13,7 @@ export type FilterOptionsResponse = {
   data: {
     brands: CatalogFilterOption[];
     categories: CatalogFilterOption[];
+    defaultCurrency: string | null;
     currencies: CatalogCurrencyOption[];
   };
   meta: {

@@ -272,7 +272,7 @@ git diff --check
 - `ListingCondition` (`NEW`, `USED`, `REMANUFACTURED`) додано reviewed data-preserving forward migration із required column та catalog filter index; synthetic seed залишився idempotent.
 - Public `GET /api/v1/catalog/products` реалізовано через `CatalogModule`, thin controller, whitelist query pipe та injected `PrismaService`.
 - Product-centric query виконує search і commercial/vehicle filters у PostgreSQL, повертає лише matching variants/`ACTIVE` listings та рахує consistent product-level `total`.
-- Pagination має default `20`, maximum `50`; name/newest/price sorts мають stable Product ID tie-breaker, а minimum price не змішує currencies.
+- Pagination має default `20`, maximum `50`; name/newest/price sorts мають stable Product ID tie-breaker, minimum price не змішує currencies, а filter options оголошує доступну `defaultCurrency` (`UAH` із fallback до першої доступної валюти).
 - Explicit VehicleContext залишається public; `savedVehicleId` вимагає valid Better Auth session і owner match, а cross-owner ID повертає той самий `404`, що й missing ID.
 
 #### Verification results

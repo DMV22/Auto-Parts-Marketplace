@@ -2,11 +2,52 @@ import { expect, test } from "./fixtures/mutation-aware.fixture";
 import {
   readSessionCookie,
   runLighthouseAudit,
+  type LighthouseAuditResult,
 } from "./fixtures/lighthouse-audit";
 
 test.setTimeout(290_000);
 
-test("meets the mobile Lighthouse budgets on representative public routes", async ({
+const appOrigin = "http://localhost:3000";
+
+function expectBudget(result: LighthouseAuditResult): void {
+  expect(
+    result.passed
+      ? []
+      : [
+          {
+            accessibility: result.accessibility,
+            bestPractices: result.bestPractices,
+            cumulativeLayoutShift:
+              Math.round(result.cumulativeLayoutShift * 1000) / 1000,
+            label: result.label,
+            largestContentfulPaint: Math.round(result.largestContentfulPaint),
+            performance: result.performance,
+            runs: result.runs,
+          },
+        ],
+    result.output,
+  ).toEqual([]);
+}
+
+test("meets the mobile Lighthouse budgets on home", async () => {
+  expectBudget(
+    await runLighthouseAudit({
+      label: "home",
+      url: new URL("/", appOrigin).toString(),
+    }),
+  );
+});
+
+test("meets the mobile Lighthouse budgets on catalog", async () => {
+  expectBudget(
+    await runLighthouseAudit({
+      label: "catalog",
+      url: new URL("/catalog", appOrigin).toString(),
+    }),
+  );
+});
+
+test("meets the mobile Lighthouse budgets on PDP", async ({
   activeSupplierUser,
   admin,
   anonymous,
@@ -14,111 +55,58 @@ test("meets the mobile Lighthouse budgets on representative public routes", asyn
   marketplaceScenario,
   supportManager,
 }) => {
-  const appOrigin = "http://localhost:3000";
-  // Lighthouse launches its own throttled Chrome. Closing fixture pages first
-  // avoids measuring contention from five unrelated Playwright contexts.
   await Promise.all(
-    [
-      activeSupplierUser,
-      admin,
-      anonymous,
-      customer,
-      supportManager,
-    ].map((actor) => actor.context.close()),
+    [activeSupplierUser, admin, anonymous, customer, supportManager].map(
+      (actor) => actor.context.close(),
+    ),
   );
 
-  const audits = [
-    { label: "home", path: "/" },
-    { label: "catalog", path: "/catalog" },
-    {
+  expectBudget(
+    await runLighthouseAudit({
       label: "pdp",
-      path: `/products/${marketplaceScenario.productId}`,
-    },
-  ];
-
-  const results = [];
-  for (const audit of audits) {
-    results.push(await runLighthouseAudit({
-      label: audit.label,
-      url: new URL(audit.path, appOrigin).toString(),
-    }));
-  }
-
-  expect(
-    results.filter((result) => !result.passed).map((result) => ({
-      accessibility: result.accessibility,
-      bestPractices: result.bestPractices,
-      cumulativeLayoutShift: Math.round(result.cumulativeLayoutShift * 1000) / 1000,
-      label: result.label,
-      largestContentfulPaint:
-        Math.round(result.largestContentfulPaint),
-      performance: result.performance,
-    })),
-    results.map((result) => result.output).join("\n\n"),
-  ).toEqual([]);
+      url: new URL(
+        `/products/${marketplaceScenario.productId}`,
+        appOrigin,
+      ).toString(),
+    }),
+  );
 });
 
-test("meets the mobile Lighthouse budgets on authenticated workspace routes", async ({
+test("meets the mobile Lighthouse budgets on Supplier Listings", async ({
   activeSupplierUser,
-  admin,
-  anonymous,
-  customer,
-  supportManager,
 }) => {
-  const appOrigin = "http://localhost:3000";
-  const supplierSessionCookie = await readSessionCookie(
+  const sessionCookie = await readSessionCookie(
     activeSupplierUser.context,
     appOrigin,
   );
-  const supportSessionCookie = await readSessionCookie(
+  await activeSupplierUser.context.close();
+
+  expectBudget(
+    await runLighthouseAudit({
+      label: "supplier-listings",
+      sessionCookie,
+      url: new URL(
+        `/supplier/${activeSupplierUser.supplierId}/listings`,
+        appOrigin,
+      ).toString(),
+    }),
+  );
+});
+
+test("meets the mobile Lighthouse budgets on Internal Orders", async ({
+  supportManager,
+}) => {
+  const sessionCookie = await readSessionCookie(
     supportManager.context,
     appOrigin,
   );
+  await supportManager.context.close();
 
-  await Promise.all(
-    [
-      activeSupplierUser,
-      admin,
-      anonymous,
-      customer,
-      supportManager,
-    ].map((actor) => actor.context.close()),
-  );
-
-  const audits = [
-    {
-      label: "supplier-listings",
-      path: `/supplier/${activeSupplierUser.supplierId}/listings`,
-      sessionCookie: supplierSessionCookie,
-    },
-    {
+  expectBudget(
+    await runLighthouseAudit({
       label: "internal-orders",
-      path: "/internal/orders",
-      sessionCookie: supportSessionCookie,
-    },
-  ];
-
-  const results = [];
-  for (const audit of audits) {
-    results.push(
-      await runLighthouseAudit({
-        label: audit.label,
-        sessionCookie: audit.sessionCookie,
-        url: new URL(audit.path, appOrigin).toString(),
-      }),
-    );
-  }
-
-  expect(
-    results.filter((result) => !result.passed).map((result) => ({
-      accessibility: result.accessibility,
-      bestPractices: result.bestPractices,
-      cumulativeLayoutShift:
-        Math.round(result.cumulativeLayoutShift * 1000) / 1000,
-      label: result.label,
-      largestContentfulPaint: Math.round(result.largestContentfulPaint),
-      performance: result.performance,
-    })),
-    results.map((result) => result.output).join("\n\n"),
-  ).toEqual([]);
+      sessionCookie,
+      url: new URL("/internal/orders", appOrigin).toString(),
+    }),
+  );
 });

@@ -622,14 +622,14 @@ External provider можливий лише після approval, license review 
 
 ### U6 — Redesign readiness gate
 
-**Статус:** `Conditional`. Автоматизовані WCAG A/AA перевірки, production build і representative Lighthouse audit виконано; Performance/LCP budget не досягнуто, повна ручна та external validation залишається відкритою.
+**Статус:** `Conditional`. Автоматизовані WCAG A/AA перевірки, production build, повна frontend unit/component regression і representative Lighthouse audit виконано. Користувач формально погодив виняток для локального simulated Lighthouse; повна ручна accessibility та external Google/Stripe validation залишається відкритою.
 
 - [x] Додано role-aware automated Axe audit для public storefront, Customer, Supplier та Internal/Admin representative states.
 - [x] Додано локальний Lighthouse CI gate для Home, Catalog, PDP, Supplier Listings та Internal Orders без збереження session cookie у звітах.
 - [x] Усунено знайдені overflow, contrast, scroll-region accessibility regressions і Supplier workspace CLS.
 - [x] Виконано lint, typecheck, production build, automated accessibility regression та `git diff --check`.
-- [ ] Досягти Lighthouse Performance `>= 80` і LCP `<= 2.5 с` або погодити окремий measured performance budget/workstream.
-- [ ] Виконати повну frontend regression після redesign і погоджений selected backend contract gate.
+- [x] Виміряти Lighthouse Performance/LCP трьома запусками на маршрут і погодити documented local simulated-performance exception до Production Foundation profiling.
+- [x] Виконати повну frontend regression після redesign і погоджений selected backend contract gate.
 - [ ] Виконати ручні keyboard, screen-reader, 200% zoom, responsive device, contrast і reduced-motion checks.
 - [ ] Повторити unresolved F8 Google OAuth callback та Stripe webhook verification у відповідному local/staging environment.
 - [ ] Оновити F8 із `Conditional` на `Ready` лише після фактичного закриття зазначених пунктів.
@@ -640,18 +640,19 @@ External provider можливий лише після approval, license review 
 - Lighthouse використовує локальний Chrome і server-issued role sessions через `puppeteer-core`; значення cookies не передаються через `extraHeaders`, не записуються у JSON/HTML reports і не комітяться.
 - Server-prefetch із тими самими TanStack Query keys додано для Supplier membership/listings та Internal Orders. Backend RBAC/ownership і client error fallback не змінено.
 - Supplier Listings CLS зменшено з `0.167` до `0`. Internal Orders CLS залишився `0`.
-- Lighthouse після fix: Supplier Listings — Performance `60`, Accessibility `100`, Best Practices `100`, LCP `4.71 с`, CLS `0`; Internal Orders — Performance `69`, Accessibility `96`, Best Practices `100`, LCP `4.28 с`, CLS `0`.
-- Public baseline: Home — `59/100/100`, LCP `5.03 с`; Catalog — `60/100/100`, LCP `4.95 с`; PDP — `63/100/96`, LCP `4.41 с`; CLS для public routes — `0`.
-- Trace показує observed LCP близько `1.32 с` для Supplier Listings і `0.86 с` для Internal Orders, але simulated mobile Lighthouse metric лишається вищою через приблизно `2.9–3.4 с` main-thread work та `1.6–1.8 с` JavaScript bootup. Подальше виправлення потребує окремого RSC/client-boundary і bundle profiling slice, а не CSS tuning у readiness gate.
+- Lighthouse gate виконує три запуски на маршрут і фіксує медіану. Turbopack build: Home — Performance `52`, LCP `5.46 с`; Catalog — `63`, `4.82 с`; PDP — `59`, `4.76 с`; Supplier Listings — `63`, `4.65 с`; Internal Orders — `66`, `3.76 с`. CLS для всіх маршрутів — `0`, Accessibility — `96–100`, Best Practices — `96–100`.
+- Контрольна webpack-збірка покращила Home median LCP приблизно на `14%`, з `5.46 с` до `4.70 с`, а Performance — з `52` до `55`; build strategy не змінено через недостатній вплив на gate.
+- Lighthouse trace показав, що основний simulated-mobile ризик — приблизно `1.8–2.6 с` JavaScript bootup/TBT у спільному Next/React runtime, а не server response або layout shift. Користувацький запуск Lighthouse у Chrome показав Performance `75–78`; користувач погодив не блокувати U6 локальним simulated score і перенести глибокий RSC/client-boundary та bundle profiling до Production Foundation.
 
 #### U6 validation results
 
 - `pnpm --filter web build` — passed.
 - `pnpm --filter web lint` — passed.
 - `pnpm --filter web check-types` — passed.
+- `pnpm --filter web test` — passed, підтверджено користувачем: 36/36 files, 76/76 tests.
 - `pnpm --filter web test:a11y --reuse-build` — passed, 3/3 Playwright tests.
 - `pnpm --filter web test -- test/supplier/supplier-workspace-shell.spec.tsx test/internal-ops/internal-workspace-shell.spec.tsx` — passed, 2 files / 3 tests.
-- Authenticated Lighthouse виконав обидва маршрути, але gate failed через Performance/LCP budgets; Accessibility/Best Practices/CLS budgets пройдено.
+- Трипрохідний Lighthouse виконав усі п'ять representative routes. Автоматичний Performance/LCP threshold не досягнуто; Accessibility/Best Practices/CLS budgets пройдено, а локальний simulated-performance exception погоджено користувачем.
 - `git diff --check` — passed; Windows LF → CRLF повідомлення є інформаційними.
 - Final redesign release status — `Conditional`.
 

@@ -45,6 +45,14 @@ export async function createBetterAuth(
     emailAndPassword: {
       enabled: true,
     },
+    account: {
+      accountLinking: {
+        enabled: true,
+        disableImplicitLinking: true,
+        allowDifferentEmails: false,
+        updateUserInfoOnLink: false,
+      },
+    },
     hooks: {
       before: createAuthMiddleware((context) => {
         if (context.path === '/change-password' && context.body) {

@@ -50,6 +50,7 @@ describe('Catalog filter options integration', () => {
           { id: ACTIVE_CATEGORY_B_ID, name: 'Filter Options Brakes' },
           { id: ACTIVE_CATEGORY_A_ID, name: 'Filter Options Filters' },
         ],
+        defaultCurrency: 'UAH',
         currencies: [
           { code: 'UAH', minimumPrice: '80', maximumPrice: '100' },
           { code: 'USD', minimumPrice: '10', maximumPrice: '10' },

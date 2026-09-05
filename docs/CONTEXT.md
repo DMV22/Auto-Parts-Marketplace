@@ -2,7 +2,7 @@
 
 ## Product
 
-Auto Parts Marketplace is an early-stage marketplace for automotive parts. The repository currently provides a reproducible backend foundation and an integrated Next.js experience for public discovery, Customer/Guest commerce, Supplier Cabinet and Internal CRM/OMS workflows. Supplier fulfillment and production deployment remain future work.
+Auto Parts Marketplace is an early-stage marketplace for automotive parts. The repository currently provides a reproducible backend foundation and an integrated Next.js experience for public discovery, Customer/Guest commerce, Supplier Cabinet and Internal CRM/OMS workflows. Product milestones F0–F7 and redesign slices U0–U5 are implemented; U6/F8 remain `Conditional` while external/manual release evidence is completed. Supplier fulfillment and production deployment remain future work.
 
 ## Current repository baseline
 
@@ -137,7 +137,7 @@ pnpm --filter web test
 pnpm --filter web test:e2e
 ```
 
-Integration and e2e suites require local `TEST_DATABASE_URL` targeting only `auto_parts_test`. Shared setup validates the target and applies committed migrations. Each suite owns and cleans its fixtures; tests do not import or depend on demo seed. Playwright validates the platform shell, same-origin cookie transport, email/Google-auth initiation, role boundaries and deterministic critical mutations across Garage/PDP, Cart/Checkout recovery, Customer Returns, Supplier inventory and Internal Ops/moderation. Real Google callback, Stripe webhook forwarding and measured performance/accessibility evidence remain readiness follow-ups.
+Integration and e2e suites require local `TEST_DATABASE_URL` targeting only `auto_parts_test`. Shared setup validates the target and applies committed migrations. Each suite owns and cleans its fixtures; tests do not import or depend on demo seed. Playwright validates the platform shell, same-origin cookie transport, email/Google-auth initiation, role boundaries and deterministic critical mutations across Garage/PDP, Cart/Checkout recovery, Customer Returns, Supplier inventory and Internal Ops/moderation. Axe and three-run Lighthouse gates cover representative public and role-aware routes; real Google callback, Stripe webhook forwarding and manual assistive-technology evidence remain readiness follow-ups.
 
 `prisma:seed` is guarded separately and accepts only local `auto_parts_dev`. It is idempotent and contains synthetic data only.
 
