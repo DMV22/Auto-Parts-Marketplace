@@ -64,6 +64,7 @@ describe("catalog URL state", () => {
       data: {
         brands: [],
         categories: [],
+        defaultCurrency: "UAH",
         currencies: [
           { code: "UAH", minimumPrice: "80", maximumPrice: "500" },
         ],
@@ -79,5 +80,34 @@ describe("catalog URL state", () => {
     });
     expect(resolved.searchParams.toString()).toBe("currency=UAH");
     expect(resolved.wasNormalized).toBe(true);
+  });
+
+  it("uses the declared default currency while preserving an explicit selection", () => {
+    const options = {
+      data: {
+        brands: [],
+        categories: [],
+        defaultCurrency: "UAH",
+        currencies: [
+          { code: "EUR", minimumPrice: "20", maximumPrice: "200" },
+          { code: "UAH", minimumPrice: "800", maximumPrice: "8000" },
+        ],
+      },
+      meta: { truncated: false },
+    };
+
+    const initial = resolveCatalogQuery(
+      parseCatalogSearchParams(new URLSearchParams()),
+      options,
+    );
+    const explicit = resolveCatalogQuery(
+      parseCatalogSearchParams(new URLSearchParams("currency=EUR")),
+      options,
+    );
+
+    expect(initial.state.currency).toBe("UAH");
+    expect(initial.searchParams.toString()).toBe("currency=UAH");
+    expect(explicit.state.currency).toBe("EUR");
+    expect(explicit.searchParams.toString()).toBe("currency=EUR");
   });
 });

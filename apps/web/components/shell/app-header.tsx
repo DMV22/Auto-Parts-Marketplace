@@ -310,6 +310,18 @@ export function AppHeader() {
                         pathname={pathname}
                         mobile
                       />
+                      {session.data.user.isActive ? (
+                        <SheetClose
+                          render={
+                            <HeaderLink
+                              href="/account/security"
+                              label="Безпека акаунта"
+                              pathname={pathname}
+                              className={styles.mobileNavigationLink}
+                            />
+                          }
+                        />
+                      ) : null}
                       <SheetClose
                         render={
                           <Button

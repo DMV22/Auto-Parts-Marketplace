@@ -2,6 +2,7 @@ import type { NoteTarget } from "@/lib/internal-ops/internal-ops-types";
 
 export const queryKeys = {
   auth: {
+    accounts: ["auth", "accounts"] as const,
     session: ["auth", "session"] as const,
   },
   catalog: {

@@ -60,6 +60,17 @@ describe("ProductDetailPage", () => {
           ],
         }),
       ),
+      http.get("*/api/v1/cart", () =>
+        HttpResponse.json({
+          data: {
+            id: null,
+            currency: null,
+            totalQuantity: 0,
+            totalAmount: "0.00",
+            items: [],
+          },
+        }),
+      ),
       http.get("*/api/v1/catalog/products/:productId", ({ request }) => {
         const url = new URL(request.url);
         productRequests.push(url);
