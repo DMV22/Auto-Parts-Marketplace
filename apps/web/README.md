@@ -10,6 +10,10 @@ Next.js 16 App Router frontend for public catalog/fitment, Customer and Guest co
 - NestJS remains authoritative for roles, ownership, prices, stock, fitment, transitions and payment state.
 - TanStack Query owns server state; sign-in/sign-out clears all cached query data before the next identity is used.
 
+The public demo is available at <https://auto-parts-marketplace-web-bqbz.vercel.app>. Vercel is the only browser-facing origin and `API_INTERNAL_URL` points server-side to <https://auto-parts-marketplace-api.onrender.com>. Google callbacks and normal browser API requests continue through Vercel `/api/*`; Stripe sandbox webhooks call the signed Render endpoint directly. Do not expose the upstream as `NEXT_PUBLIC_*` or change browser requests to call Render directly.
+
+Render Free may cold-start after idle. The current UI keeps a recoverable loading state and resumes when the API wakes; this demo does not promise production-grade availability or latency.
+
 ## Local development
 
 Create `apps/web/.env.local` from `.env.example` only when the API does not run at the default URL:
@@ -32,7 +36,7 @@ Open `http://localhost:3000`. Better Auth must use `BETTER_AUTH_URL=http://local
 ## Verification
 
 ```bash
-pnpm --filter web lint
+pnpm --filter web lint:check
 pnpm --filter web check-types
 pnpm --filter web test
 pnpm --filter web build

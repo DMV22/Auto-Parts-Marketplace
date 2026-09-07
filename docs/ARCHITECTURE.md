@@ -6,6 +6,8 @@ Auto Parts Marketplace is intended to let customers discover compatible automoti
 
 The repository currently implements the backend foundation, the F0–F7 web experience for discovery, owner-isolated commerce, Supplier Cabinet and Internal Ops, and UI redesign slices U0–U5. U6/F8 remain `Conditional` pending external/manual evidence. It does not implement supplier fulfillment, shipping, refunds or external operational integrations; do not invent those workflows without an accepted milestone.
 
+The public-demo runtime is deployed as a Vercel Hobby Next.js origin, a Render Free NestJS service and a Neon Free PostgreSQL database. Browser requests remain first-party through the Vercel `/api/*` rewrite; the Render origin is server-only except for the signed Stripe test webhook endpoint.
+
 ## Current system
 
 - `apps/web` — Next.js 16 / React 19 App Router application for public, Customer/Guest, Supplier and Internal Ops workflows.
@@ -107,7 +109,7 @@ Order/payment transitions are explicit application-service operations guarded by
 - supplier fulfillment and shipping workflows;
 - payouts, refunds and external CRM/notification integrations;
 - complete real-provider Google/Stripe release smoke and full manual accessibility/responsive evidence; measured Lighthouse baselines exist with an accepted local simulated-performance exception;
-- production database, secret management, backups, monitoring and deployment architecture.
+- production-grade secret rotation, backups, monitoring, CI/CD and availability guarantees.
 
 These capabilities belong to later milestones and must build on the established persistence, auth and ownership boundaries.
 

@@ -9,6 +9,7 @@ import {
   CheckoutBodyPipe,
   CheckoutIdempotencyKeyPipe,
 } from './checkout.validation';
+import { DemoRateLimit } from '../../security/rate-limit';
 
 @Controller('api/v1/checkout/session')
 export class CheckoutController {
@@ -20,6 +21,7 @@ export class CheckoutController {
   ) {}
 
   @Post()
+  @DemoRateLimit('checkout')
   async createSession(
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,

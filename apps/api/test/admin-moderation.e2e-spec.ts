@@ -48,12 +48,8 @@ describe('Admin Listing moderation API (e2e)', () => {
     await request(app.getHttpServer())
       .get('/api/v1/admin/moderation/listings')
       .expect(401);
-    await actors.support
-      .get('/api/v1/admin/moderation/listings')
-      .expect(403);
-    await actors.owner
-      .get('/api/v1/admin/moderation/listings')
-      .expect(403);
+    await actors.support.get('/api/v1/admin/moderation/listings').expect(403);
+    await actors.owner.get('/api/v1/admin/moderation/listings').expect(403);
 
     const first = await actors.admin
       .get('/api/v1/admin/moderation/listings?pageSize=1')
@@ -107,9 +103,7 @@ describe('Admin Listing moderation API (e2e)', () => {
       )
       .expect(201);
     await actors.admin
-      .post(
-        `/api/v1/admin/moderation/listings/${MODERATION_ACTIVE_ID}/pause`,
-      )
+      .post(`/api/v1/admin/moderation/listings/${MODERATION_ACTIVE_ID}/pause`)
       .send({ reason: '  Emergency safety review  ' })
       .expect(201)
       .expect((response) => {

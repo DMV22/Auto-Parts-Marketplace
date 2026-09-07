@@ -7,6 +7,7 @@ import type {
 } from './auth-password.types';
 import { AuthPasswordBodyPipe } from './auth-password.validation';
 import { SessionAuthGuard } from './guards/session-auth.guard';
+import { DemoRateLimit } from '../security/rate-limit';
 
 @Controller('api/v1/me/password')
 @UseGuards(SessionAuthGuard)
@@ -14,6 +15,7 @@ export class AuthPasswordController {
   constructor(private readonly passwords: AuthPasswordService) {}
 
   @Post()
+  @DemoRateLimit('auth')
   create(
     @Req() request: Request,
     @Body(AuthPasswordBodyPipe) input: CreateAuthPasswordInput,

@@ -181,12 +181,17 @@ export function encodeAdminModerationCursor(
   cursor: AdminModerationCursor,
 ): string {
   return Buffer.from(
-    JSON.stringify({ id: cursor.id, updatedAt: cursor.updatedAt.toISOString() }),
+    JSON.stringify({
+      id: cursor.id,
+      updatedAt: cursor.updatedAt.toISOString(),
+    }),
     'utf8',
   ).toString('base64url');
 }
 
-function optionalModerationCursor(value: unknown): AdminModerationCursor | null {
+function optionalModerationCursor(
+  value: unknown,
+): AdminModerationCursor | null {
   if (value === undefined) return null;
   if (typeof value !== 'string' || value.length === 0 || value.length > 1024) {
     throw new BadRequestException('cursor is invalid');
