@@ -15,9 +15,9 @@ Auto Parts Marketplace is an early-stage marketplace for automotive parts. The r
 - database: PostgreSQL 16 through Docker Compose;
 - authentication: Better Auth `1.6.26`, session-based email/password and Google OAuth;
 - backend tests: Jest, PostgreSQL integration tests and Supertest e2e tests;
-- Production Foundation PF0–PF4: configuration/security/database/deployment
-  foundations implemented and Vercel → Render → Neon hosted smoke passed;
-  Google, Stripe, regression/observability and final release gates remain.
+- Production Foundation PF0–PF5: configuration/security/database/deployment
+  foundations, Vercel → Render → Neon hosted smoke and Google OAuth staging
+  validation passed; Stripe, regression/observability and final gates remain.
 
 The active public-demo topology is Vercel Hobby for Next.js, Render Free for NestJS and Neon Free for PostgreSQL. Vercel remains the browser-facing origin and forwards relative `/api/*` requests to Render. The deployment branch is `main`; this environment is a portfolio demo, not production for real clients.
 
@@ -119,6 +119,11 @@ contract without including configured values in errors. In
 `NODE_ENV=production`, the current public-demo contract requires non-local TLS
 PostgreSQL, one HTTPS Vercel origin for Better Auth and Checkout redirects,
 Stripe test mode, and no `TEST_DATABASE_URL`.
+
+Google OAuth is supported only on the canonical production Vercel domain; its
+consent screen is public. A user-initiated Google registration may persist the
+minimal identity fields required by Better Auth, but real addresses, payment
+data and live Stripe usage remain outside the demo policy.
 
 ## Local workflow
 

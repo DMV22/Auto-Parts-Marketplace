@@ -2,15 +2,19 @@
 
 ## Status
 
-`In progress` — PF0–PF4 завершено. 12 committed migrations застосовано до
+`In progress` — PF0–PF5 завершено. 12 committed migrations застосовано до
 Neon і підтверджено через `prisma:migrate:status`; Next.js розгорнуто на
 Vercel, NestJS — на Render, а same-origin `/api/*` proxy пройшов hosted smoke.
-PF5–PF8 та підсумковий public-demo release gate ще не завершені.
+Google OAuth production callback, explicit linking і Google-only password flow
+пройшли staging validation. PF6–PF8 та підсумковий public-demo release gate ще
+не завершені.
 
 ## Summary
 
 Цей workstream готує Auto Parts Marketplace до безпечного публічного
-portfolio/demo staging без live-платежів і реальних клієнтських даних.
+portfolio/demo staging без live-платежів і реальних transactional customer
+data. Public Google OAuth може зберігати мінімальні user-initiated identity
+fields відповідно до зафіксованого PF5 policy exception.
 
 Погоджена безкоштовна topology:
 
@@ -55,7 +59,8 @@ third-party cookies. Render URL є server-side upstream для Next.js rewrite �
 ## Non-goals
 
 - live Stripe payments, payouts або refunds;
-- реальні клієнтські, платіжні чи персональні дані;
+- реальні адреси, платіжні або transactional customer data; мінімальні
+  user-initiated Google identity fields є окремо погодженим PF5 винятком;
 - production-scale availability, autoscaling або zero-downtime guarantees;
 - shipping, supplier fulfillment, onboarding, email delivery або analytics;
 - wishlist, reviews, promotions, VIN lookup чи інші product features;
@@ -79,6 +84,7 @@ third-party cookies. Render URL є server-side upstream для Next.js rewrite �
 | Logs                 | Vercel/Render provider logs    | Без нового SDK на першому етапі                                    |
 | Docker               | Не обов'язковий для deployment | Compose залишається local parity tool                              |
 | Free-tier latency    | Прийнятна для demo             | Потрібні зрозумілий smoke і documented cold-start limitation       |
+| Google OAuth access  | Public production consent      | Production Vercel callback; user-initiated identity data           |
 
 ## Context inspected
 
@@ -118,8 +124,8 @@ third-party cookies. Render URL є server-side upstream для Next.js rewrite �
   reviewed manual public-demo procedure;
 - the current seed intentionally accepts only local `auto_parts_dev` and must
   not be pointed at Neon;
-- Google OAuth and Stripe test-mode resources are configured, but their PF5/PF6
-  end-to-end acceptance evidence is not yet recorded;
+- Google OAuth PF5 acceptance is recorded; Stripe test-mode PF6 behavior still
+  requires end-to-end evidence;
 - provider observability, rollback evidence and synthetic hosted demo-data
   policy remain PF7/PF8 work;
 - U6/F8 still contain unresolved external/manual evidence.
@@ -535,19 +541,19 @@ from Render or expose the Render upstream to browser code.
 
 **Agent implements**
 
-- [ ] Document the exact public callback path and safe `returnTo` checks.
-- [ ] Retain explicit account linking and authenticated password-creation
+- [x] Document the exact public callback path and safe `returnTo` checks.
+- [x] Retain explicit account linking and authenticated password-creation
       behavior; do not enable implicit email linking.
-- [ ] Add or update only regression tests required by a reproduced staging
+- [x] Add or update only regression tests required by a reproduced staging
       proxy/callback problem.
 
 **User performs manually**
 
-- [ ] Create or configure a staging Google OAuth client.
-- [ ] Add the Vercel HTTPS origin and exact callback:
+- [x] Create or configure a staging Google OAuth client.
+- [x] Add the Vercel HTTPS origin and exact callback:
       `https://<web-project>.vercel.app/api/auth/callback/google`.
-- [ ] Store client credentials only in Render environment settings.
-- [ ] Complete real sign-in, callback, refresh, explicit linking and sign-out
+- [x] Store client credentials only in Render environment settings.
+- [x] Complete real sign-in, callback, refresh, explicit linking and sign-out
       checks without sharing codes, tokens or cookies.
 
 **Acceptance evidence**
@@ -556,6 +562,46 @@ from Render or expose the Render upstream to browser code.
   HttpOnly session.
 - Existing email/password and Google-only account flows remain valid.
 - Unsafe external `returnTo` values are rejected.
+
+#### PF5 implementation log
+
+- Створено `docs/GOOGLE-OAUTH-STAGING-RUNBOOK.md` з exact production Vercel
+  origin/callback, Production-only policy, safe evidence rules і rollback.
+- Google consent screen має статус `In production`, тому будь-який Google user
+  може добровільно створити account. Це зафіксовано як вузький виняток для
+  мінімальних identity fields; real addresses/payment data і live Stripe
+  залишаються забороненими.
+- Dynamic Vercel Preview domains не додаються до Google Console. Preview
+  deployments можуть виконувати non-OAuth smoke, але реальний callback
+  перевіряється лише на canonical production domain.
+- Static audit підтвердив `disableImplicitLinking: true`, same-email explicit
+  linking, відсутність provider-profile overwrite, local-only `returnTo` та
+  authenticated Better Auth password creation for Google-only accounts.
+- Hosted manual validation підтвердила Google-only sign-in, callback, refresh,
+  sign-out/re-login, explicit linking, different-email rejection, password
+  creation і подальший вхід обома методами. Credentials залишаються тільки у
+  Render environment settings; Vercel містить лише server-side
+  `API_INTERNAL_URL`.
+- Staging defect не відтворено, тому application source і regression tests не
+  змінювалися.
+
+#### PF5 validation results
+
+- `pnpm --filter web exec vitest run test/auth/auth-navigation.spec.ts
+test/auth/auth-api.spec.ts test/auth/account-security-page.spec.tsx
+--pool=threads --maxWorkers=1` — passed: `3/3` files, `17/17` tests.
+- `pnpm --filter api test -- auth-password.service.spec.ts --runInBand` —
+  passed: `1/1` suite, `3/3` tests.
+- Manual provider screenshots confirmed the exact production Vercel origin and
+  callback plus the absence of Google credentials from Vercel environment
+  settings. Secret values, OAuth codes, tokens and cookies were not recorded.
+
+#### PF5 handoff to PF6
+
+PF5 is complete without auth behavior changes. PF6 should validate only Stripe
+test-mode Checkout and the signature-verified hosted Render webhook, including
+success, duplicate, delayed/resend, failed and expired delivery behavior. The
+browser return must remain non-authoritative for payment status.
 
 ### PF6 — Stripe sandbox webhook readiness
 

@@ -108,7 +108,7 @@ Order/payment transitions are explicit application-service operations guarded by
 
 - supplier fulfillment and shipping workflows;
 - payouts, refunds and external CRM/notification integrations;
-- complete real-provider Google/Stripe release smoke and full manual accessibility/responsive evidence; measured Lighthouse baselines exist with an accepted local simulated-performance exception;
+- complete real-provider Stripe release smoke and full manual accessibility/responsive evidence; Google OAuth staging validation is complete, while measured Lighthouse baselines retain an accepted local simulated-performance exception;
 - production-grade secret rotation, backups, monitoring, CI/CD and availability guarantees.
 
 These capabilities belong to later milestones and must build on the established persistence, auth and ownership boundaries.
