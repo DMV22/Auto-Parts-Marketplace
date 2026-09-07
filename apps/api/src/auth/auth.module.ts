@@ -10,11 +10,12 @@ import { BetterAuthInstance, BetterAuthNodeHandler } from './auth.types';
 import { RolesGuard } from './guards/roles.guard';
 import { SessionAuthGuard } from './guards/session-auth.guard';
 import { SupplierOwnershipGuard } from './guards/supplier-ownership.guard';
+import { SecurityModule } from '../security/security.module';
 import { SupplierMembershipController } from './supplier-membership/supplier-membership.controller';
 import { SupplierMembershipService } from './supplier-membership/supplier-membership.service';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, SecurityModule],
   controllers: [AuthPasswordController, SupplierMembershipController],
   providers: [
     AuthPasswordService,
