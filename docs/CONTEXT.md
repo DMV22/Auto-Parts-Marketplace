@@ -2,7 +2,7 @@
 
 ## Product
 
-Auto Parts Marketplace is an early-stage marketplace for automotive parts. The repository currently provides a reproducible backend foundation and an integrated Next.js experience for public discovery, Customer/Guest commerce, Supplier Cabinet and Internal CRM/OMS workflows. Product milestones F0–F7 and redesign slices U0–U5 are implemented; U6/F8 remain `Conditional` while external/manual release evidence is completed. Supplier fulfillment and production deployment remain future work.
+Auto Parts Marketplace is an early-stage marketplace for automotive parts. The repository currently provides a reproducible backend foundation and an integrated Next.js experience for public discovery, Customer/Guest commerce, Supplier Cabinet and Internal CRM/OMS workflows. Product milestones F0–F7 and redesign slices U0–U5 are implemented; U6/F8 remain `Conditional` while external/manual release evidence is completed. A public-demo staging topology is deployed, while production-scale operations and supplier fulfillment remain future work.
 
 ## Current repository baseline
 
@@ -15,15 +15,11 @@ Auto Parts Marketplace is an early-stage marketplace for automotive parts. The r
 - database: PostgreSQL 16 through Docker Compose;
 - authentication: Better Auth `1.6.26`, session-based email/password and Google OAuth;
 - backend tests: Jest, PostgreSQL integration tests and Supertest e2e tests;
-- Production Foundation PF0: environment/startup contract and non-mutating
-  repository lint gate implemented; CI/CD, provider resources and deployment
-  are not implemented.
+- Production Foundation PF0–PF4: configuration/security/database/deployment
+  foundations implemented and Vercel → Render → Neon hosted smoke passed;
+  Google, Stripe, regression/observability and final release gates remain.
 
-The approved future public-demo topology is Vercel Hobby for Next.js, Render
-Free for NestJS and Neon Free for PostgreSQL. Vercel remains the browser-facing
-origin and forwards relative `/api/*` requests to Render. The planned deployment
-branch is `main`; the repository remains private until its full history passes
-a separate secret audit.
+The active public-demo topology is Vercel Hobby for Next.js, Render Free for NestJS and Neon Free for PostgreSQL. Vercel remains the browser-facing origin and forwards relative `/api/*` requests to Render. The deployment branch is `main`; this environment is a portfolio demo, not production for real clients.
 
 Docker maps PostgreSQL container port `5432` to host port `5433` to avoid conflicts with machine-local PostgreSQL installations. Development and tests use separate databases: `auto_parts_dev` and `auto_parts_test`. Connection-string formats are documented in `apps/api/.env.example`; real credentials remain outside Git.
 
