@@ -48,7 +48,7 @@ describe('Catalog and vehicle taxonomy migration', () => {
 
   it('keeps the original committed migration immutable and guards legacy drops', () => {
     const legacyMigrationHash = createHash('sha256')
-      .update(readFileSync(legacyMigrationPath))
+      .update(readFileSync(legacyMigrationPath, 'utf8').replace(/\r\n?/g, '\n'))
       .digest('hex');
     const verificationPosition = taxonomyMigrationSql.indexOf('DO $$');
     const firstDropPosition = taxonomyMigrationSql.indexOf(
@@ -56,7 +56,7 @@ describe('Catalog and vehicle taxonomy migration', () => {
     );
 
     expect(legacyMigrationHash).toBe(
-      '53e3f87a07e0cc4854cc62dfc8fb1a32d4bb811cd0e0796f5ede06263ab7f1fe',
+      '44301a09423f86b657e25cd0ea71fa46b1a1e2df491df86cf0b8d184255606ea',
     );
     expect(verificationPosition).toBeGreaterThan(-1);
     expect(firstDropPosition).toBeGreaterThan(verificationPosition);

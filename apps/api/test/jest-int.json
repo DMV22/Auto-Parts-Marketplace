@@ -3,6 +3,7 @@
   "rootDir": ".",
   "testEnvironment": "node",
   "testRegex": ".int-spec.ts$",
+  "setupFiles": ["<rootDir>/setup-auth-environment.ts"],
   "globalSetup": "<rootDir>/setup-test-database.ts",
   "moduleNameMapper": {
     "^(\\.{1,2}/.*)\\.js$": "$1"
