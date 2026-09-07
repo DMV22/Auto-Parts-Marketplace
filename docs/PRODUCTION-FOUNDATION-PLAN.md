@@ -2,9 +2,10 @@
 
 ## Status
 
-`In progress` — PF0–PF5 завершено. PF6 repository implementation завершено,
-але hosted Stripe behavior smoke очікує на окремо погоджені synthetic demo
-data. 12 committed migrations застосовано до
+`In progress` — PF0–PF5 завершено. PF6 repository implementation та PF7
+repository automation/bootstrap foundation завершені, але hosted Stripe
+behavior smoke і provider-side quality evidence ще очікують виконання. 12
+committed migrations застосовано до
 Neon і підтверджено через `prisma:migrate:status`; Next.js розгорнуто на
 Vercel, NestJS — на Render, а same-origin `/api/*` proxy пройшов hosted smoke.
 Google OAuth production callback, explicit linking і Google-only password flow
@@ -672,9 +673,8 @@ authority or mark an Order paid from the browser redirect.
 - Scoped ESLint for the three changed API files: `PASS`.
 - Stripe raw-body/signature gateway unit test: `PASS` (1 suite, 2 tests).
 - API production build: `PASS`.
-- Stripe webhook integration/e2e suites: `NOT RUN`; guarded local setup could
-  not reach `auto_parts_test` because Docker Desktop was not running. The
-  failed setup did not connect to Neon or execute test cases.
+- Stripe webhook integration/e2e suites: `PASS`; user re-ran both scoped suites
+  against the guarded local `auto_parts_test` database without errors.
 - Hosted Checkout/webhook state-transition smoke: `PENDING`; Neon has no
   purchasable synthetic Listings, and PF6 does not authorize ad hoc data or the
   local-only seed against Neon.
@@ -689,18 +689,41 @@ that evidence is recorded; redirects remain non-authoritative throughout.
 
 ### PF7 — Deployment automation and validation gate
 
+#### PF7A — Controlled synthetic demo-data bootstrap
+
 **Agent implements**
 
-- [ ] Add a minimal CI quality workflow only after repository visibility,
+- [x] Reuse the versioned idempotent demo seed through a separate public-demo
+      entrypoint without weakening the local-only `prisma:seed` guard.
+- [x] Require production mode, an approved direct Neon target, exact database
+      name, no `TEST_DATABASE_URL` and a seed-version confirmation value.
+- [x] Keep the bootstrap manual; never run it from Render deploy or CI.
+- [x] Preserve the no-credentials contract for synthetic role records.
+
+**User performs manually**
+
+- [ ] Run preflight and migration status with the direct Neon URL held only in
+      the current process environment.
+- [ ] Run the approved bootstrap once and retain only sanitized aggregate
+      evidence.
+- [ ] Clear the process environment and verify the public synthetic catalog.
+
+The manual procedure and current confirmation string are documented in
+`docs/PUBLIC-DEMO-VALIDATION-RUNBOOK.md`. The bootstrap performs idempotent
+upserts only; no automatic or destructive reset is introduced.
+
+**Agent implements**
+
+- [x] Add a minimal CI quality workflow only after repository visibility,
       branch and secret policy are confirmed.
-- [ ] Keep unit/static gates separate from database-backed integration/E2E
+- [x] Keep unit/static gates separate from database-backed integration/E2E
       jobs.
-- [ ] Prevent tests from targeting Neon: existing test guards must continue to
+- [x] Prevent tests from targeting Neon: existing test guards must continue to
       accept only local `auto_parts_test`.
-- [ ] Add a post-deployment smoke script or checklist that performs read-only
+- [x] Add a post-deployment smoke script or checklist that performs read-only
       health/public checks before any mutation scenario.
-- [ ] Re-run the smallest affected regression after each foundation slice, then
-      one final agreed gate.
+- [~] Re-run the smallest affected regression after each foundation slice, then
+  one final agreed gate.
 
 **User performs manually**
 
@@ -715,6 +738,46 @@ that evidence is recorded; redirects remain non-authoritative throughout.
   secrets or personal data.
 - Rollback to the last known-good Vercel/Render deployment is rehearsed or
   documented.
+
+#### PF7 implementation log
+
+- Added a separate manual `prisma:demo:bootstrap` entrypoint which reuses the
+  existing idempotent synthetic dataset without weakening the local-only
+  `prisma:seed` wrapper. Authorization requires `NODE_ENV=production`, a direct
+  allowlisted Neon host with `sslmode=require`, exact database-name agreement,
+  no `TEST_DATABASE_URL` and a confirmation tied to the seed version.
+- Added a two-job GitHub Actions quality gate for PRs and `main`: static/unit/
+  build validation is independent from API integration/e2e against an
+  ephemeral PostgreSQL 16 `auto_parts_test`. Workflow permissions are
+  read-only and no provider credentials are referenced.
+- Added dependency-free `smoke:public-demo` with four read-only HTTPS checks, a
+  60-second timeout and two retries for Render Free cold start.
+- Added `docs/PUBLIC-DEMO-VALIDATION-RUNBOOK.md` with the manual bootstrap,
+  branch-protection, evidence and documented rollback procedures.
+
+#### PF7 validation results
+
+- Public-demo seed target/authorization/local seed guard unit tests: `PASS`
+  (3 suites, 29 tests).
+- Missing production authorization fail-closed CLI check: `PASS`; execution
+  stopped before a Prisma connection was created.
+- Scoped PF7 TypeScript ESLint and API production build: `PASS`.
+- Smoke script syntax validation: `PASS`.
+- Hosted read-only smoke: first cold attempt observed Render `503`; the
+  immediate warm retry passed API live/readiness and Vercel Home/Catalog with
+  `200` responses. Exact nonsensitive timings are in the validation runbook.
+- GitHub workflow jobs: `PENDING` until the revision is pushed and both jobs run
+  on GitHub.
+- Synthetic Neon bootstrap and hosted Stripe mutation smoke: `PENDING`; these
+  remain manual, separately authorized steps.
+
+#### PF7 handoff to manual validation and PF8
+
+Run the guarded bootstrap exactly as documented, verify the synthetic catalog,
+push the revision, require both GitHub jobs, then complete the hosted Stripe and
+manual staging checklist. PF7 and the overall public-demo gate remain
+`Conditional` until that external evidence is recorded. PF8 may synchronize
+final documentation only after those results are known.
 
 ### PF8 — Documentation synchronization and release decision
 
