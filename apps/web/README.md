@@ -14,6 +14,8 @@ The public demo is available at <https://auto-parts-marketplace-web-bqbz.vercel.
 
 Render Free may cold-start after idle. The current UI keeps a recoverable loading state and resumes when the API wakes; this demo does not promise production-grade availability or latency.
 
+Google OAuth is supported only on the stable production Vercel domain. Preview deployments are not registered as Google callback origins. The consent screen is public, so a user who chooses Google sign-in creates a minimal identity record; do not enter real addresses or payment information in this portfolio demo. See [Google OAuth public-demo runbook](../../docs/GOOGLE-OAUTH-STAGING-RUNBOOK.md).
+
 ## Local development
 
 Create `apps/web/.env.local` from `.env.example` only when the API does not run at the default URL:

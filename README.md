@@ -134,7 +134,7 @@ The public demo runs on Vercel Hobby for Next.js, Render Free for NestJS and Neo
 - Web: <https://auto-parts-marketplace-web-bqbz.vercel.app>
 - API health: <https://auto-parts-marketplace-api.onrender.com/api/v1/health/ready>
 
-PF0–PF4 establish the configuration/security/database/deployment foundation and the Vercel same-origin `/api/*` proxy. PF5–PF8 still cover formal Google OAuth, Stripe sandbox, regression/observability and final public-demo release gates. This remains portfolio/demo staging, not production for real customer data or live payments.
+PF0–PF5 establish the configuration/security/database/deployment foundation, the Vercel same-origin `/api/*` proxy and formal Google OAuth staging evidence. PF6–PF8 still cover Stripe sandbox, regression/observability and final public-demo release gates. This remains portfolio/demo staging, not production for real transactional customer data or live payments.
 
 Use the non-mutating repository lint command for release/CI validation:
 
@@ -147,7 +147,7 @@ package intentionally runs ESLint with `--fix`.
 
 Remaining prerequisites:
 
-- complete PF5–PF8 and the remaining manual/external evidence listed in F8;
+- complete PF6–PF8 and the remaining manual/external evidence listed in F8;
 - retain Stripe test mode and synthetic-only demo data;
 - document environment ownership and secret rotation without adding secrets to Git;
 - retain the measured Lighthouse baseline for post-deployment comparison.
