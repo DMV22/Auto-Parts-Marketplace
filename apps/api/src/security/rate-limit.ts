@@ -3,10 +3,19 @@ import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 
 export const RATE_LIMIT_WINDOW_MS = 60_000;
 
+const TEST_RATE_LIMIT = 1_000_000;
+const disableRateLimitsForTests =
+  process.env.NODE_ENV === 'test' &&
+  process.env.TEST_DISABLE_RATE_LIMITS === 'true';
+
+function configuredRateLimit(limit: number): number {
+  return disableRateLimitsForTests ? TEST_RATE_LIMIT : limit;
+}
+
 export const DEMO_RATE_LIMITS = {
-  auth: 10,
-  checkout: 5,
-  mutation: 30,
+  auth: configuredRateLimit(10),
+  checkout: configuredRateLimit(5),
+  mutation: configuredRateLimit(30),
 } as const;
 
 export const BETTER_AUTH_RATE_LIMIT = {

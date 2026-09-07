@@ -766,8 +766,20 @@ upserts only; no automatic or destructive reset is introduced.
 - Hosted read-only smoke: first cold attempt observed Render `503`; the
   immediate warm retry passed API live/readiness and Vercel Home/Catalog with
   `200` responses. Exact nonsensitive timings are in the validation runbook.
-- GitHub workflow jobs: `PENDING` until the revision is pushed and both jobs run
-  on GitHub.
+- The first GitHub workflow run exposed clean-run configuration regressions:
+  the static job linted before generating the ignored Prisma Client, while the
+  database job omitted the shared synthetic test environment and focused
+  modules could not resolve the throttler configuration. The workflow, Jest
+  setup and module boundary now reproduce the intended local contracts without
+  changing production limits.
+- Local post-fix validation: root lint/typecheck/build `PASS`; API unit `PASS`
+  (36 suites, 234 tests); API integration `PASS` (22 suites, 105 tests); API E2E
+  `PASS` (20 suites, 71 tests); web unit/component `PASS` (40 files, 88 tests).
+  The dedicated rate-limit regression remains `PASS` (1 suite, 4 tests), while
+  fixture-heavy integration/E2E runs use an explicit `NODE_ENV=test`-only
+  bypass.
+- GitHub workflow jobs: `PENDING` until the fix revision is pushed and both
+  clean Ubuntu jobs pass on GitHub.
 - Synthetic Neon bootstrap and hosted Stripe mutation smoke: `PENDING`; these
   remain manual, separately authorized steps.
 
