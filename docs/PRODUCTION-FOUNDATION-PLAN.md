@@ -2,12 +2,14 @@
 
 ## Status
 
-`In progress` — PF0–PF5 завершено. 12 committed migrations застосовано до
+`In progress` — PF0–PF5 завершено. PF6 repository implementation завершено,
+але hosted Stripe behavior smoke очікує на окремо погоджені synthetic demo
+data. 12 committed migrations застосовано до
 Neon і підтверджено через `prisma:migrate:status`; Next.js розгорнуто на
 Vercel, NestJS — на Render, а same-origin `/api/*` proxy пройшов hosted smoke.
 Google OAuth production callback, explicit linking і Google-only password flow
-пройшли staging validation. PF6–PF8 та підсумковий public-demo release gate ще
-не завершені.
+пройшли staging validation. Hosted PF6 acceptance, PF7–PF8 та підсумковий
+public-demo release gate ще не завершені.
 
 ## Summary
 
@@ -607,24 +609,24 @@ browser return must remain non-authoritative for payment status.
 
 **Agent implements**
 
-- [ ] Document the Render endpoint:
-      `https://<api-service>.onrender.com/api/v1/webhooks/stripe`.
-- [ ] Preserve raw-body signature verification and webhook-only payment
+- [x] Document the Render endpoint:
+      `https://auto-parts-marketplace-api.onrender.com/api/v1/webhooks/stripe`.
+- [x] Preserve raw-body signature verification and webhook-only payment
       authority.
-- [ ] Confirm only the currently supported events are subscribed:
+- [x] Confirm only the currently supported events are subscribed:
       `checkout.session.completed`,
       `checkout.session.async_payment_succeeded`,
       `checkout.session.async_payment_failed`, and
       `checkout.session.expired`.
-- [ ] Add provider-safe diagnostics containing request/event correlation IDs
+- [x] Add provider-safe diagnostics containing request/event correlation IDs
       only; never log the signature or payload.
-- [ ] Document Stripe Dashboard resend and delayed-event recovery.
+- [x] Document Stripe Dashboard resend and delayed-event recovery.
 
 **User performs manually**
 
-- [ ] Create a Stripe sandbox/test-mode webhook destination for the Render URL.
-- [ ] Put its endpoint-specific signing secret only in Render settings.
-- [ ] Keep Checkout success/cancel redirects on the Vercel origin.
+- [x] Create a Stripe sandbox/test-mode webhook destination for the Render URL.
+- [x] Put its endpoint-specific signing secret only in Render settings.
+- [x] Keep Checkout success/cancel redirects on the Vercel origin.
 - [ ] Run a sanctioned test Checkout and record only pass/fail, HTTP status and
       nonsensitive timestamps.
 
@@ -644,6 +646,46 @@ Checkout creation itself warms the Render API shortly before Stripe delivers
 the event. If a delivery still fails during cold start, Stripe sandbox retry or
 manual Dashboard resend is the recovery mechanism. Do not weaken webhook
 authority or mark an Order paid from the browser redirect.
+
+#### PF6 implementation log
+
+- Confirmed the hosted Stripe account/API key remain in test mode, the exact
+  Render destination and four-event subscription are configured, the hosted
+  endpoint secret exists only on Render, and success/cancel redirects return to
+  the canonical Vercel origin. No secret values were inspected or recorded.
+- Preserved exact raw-body signature verification, consistency checks,
+  transaction/idempotency boundaries and webhook-only payment authority.
+- Added structured diagnostics with an application request ID, verified event
+  ID/type, safe outcome/reason and duration only. Signature, body, Checkout
+  Session ID, Order ID, email, cookies, payment data and exception contents are
+  never logged.
+- Existing coverage already proved paid, duplicate, late, invalid-signature and
+  retryable mismatch behavior. Added parameterized regression coverage proving
+  that both `checkout.session.expired` and
+  `checkout.session.async_payment_failed` independently cancel a pending Order
+  and release stock exactly once.
+- Added `docs/STRIPE-WEBHOOK-STAGING-RUNBOOK.md` with the hosted contract,
+  evidence policy, Dashboard resend procedure and cold-start recovery.
+
+#### PF6 validation results
+
+- Scoped ESLint for the three changed API files: `PASS`.
+- Stripe raw-body/signature gateway unit test: `PASS` (1 suite, 2 tests).
+- API production build: `PASS`.
+- Stripe webhook integration/e2e suites: `NOT RUN`; guarded local setup could
+  not reach `auto_parts_test` because Docker Desktop was not running. The
+  failed setup did not connect to Neon or execute test cases.
+- Hosted Checkout/webhook state-transition smoke: `PENDING`; Neon has no
+  purchasable synthetic Listings, and PF6 does not authorize ad hoc data or the
+  local-only seed against Neon.
+
+#### PF6 handoff to PF7
+
+PF6 code and provider configuration are ready, but PF6 hosted acceptance is not
+closed. After a separately approved synthetic public-demo bootstrap exists,
+run the runbook's pending hosted checks and re-run the scoped integration/e2e
+suites with local Docker available. PF7 must retain this pending status until
+that evidence is recorded; redirects remain non-authoritative throughout.
 
 ### PF7 — Deployment automation and validation gate
 
