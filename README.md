@@ -134,7 +134,14 @@ The public demo runs on Vercel Hobby for Next.js, Render Free for NestJS and Neo
 - Web: <https://auto-parts-marketplace-web-bqbz.vercel.app>
 - API health: <https://auto-parts-marketplace-api.onrender.com/api/v1/health/ready>
 
-PF0–PF5 establish the configuration/security/database/deployment foundation, the Vercel same-origin `/api/*` proxy and formal Google OAuth staging evidence. PF6–PF8 still cover Stripe sandbox, regression/observability and final public-demo release gates. This remains portfolio/demo staging, not production for real transactional customer data or live payments.
+PF0–PF5 establish the configuration/security/database/deployment foundation,
+the Vercel same-origin `/api/*` proxy and formal Google OAuth staging evidence.
+PF6 repository-side Stripe test-mode readiness is implemented with safe
+correlation diagnostics and a documented resend procedure; hosted payment-state
+evidence remains pending until approved synthetic catalog data exists. PF7–PF8
+still cover the final regression/observability and public-demo release gates.
+This remains portfolio/demo staging, not production for real transactional
+customer data or live payments.
 
 Use the non-mutating repository lint command for release/CI validation:
 
@@ -155,4 +162,6 @@ Remaining prerequisites:
 Read [Architecture](docs/ARCHITECTURE.md), [Current context](docs/CONTEXT.md), [F8](docs/FRONTEND-MILESTONES.md) and [U6](docs/UI-UX-REDESIGN-PLAN.md) before implementation. Do not change auth/session semantics, backend ownership/RBAC, Stripe webhook authority, inventory concurrency, DTO privacy or Prisma schema without a separately reviewed plan. Wishlist, reviews, promotions, VIN lookup, onboarding, shipping, payouts, email flows and analytics are separate product milestones.
 
 The complete staged implementation and approval gates are documented in the
-[Production Foundation plan](docs/PRODUCTION-FOUNDATION-PLAN.md).
+[Production Foundation plan](docs/PRODUCTION-FOUNDATION-PLAN.md). The hosted
+Stripe procedure is in the
+[Stripe webhook public-demo runbook](docs/STRIPE-WEBHOOK-STAGING-RUNBOOK.md).

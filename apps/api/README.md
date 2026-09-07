@@ -69,6 +69,12 @@ For a local Stripe test-mode checkout:
 
 Generic `stripe trigger` fixtures do not carry this application's Order/session/amount metadata. A mismatched signed event intentionally receives a retryable error and performs no database mutation.
 
+For the hosted test-mode destination, subscribed events, safe Render log fields,
+Dashboard resend recovery and the manual evidence checklist, use the
+[Stripe webhook public-demo runbook](../../docs/STRIPE-WEBHOOK-STAGING-RUNBOOK.md).
+Hosted and local listener signing secrets are different and must never be
+interchanged.
+
 ## Demo seed
 
 ```bash

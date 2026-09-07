@@ -1,4 +1,9 @@
-import { Injectable, ServiceUnavailableException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  ServiceUnavailableException,
+} from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import { Prisma } from '../../generated/prisma/client';
 import {
   OrderStatus,
@@ -19,22 +24,32 @@ const CANCELLED_EVENTS = new Set([
 ]);
 const SUPPORTED_EVENTS = new Set([...PAID_EVENTS, ...CANCELLED_EVENTS]);
 
+type WebhookDiagnosticContext = { requestId: string };
+type WebhookProcessingOutcome = 'duplicate' | 'ignored' | 'processed';
+
 @Injectable()
 export class WebhookService {
+  private readonly logger = new Logger(WebhookService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   async handle(
     event: VerifiedStripeWebhookEvent,
+    context: WebhookDiagnosticContext = { requestId: randomUUID() },
   ): Promise<StripeWebhookResponse> {
-    if (!SUPPORTED_EVENTS.has(event.type)) return { received: true };
+    const startedAt = Date.now();
+    if (!SUPPORTED_EVENTS.has(event.type)) {
+      this.logOutcome(event, context, 'ignored', startedAt);
+      return { received: true };
+    }
 
     try {
-      await this.prisma.$transaction(async (transaction) => {
+      const outcome = await this.prisma.$transaction(async (transaction) => {
         const duplicate = await transaction.paymentEvent.findUnique({
           where: { externalEventId: event.externalEventId },
           select: { id: true },
         });
-        if (duplicate) return;
+        if (duplicate) return 'duplicate' as const;
 
         const session = event.checkoutSession;
         if (!session?.orderId) throw consistencyError();
@@ -90,7 +105,7 @@ export class WebhookService {
               },
             });
           }
-          return;
+          return 'processed' as const;
         }
 
         if (CANCELLED_EVENTS.has(event.type)) {
@@ -105,7 +120,7 @@ export class WebhookService {
               reservationReleasedAt: new Date(),
             },
           });
-          if (transitioned.count === 0) return;
+          if (transitioned.count === 0) return 'processed' as const;
 
           for (const item of order.items) {
             await transaction.listing.update({
@@ -126,13 +141,47 @@ export class WebhookService {
             },
           });
         }
+
+        return 'processed' as const;
       });
+      this.logOutcome(event, context, outcome, startedAt);
     } catch (error: unknown) {
-      if (hasPrismaCode(error, 'P2002')) return { received: true };
+      if (hasPrismaCode(error, 'P2002')) {
+        this.logOutcome(event, context, 'duplicate', startedAt);
+        return { received: true };
+      }
+      this.logger.warn({
+        message: 'stripe_webhook',
+        requestId: context.requestId,
+        eventId: event.externalEventId,
+        eventType: event.type,
+        outcome: 'retryable_failure',
+        reason:
+          error instanceof ServiceUnavailableException
+            ? 'consistency_check_failed'
+            : 'processing_error',
+        durationMs: Date.now() - startedAt,
+      });
       throw error;
     }
 
     return { received: true };
+  }
+
+  private logOutcome(
+    event: VerifiedStripeWebhookEvent,
+    context: WebhookDiagnosticContext,
+    outcome: WebhookProcessingOutcome,
+    startedAt: number,
+  ): void {
+    this.logger.log({
+      message: 'stripe_webhook',
+      requestId: context.requestId,
+      eventId: event.externalEventId,
+      eventType: event.type,
+      outcome,
+      durationMs: Date.now() - startedAt,
+    });
   }
 }
 

@@ -17,7 +17,9 @@ Auto Parts Marketplace is an early-stage marketplace for automotive parts. The r
 - backend tests: Jest, PostgreSQL integration tests and Supertest e2e tests;
 - Production Foundation PF0–PF5: configuration/security/database/deployment
   foundations, Vercel → Render → Neon hosted smoke and Google OAuth staging
-  validation passed; Stripe, regression/observability and final gates remain.
+  validation passed. PF6 repository-side Stripe readiness is implemented;
+  hosted state-transition evidence awaits approved synthetic demo data, while
+  regression/observability and final gates remain.
 
 The active public-demo topology is Vercel Hobby for Next.js, Render Free for NestJS and Neon Free for PostgreSQL. Vercel remains the browser-facing origin and forwards relative `/api/*` requests to Render. The deployment branch is `main`; this environment is a portfolio demo, not production for real clients.
 
@@ -77,7 +79,7 @@ Catalog and PDP normalize explicit taxonomy context or an owner-only `savedVehic
 
 - `/api/v1/cart*` provides owner-isolated Customer/guest Cart reads and writes with live Listing validation.
 - `POST /api/v1/checkout/session` requires a UUID `Idempotency-Key`, reserves stock and persists a pending Order plus immutable OrderItem snapshots before the server creates a Stripe Checkout Session.
-- `POST /api/v1/webhooks/stripe` verifies the exact raw-body signature and atomically/idempotently records PaymentEvent, Order transition, timeline and reservation release.
+- `POST /api/v1/webhooks/stripe` verifies the exact raw-body signature and atomically/idempotently records PaymentEvent, Order transition, timeline and reservation release. Safe diagnostics expose correlation IDs, event type, outcome and duration without payload, signature or domain identifiers.
 - `/api/v1/orders*` provides owner-only history, immutable detail and a public reason-coded timeline with bounded opaque-cursor pagination.
 
 Guest is not a role. The API issues an opaque HttpOnly cookie and stores only its SHA-256 hash for Cart/Order ownership. Customer sessions take precedence. Cross-owner and missing Orders share the same non-disclosing response. Redirects and read endpoints cannot mutate payment state; only a verified consistent webhook can set `PAID`.

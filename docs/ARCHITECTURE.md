@@ -62,6 +62,13 @@ Public queries return only `ACTIVE` Listings and explicit projections. PDP expos
 
 `PaymentsModule` is the public webhook boundary. It verifies Stripe's signature over exact raw bytes before domain lookup. One transaction stores the unique PaymentEvent, applies an allowed pending-state transition, appends OrderStatusEvent and releases stock when required. Browser redirects and Order GET routes are read-only and cannot set `PAID`.
 
+Webhook diagnostics expose only an application request ID, verified Stripe
+event ID/type, safe processing outcome/reason and duration. They never include
+the signature, request body, Checkout Session/Order identifiers, identity,
+cookies, payment details or exception contents. Render cold-start failures
+remain retryable through Stripe test-mode resend; availability never weakens
+webhook authority.
+
 `OrdersModule` exposes owner-only history, immutable detail and reason-coded timeline projections. Responses exclude PaymentEvent payloads, Stripe identifiers, guest hashes and internal membership data. Collections use bounded deterministic opaque-cursor pagination.
 
 ## Supplier Cabinet boundary
