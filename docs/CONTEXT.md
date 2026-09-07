@@ -2,7 +2,7 @@
 
 ## Product
 
-Auto Parts Marketplace is an early-stage marketplace for automotive parts. The repository currently provides a reproducible backend foundation and an integrated Next.js experience for public discovery, Customer/Guest commerce, Supplier Cabinet and Internal CRM/OMS workflows. Product milestones F0–F7 and redesign slices U0–U5 are implemented; U6/F8 remain `Conditional` while external/manual release evidence is completed. Supplier fulfillment and production deployment remain future work.
+Auto Parts Marketplace is an early-stage marketplace for automotive parts. The repository currently provides a reproducible backend foundation and an integrated Next.js experience for public discovery, Customer/Guest commerce, Supplier Cabinet and Internal CRM/OMS workflows. Product milestones F0–F7 and redesign slices U0–U5 are implemented; U6/F8 remain `Conditional` while external/manual release evidence is completed. A public-demo staging topology is deployed, while production-scale operations and supplier fulfillment remain future work.
 
 ## Current repository baseline
 
@@ -15,15 +15,13 @@ Auto Parts Marketplace is an early-stage marketplace for automotive parts. The r
 - database: PostgreSQL 16 through Docker Compose;
 - authentication: Better Auth `1.6.26`, session-based email/password and Google OAuth;
 - backend tests: Jest, PostgreSQL integration tests and Supertest e2e tests;
-- Production Foundation PF0: environment/startup contract and non-mutating
-  repository lint gate implemented; CI/CD, provider resources and deployment
-  are not implemented.
+- Production Foundation PF0–PF5: configuration/security/database/deployment
+  foundations, Vercel → Render → Neon hosted smoke and Google OAuth staging
+  validation passed. PF6 repository-side Stripe readiness is implemented;
+  hosted state-transition evidence awaits approved synthetic demo data, while
+  regression/observability and final gates remain.
 
-The approved future public-demo topology is Vercel Hobby for Next.js, Render
-Free for NestJS and Neon Free for PostgreSQL. Vercel remains the browser-facing
-origin and forwards relative `/api/*` requests to Render. The planned deployment
-branch is `main`; the repository remains private until its full history passes
-a separate secret audit.
+The active public-demo topology is Vercel Hobby for Next.js, Render Free for NestJS and Neon Free for PostgreSQL. Vercel remains the browser-facing origin and forwards relative `/api/*` requests to Render. The deployment branch is `main`; this environment is a portfolio demo, not production for real clients.
 
 Docker maps PostgreSQL container port `5432` to host port `5433` to avoid conflicts with machine-local PostgreSQL installations. Development and tests use separate databases: `auto_parts_dev` and `auto_parts_test`. Connection-string formats are documented in `apps/api/.env.example`; real credentials remain outside Git.
 
@@ -81,7 +79,7 @@ Catalog and PDP normalize explicit taxonomy context or an owner-only `savedVehic
 
 - `/api/v1/cart*` provides owner-isolated Customer/guest Cart reads and writes with live Listing validation.
 - `POST /api/v1/checkout/session` requires a UUID `Idempotency-Key`, reserves stock and persists a pending Order plus immutable OrderItem snapshots before the server creates a Stripe Checkout Session.
-- `POST /api/v1/webhooks/stripe` verifies the exact raw-body signature and atomically/idempotently records PaymentEvent, Order transition, timeline and reservation release.
+- `POST /api/v1/webhooks/stripe` verifies the exact raw-body signature and atomically/idempotently records PaymentEvent, Order transition, timeline and reservation release. Safe diagnostics expose correlation IDs, event type, outcome and duration without payload, signature or domain identifiers.
 - `/api/v1/orders*` provides owner-only history, immutable detail and a public reason-coded timeline with bounded opaque-cursor pagination.
 
 Guest is not a role. The API issues an opaque HttpOnly cookie and stores only its SHA-256 hash for Cart/Order ownership. Customer sessions take precedence. Cross-owner and missing Orders share the same non-disclosing response. Redirects and read endpoints cannot mutate payment state; only a verified consistent webhook can set `PAID`.
@@ -123,6 +121,11 @@ contract without including configured values in errors. In
 `NODE_ENV=production`, the current public-demo contract requires non-local TLS
 PostgreSQL, one HTTPS Vercel origin for Better Auth and Checkout redirects,
 Stripe test mode, and no `TEST_DATABASE_URL`.
+
+Google OAuth is supported only on the canonical production Vercel domain; its
+consent screen is public. A user-initiated Google registration may persist the
+minimal identity fields required by Better Auth, but real addresses, payment
+data and live Stripe usage remain outside the demo policy.
 
 ## Local workflow
 

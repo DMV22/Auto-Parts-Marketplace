@@ -2,22 +2,32 @@
 
 ## Status
 
-`In progress` — PF0–PF3 завершено на repository side; 12 committed migrations
-застосовано до Neon, але explicit migration-status evidence, Render/Vercel
-deployment і hosted validation ще не виконані.
+`In progress` — PF0–PF5 завершено. PF6 repository implementation та PF7
+repository automation/bootstrap foundation завершені, але hosted Stripe
+behavior smoke і provider-side quality evidence ще очікують виконання. 12
+committed migrations застосовано до
+Neon і підтверджено через `prisma:migrate:status`; Next.js розгорнуто на
+Vercel, NestJS — на Render, а same-origin `/api/*` proxy пройшов hosted smoke.
+Google OAuth production callback, explicit linking і Google-only password flow
+пройшли staging validation. Hosted PF6 acceptance, PF7–PF8 та підсумковий
+public-demo release gate ще не завершені.
 
 ## Summary
 
 Цей workstream готує Auto Parts Marketplace до безпечного публічного
-portfolio/demo staging без live-платежів і реальних клієнтських даних.
+portfolio/demo staging без live-платежів і реальних transactional customer
+data. Public Google OAuth може зберігати мінімальні user-initiated identity
+fields відповідно до зафіксованого PF5 policy exception.
 
 Погоджена безкоштовна topology:
 
 ```text
 Browser
-  -> Vercel Hobby: Next.js (`https://<web-project>.vercel.app`)
+  -> Vercel Hobby: Next.js
+     (`https://auto-parts-marketplace-web-bqbz.vercel.app`)
      -> same-origin `/api/*` rewrite
-        -> Render Free: NestJS (`https://<api-service>.onrender.com`)
+        -> Render Free: NestJS
+           (`https://auto-parts-marketplace-api.onrender.com`)
            -> Neon Free: PostgreSQL
 
 Stripe sandbox
@@ -52,7 +62,8 @@ third-party cookies. Render URL є server-side upstream для Next.js rewrite �
 ## Non-goals
 
 - live Stripe payments, payouts або refunds;
-- реальні клієнтські, платіжні чи персональні дані;
+- реальні адреси, платіжні або transactional customer data; мінімальні
+  user-initiated Google identity fields є окремо погодженим PF5 винятком;
 - production-scale availability, autoscaling або zero-downtime guarantees;
 - shipping, supplier fulfillment, onboarding, email delivery або analytics;
 - wishlist, reviews, promotions, VIN lookup чи інші product features;
@@ -76,6 +87,7 @@ third-party cookies. Render URL є server-side upstream для Next.js rewrite �
 | Logs                 | Vercel/Render provider logs    | Без нового SDK на першому етапі                                    |
 | Docker               | Не обов'язковий для deployment | Compose залишається local parity tool                              |
 | Free-tier latency    | Прийнятна для demo             | Потрібні зрозумілий smoke і documented cold-start limitation       |
+| Google OAuth access  | Public production consent      | Production Vercel callback; user-initiated identity data           |
 
 ## Context inspected
 
@@ -111,19 +123,14 @@ third-party cookies. Render URL є server-side upstream для Next.js rewrite �
 
 ### Gaps to close
 
-- deployment configuration and CI/CD do not exist;
-- API exposes only a generic root response, not explicit liveness/readiness;
-- startup environment is validated piecemeal instead of as one readiness gate;
-- the committed API `lint` script includes `--fix` and is unsuitable as a
-  read-only CI validation command;
-- public-demo rate limiting and security-header evidence are absent;
-- hosted PostgreSQL migration sequence виконано; explicit post-migration
-  `prisma:migrate:status` evidence ще очікується;
+- automated CI/CD does not exist; provider deployment currently uses the
+  reviewed manual public-demo procedure;
 - the current seed intentionally accepts only local `auto_parts_dev` and must
   not be pointed at Neon;
-- provider logs have no documented redaction/retention checklist;
-- staging Google and Stripe registrations do not yet exist;
-- Render cold start and Neon wake-up behavior have not been measured;
+- Google OAuth PF5 acceptance is recorded; Stripe test-mode PF6 behavior still
+  requires end-to-end evidence;
+- provider observability, rollback evidence and synthetic hosted demo-data
+  policy remain PF7/PF8 work;
 - U6/F8 still contain unresolved external/manual evidence.
 
 ## Environment contract
@@ -186,7 +193,7 @@ public demo runtime.
 **User performs manually**
 
 - [x] Confirm Git provider/repository visibility policy and deployment branch.
-- [ ] Create free Vercel, Render and Neon accounts if they do not exist.
+- [x] Create free Vercel, Render and Neon accounts if they do not exist.
 
 **Acceptance evidence**
 
@@ -257,7 +264,7 @@ responses.
 **User performs manually**
 
 - [x] Approve any required dependency and the demo-appropriate rate limits.
-- [ ] Configure the readiness path as Render's HTTP health check.
+- [x] Configure the readiness path as Render's HTTP health check.
 
 **Acceptance evidence**
 
@@ -321,7 +328,7 @@ Repository-side PF1 завершено. Після створення Render ser
 **User performs manually**
 
 - [x] Create one dedicated Neon public-demo project/database.
-- [ ] Add its connection values only to approved secret stores.
+- [x] Add its connection values only to approved secret stores.
 - [x] Review the sanitized database host/name before each migration or data
       bootstrap.
 - [ ] Explicitly approve any one-time demo-data operation.
@@ -393,14 +400,13 @@ Repository-side PF1 завершено. Після створення Render ser
   migrations. Destructive commands і seed не запускалися.
 - Process-scoped `DATABASE_URL` і `PUBLIC_DEMO_DATABASE_NAME` після операції
   очищено та перевірено як відсутні.
-- Explicit `prisma:migrate:status` output ще потрібно отримати перед першим
-  успішним Render startup; тому hosted PF2 acceptance залишається pending.
+- `prisma:migrate:status` підтвердив `Database schema is up to date!` для всіх
+  12 committed migrations до першого успішного Render startup.
 
 #### PF2 manual completion and handoff to PF3
 
-До hosted acceptance користувач має виконати explicit migration-status check і
-після Render deploy перевірити API readiness against Neon. PF3 не запускає
-migration або seed автоматично.
+PF2 hosted acceptance завершено: migration status і Render readiness against
+Neon підтверджені. PF3 не запускає migration або seed автоматично.
 
 ### PF3 — Render API deployment
 
@@ -417,9 +423,9 @@ migration або seed автоматично.
 
 **User performs manually**
 
-- [ ] Connect the repository and create the Render Free Web Service.
-- [ ] Configure environment variables without sharing their values.
-- [ ] Set the HTTP health-check path and inspect the first deploy logs.
+- [x] Connect the repository and create the Render Free Web Service.
+- [x] Configure environment variables without sharing their values.
+- [x] Set the HTTP health-check path and inspect the first deploy logs.
 
 **Acceptance evidence**
 
@@ -449,46 +455,45 @@ migration або seed автоматично.
 - Створено `docs/RENDER-API-DEPLOYMENT-RUNBOOK.md`: prerequisites, exact manual
   creation order, HTTPS health smoke, provider-log redaction, cold-start
   tolerance, Stripe test webhook recovery і rollback.
-- Vercel URL і Render service ще не створені. Через fail-closed API environment
-  validation перший успішний Render deploy потребує stable Vercel origin і
-  hosted Stripe test webhook signing secret; повна Stripe behavior validation
-  залишається PF6.
+- Render service розгорнуто за адресою
+  `https://auto-parts-marketplace-api.onrender.com`; required environment
+  variables зберігаються у provider settings, а HTTP health check використовує
+  `/api/v1/health/ready`. Повна Stripe behavior validation залишається PF6.
 
 #### PF3 repository validation results
 
 - Render Blueprint fields звірено з актуальною official Blueprint schema:
   `runtime`, `plan`, `region`, `autoDeployTrigger`, `healthCheckPath`,
   `buildFilter` і `sync: false` supported.
-- Local API build підтверджує production artifact і чинний `dist/main` startup
-  contract; provider deployment і external health requests не запускалися.
-- Hosted PF3 acceptance залишається pending до ручного Render setup, HTTPS
-  liveness/readiness, cold-start і log-redaction evidence.
+- Hosted Render deployment використовує production artifact і чинний
+  `dist/main` startup contract без migration/seed deploy hook.
+- Прямий HTTPS smoke `GET /api/v1/health/ready` повернув `200` і `{status: "ok"}`
+  за 1635 ms; користувач також підтвердив liveness/readiness, provider-log
+  redaction і recoverable cold-start behavior.
 
 #### PF3 handoff to provider setup and PF4
 
-Користувач має спочатку створити Vercel project shell, потім Render Blueprint
-service, безпечно заповнити environment variables і виконати evidence template з
-Render runbook. Після успішного API smoke PF4 підключить `API_INTERNAL_URL` у
-Vercel і перевірить browser same-origin proxy. Auto-deploy залишається вимкненим
-до green hosted smoke; його увімкнення потребує окремого рішення після checks.
+PF3 hosted acceptance завершено. PF4 підключає production web origin до цього
+Render service через server-only `API_INTERNAL_URL`; повний Google OAuth і
+Stripe sandbox behavior залишаються окремими PF5/PF6 gates.
 
 ### PF4 — Vercel web deployment and same-origin proxy
 
 **Agent implements**
 
-- [ ] Confirm the Vercel Root Directory/workspace configuration builds
+- [x] Confirm the Vercel Root Directory/workspace configuration builds
       `apps/web` without losing required workspace files.
-- [ ] Retain the existing Next.js `/api/:path*` rewrite and validate the
+- [x] Retain the existing Next.js `/api/:path*` rewrite and validate the
       external Render HTTPS destination.
-- [ ] Ensure `API_INTERNAL_URL` remains server-only.
-- [ ] Add a user-safe recoverable API-unavailable/cold-start presentation only
-      if staging smoke demonstrates an actual UX blocker.
+- [x] Ensure `API_INTERNAL_URL` remains server-only.
+- [x] Evaluate the API-unavailable/cold-start presentation and add UI only if
+      staging smoke demonstrates an actual UX blocker.
 
 **User performs manually**
 
-- [ ] Connect the repository and create the Vercel Hobby project.
-- [ ] Configure `API_INTERNAL_URL` with the Render origin.
-- [ ] Record the stable Vercel production URL used by OAuth and Checkout.
+- [x] Connect the repository and create the Vercel Hobby project.
+- [x] Configure `API_INTERNAL_URL` with the Render origin.
+- [x] Record the stable Vercel production URL used by OAuth and Checkout.
 
 **Acceptance evidence**
 
@@ -498,23 +503,60 @@ Vercel і перевірить browser same-origin proxy. Auto-deploy залиш
   from browser storage.
 - Refresh, sign-in, sign-out and Guest Cart persistence work through the proxy.
 
+#### PF4 implementation log
+
+- Vercel Hobby deploys `apps/web` from the pnpm workspace at
+  `https://auto-parts-marketplace-web-bqbz.vercel.app`.
+- `API_INTERNAL_URL` is configured for Production and Preview and points to the
+  Render HTTPS origin. It remains unprefixed by `NEXT_PUBLIC_`; browser API
+  clients accept only relative `/api/*` paths and include first-party cookies.
+- The existing Next.js rewrite was retained unchanged. No direct Render URL is
+  introduced into browser code, storage or public runtime configuration.
+- Manual staging smoke confirmed refresh, sign-in, sign-out and Guest Cart
+  persistence. Session and Guest Cart identity remain Secure HttpOnly
+  first-party cookies and are absent from browser storage.
+- Cold-start behavior shows a normal loading state and recovers, so the
+  conditional UX task required no source change or new fallback component.
+
+#### PF4 validation results
+
+- `pnpm --filter web exec vitest run test/api/api-client.spec.ts
+test/auth/session.spec.ts --pool=threads --maxWorkers=1` — passed: `2/2`
+  files, `13/13` tests. The initial fork-pool attempt started no tests because
+  workers timed out; the bounded single-worker retry passed.
+- `API_INTERNAL_URL=https://auto-parts-marketplace-api.onrender.com pnpm
+--filter web build` — passed; Next.js compiled all 25 route entries.
+- Hosted Vercel same-origin smoke returned `200`/`ok` for
+  `/api/v1/health/live` in 6485 ms and `/api/v1/health/ready` in 744 ms.
+  A direct Render readiness control returned `200`/`ok` in 1635 ms.
+- Manual DevTools evidence confirmed Vercel-hosted navigation and the user
+  confirmed the deployed auth/cart flows. The hosted health requests provide
+  explicit `/api/*` proxy evidence without exposing headers or cookies.
+
+#### PF4 handoff to PF5
+
+PF4 is complete without application behavior changes. PF5 should validate the
+configured Google OAuth client, exact Vercel callback, explicit account linking
+and password creation for Google-only accounts. Do not move OAuth credentials
+from Render or expose the Render upstream to browser code.
+
 ### PF5 — Google OAuth staging readiness
 
 **Agent implements**
 
-- [ ] Document the exact public callback path and safe `returnTo` checks.
-- [ ] Retain explicit account linking and authenticated password-creation
+- [x] Document the exact public callback path and safe `returnTo` checks.
+- [x] Retain explicit account linking and authenticated password-creation
       behavior; do not enable implicit email linking.
-- [ ] Add or update only regression tests required by a reproduced staging
+- [x] Add or update only regression tests required by a reproduced staging
       proxy/callback problem.
 
 **User performs manually**
 
-- [ ] Create or configure a staging Google OAuth client.
-- [ ] Add the Vercel HTTPS origin and exact callback:
+- [x] Create or configure a staging Google OAuth client.
+- [x] Add the Vercel HTTPS origin and exact callback:
       `https://<web-project>.vercel.app/api/auth/callback/google`.
-- [ ] Store client credentials only in Render environment settings.
-- [ ] Complete real sign-in, callback, refresh, explicit linking and sign-out
+- [x] Store client credentials only in Render environment settings.
+- [x] Complete real sign-in, callback, refresh, explicit linking and sign-out
       checks without sharing codes, tokens or cookies.
 
 **Acceptance evidence**
@@ -524,28 +566,68 @@ Vercel і перевірить browser same-origin proxy. Auto-deploy залиш
 - Existing email/password and Google-only account flows remain valid.
 - Unsafe external `returnTo` values are rejected.
 
+#### PF5 implementation log
+
+- Створено `docs/GOOGLE-OAUTH-STAGING-RUNBOOK.md` з exact production Vercel
+  origin/callback, Production-only policy, safe evidence rules і rollback.
+- Google consent screen має статус `In production`, тому будь-який Google user
+  може добровільно створити account. Це зафіксовано як вузький виняток для
+  мінімальних identity fields; real addresses/payment data і live Stripe
+  залишаються забороненими.
+- Dynamic Vercel Preview domains не додаються до Google Console. Preview
+  deployments можуть виконувати non-OAuth smoke, але реальний callback
+  перевіряється лише на canonical production domain.
+- Static audit підтвердив `disableImplicitLinking: true`, same-email explicit
+  linking, відсутність provider-profile overwrite, local-only `returnTo` та
+  authenticated Better Auth password creation for Google-only accounts.
+- Hosted manual validation підтвердила Google-only sign-in, callback, refresh,
+  sign-out/re-login, explicit linking, different-email rejection, password
+  creation і подальший вхід обома методами. Credentials залишаються тільки у
+  Render environment settings; Vercel містить лише server-side
+  `API_INTERNAL_URL`.
+- Staging defect не відтворено, тому application source і regression tests не
+  змінювалися.
+
+#### PF5 validation results
+
+- `pnpm --filter web exec vitest run test/auth/auth-navigation.spec.ts
+test/auth/auth-api.spec.ts test/auth/account-security-page.spec.tsx
+--pool=threads --maxWorkers=1` — passed: `3/3` files, `17/17` tests.
+- `pnpm --filter api test -- auth-password.service.spec.ts --runInBand` —
+  passed: `1/1` suite, `3/3` tests.
+- Manual provider screenshots confirmed the exact production Vercel origin and
+  callback plus the absence of Google credentials from Vercel environment
+  settings. Secret values, OAuth codes, tokens and cookies were not recorded.
+
+#### PF5 handoff to PF6
+
+PF5 is complete without auth behavior changes. PF6 should validate only Stripe
+test-mode Checkout and the signature-verified hosted Render webhook, including
+success, duplicate, delayed/resend, failed and expired delivery behavior. The
+browser return must remain non-authoritative for payment status.
+
 ### PF6 — Stripe sandbox webhook readiness
 
 **Agent implements**
 
-- [ ] Document the Render endpoint:
-      `https://<api-service>.onrender.com/api/v1/webhooks/stripe`.
-- [ ] Preserve raw-body signature verification and webhook-only payment
+- [x] Document the Render endpoint:
+      `https://auto-parts-marketplace-api.onrender.com/api/v1/webhooks/stripe`.
+- [x] Preserve raw-body signature verification and webhook-only payment
       authority.
-- [ ] Confirm only the currently supported events are subscribed:
+- [x] Confirm only the currently supported events are subscribed:
       `checkout.session.completed`,
       `checkout.session.async_payment_succeeded`,
       `checkout.session.async_payment_failed`, and
       `checkout.session.expired`.
-- [ ] Add provider-safe diagnostics containing request/event correlation IDs
+- [x] Add provider-safe diagnostics containing request/event correlation IDs
       only; never log the signature or payload.
-- [ ] Document Stripe Dashboard resend and delayed-event recovery.
+- [x] Document Stripe Dashboard resend and delayed-event recovery.
 
 **User performs manually**
 
-- [ ] Create a Stripe sandbox/test-mode webhook destination for the Render URL.
-- [ ] Put its endpoint-specific signing secret only in Render settings.
-- [ ] Keep Checkout success/cancel redirects on the Vercel origin.
+- [x] Create a Stripe sandbox/test-mode webhook destination for the Render URL.
+- [x] Put its endpoint-specific signing secret only in Render settings.
+- [x] Keep Checkout success/cancel redirects on the Vercel origin.
 - [ ] Run a sanctioned test Checkout and record only pass/fail, HTTP status and
       nonsensitive timestamps.
 
@@ -566,20 +648,82 @@ the event. If a delivery still fails during cold start, Stripe sandbox retry or
 manual Dashboard resend is the recovery mechanism. Do not weaken webhook
 authority or mark an Order paid from the browser redirect.
 
+#### PF6 implementation log
+
+- Confirmed the hosted Stripe account/API key remain in test mode, the exact
+  Render destination and four-event subscription are configured, the hosted
+  endpoint secret exists only on Render, and success/cancel redirects return to
+  the canonical Vercel origin. No secret values were inspected or recorded.
+- Preserved exact raw-body signature verification, consistency checks,
+  transaction/idempotency boundaries and webhook-only payment authority.
+- Added structured diagnostics with an application request ID, verified event
+  ID/type, safe outcome/reason and duration only. Signature, body, Checkout
+  Session ID, Order ID, email, cookies, payment data and exception contents are
+  never logged.
+- Existing coverage already proved paid, duplicate, late, invalid-signature and
+  retryable mismatch behavior. Added parameterized regression coverage proving
+  that both `checkout.session.expired` and
+  `checkout.session.async_payment_failed` independently cancel a pending Order
+  and release stock exactly once.
+- Added `docs/STRIPE-WEBHOOK-STAGING-RUNBOOK.md` with the hosted contract,
+  evidence policy, Dashboard resend procedure and cold-start recovery.
+
+#### PF6 validation results
+
+- Scoped ESLint for the three changed API files: `PASS`.
+- Stripe raw-body/signature gateway unit test: `PASS` (1 suite, 2 tests).
+- API production build: `PASS`.
+- Stripe webhook integration/e2e suites: `PASS`; user re-ran both scoped suites
+  against the guarded local `auto_parts_test` database without errors.
+- Hosted Checkout/webhook state-transition smoke: `PENDING`; Neon has no
+  purchasable synthetic Listings, and PF6 does not authorize ad hoc data or the
+  local-only seed against Neon.
+
+#### PF6 handoff to PF7
+
+PF6 code and provider configuration are ready, but PF6 hosted acceptance is not
+closed. After a separately approved synthetic public-demo bootstrap exists,
+run the runbook's pending hosted checks and re-run the scoped integration/e2e
+suites with local Docker available. PF7 must retain this pending status until
+that evidence is recorded; redirects remain non-authoritative throughout.
+
 ### PF7 — Deployment automation and validation gate
+
+#### PF7A — Controlled synthetic demo-data bootstrap
 
 **Agent implements**
 
-- [ ] Add a minimal CI quality workflow only after repository visibility,
+- [x] Reuse the versioned idempotent demo seed through a separate public-demo
+      entrypoint without weakening the local-only `prisma:seed` guard.
+- [x] Require production mode, an approved direct Neon target, exact database
+      name, no `TEST_DATABASE_URL` and a seed-version confirmation value.
+- [x] Keep the bootstrap manual; never run it from Render deploy or CI.
+- [x] Preserve the no-credentials contract for synthetic role records.
+
+**User performs manually**
+
+- [ ] Run preflight and migration status with the direct Neon URL held only in
+      the current process environment.
+- [ ] Run the approved bootstrap once and retain only sanitized aggregate
+      evidence.
+- [ ] Clear the process environment and verify the public synthetic catalog.
+
+The manual procedure and current confirmation string are documented in
+`docs/PUBLIC-DEMO-VALIDATION-RUNBOOK.md`. The bootstrap performs idempotent
+upserts only; no automatic or destructive reset is introduced.
+
+**Agent implements**
+
+- [x] Add a minimal CI quality workflow only after repository visibility,
       branch and secret policy are confirmed.
-- [ ] Keep unit/static gates separate from database-backed integration/E2E
+- [x] Keep unit/static gates separate from database-backed integration/E2E
       jobs.
-- [ ] Prevent tests from targeting Neon: existing test guards must continue to
+- [x] Prevent tests from targeting Neon: existing test guards must continue to
       accept only local `auto_parts_test`.
-- [ ] Add a post-deployment smoke script or checklist that performs read-only
+- [x] Add a post-deployment smoke script or checklist that performs read-only
       health/public checks before any mutation scenario.
-- [ ] Re-run the smallest affected regression after each foundation slice, then
-      one final agreed gate.
+- [~] Re-run the smallest affected regression after each foundation slice, then
+  one final agreed gate.
 
 **User performs manually**
 
@@ -594,6 +738,46 @@ authority or mark an Order paid from the browser redirect.
   secrets or personal data.
 - Rollback to the last known-good Vercel/Render deployment is rehearsed or
   documented.
+
+#### PF7 implementation log
+
+- Added a separate manual `prisma:demo:bootstrap` entrypoint which reuses the
+  existing idempotent synthetic dataset without weakening the local-only
+  `prisma:seed` wrapper. Authorization requires `NODE_ENV=production`, a direct
+  allowlisted Neon host with `sslmode=require`, exact database-name agreement,
+  no `TEST_DATABASE_URL` and a confirmation tied to the seed version.
+- Added a two-job GitHub Actions quality gate for PRs and `main`: static/unit/
+  build validation is independent from API integration/e2e against an
+  ephemeral PostgreSQL 16 `auto_parts_test`. Workflow permissions are
+  read-only and no provider credentials are referenced.
+- Added dependency-free `smoke:public-demo` with four read-only HTTPS checks, a
+  60-second timeout and two retries for Render Free cold start.
+- Added `docs/PUBLIC-DEMO-VALIDATION-RUNBOOK.md` with the manual bootstrap,
+  branch-protection, evidence and documented rollback procedures.
+
+#### PF7 validation results
+
+- Public-demo seed target/authorization/local seed guard unit tests: `PASS`
+  (3 suites, 29 tests).
+- Missing production authorization fail-closed CLI check: `PASS`; execution
+  stopped before a Prisma connection was created.
+- Scoped PF7 TypeScript ESLint and API production build: `PASS`.
+- Smoke script syntax validation: `PASS`.
+- Hosted read-only smoke: first cold attempt observed Render `503`; the
+  immediate warm retry passed API live/readiness and Vercel Home/Catalog with
+  `200` responses. Exact nonsensitive timings are in the validation runbook.
+- GitHub workflow jobs: `PENDING` until the revision is pushed and both jobs run
+  on GitHub.
+- Synthetic Neon bootstrap and hosted Stripe mutation smoke: `PENDING`; these
+  remain manual, separately authorized steps.
+
+#### PF7 handoff to manual validation and PF8
+
+Run the guarded bootstrap exactly as documented, verify the synthetic catalog,
+push the revision, require both GitHub jobs, then complete the hosted Stripe and
+manual staging checklist. PF7 and the overall public-demo gate remain
+`Conditional` until that external evidence is recorded. PF8 may synchronize
+final documentation only after those results are known.
 
 ### PF8 — Documentation synchronization and release decision
 
@@ -682,12 +866,12 @@ Do not repeat every suite after every small change.
 
 ### Hosted smoke
 
-- [ ] Vercel page and static assets load over HTTPS.
-- [ ] `/api/*` calls remain same-origin in the browser.
-- [ ] Render liveness/readiness respond without sensitive data.
-- [ ] Neon connectivity and committed migration status are verified.
-- [ ] Anonymous Catalog/PDP and error states work after cold start.
-- [ ] Customer session refresh/sign-out and Guest Cart cookie persist correctly.
+- [x] Vercel page and static assets load over HTTPS.
+- [x] `/api/*` calls remain same-origin in the browser.
+- [x] Render liveness/readiness respond without sensitive data.
+- [x] Neon connectivity and committed migration status are verified.
+- [x] Anonymous Catalog/PDP and error states work after cold start.
+- [x] Customer session refresh/sign-out and Guest Cart cookie persist correctly.
 - [ ] SupplierUser, SupportManager and Admin access boundaries remain enforced.
 - [ ] Google callback, explicit linking and Google-only password creation pass.
 - [ ] Stripe sandbox paid, duplicate, delayed and expired/cancel paths pass.
@@ -742,8 +926,8 @@ their corresponding implementation slice:
 2. Which separately reviewed implementation will populate Neon with synthetic
    demo data after migrations? PF2 defines its safety contract but intentionally
    does not add an executable hosted seed.
-3. Render account існує та підключений до GitHub; Vercel project URL і Render
-   Web Service ще не створені.
+3. Provider resources now exist. PF5/PF6 must record real Google OAuth and
+   Stripe test-mode behavior without exposing credentials, codes or payloads.
 
 PF1 resolved the former rate-limit and logging-policy decisions: approved
 in-memory limits are `10/5/30` per 60 seconds, and provider-default retention is

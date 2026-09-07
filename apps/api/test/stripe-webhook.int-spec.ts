@@ -157,7 +157,42 @@ describe('WebhookService integration', () => {
     ).resolves.toBe(1);
   });
 
-  it('cancels once, releases stock once, and records a late failure', async () => {
+  it.each([
+    'checkout.session.expired',
+    'checkout.session.async_payment_failed',
+  ])('cancels once and releases stock once for %s', async (eventType) => {
+    const pending = await createPendingWebhookOrder(
+      prisma,
+      checkoutService,
+      gateway,
+    );
+    const event = verifiedCheckoutEvent({
+      externalEventId: `evt_cancel_${eventType}`,
+      type: eventType,
+      orderId: pending.orderId,
+      checkoutSessionId: pending.checkoutSessionId,
+      paymentStatus: 'unpaid',
+    });
+
+    await webhookService.handle(event);
+    await webhookService.handle(event);
+
+    const order = await prisma.order.findUniqueOrThrow({
+      where: { id: pending.orderId },
+      include: { paymentEvents: true, statusEvents: true },
+    });
+    expect(order).toMatchObject({
+      status: 'CANCELLED',
+      reservationReleasedAt: expect.any(Date),
+    });
+    expect(order.paymentEvents).toHaveLength(1);
+    expect(order.statusEvents).toHaveLength(2);
+    await expect(
+      prisma.listing.findUniqueOrThrow({ where: { id: ACTIVE_LISTING_ID } }),
+    ).resolves.toMatchObject({ stockQuantity: 5, inventoryVersion: 2 });
+  });
+
+  it('records a late failure without releasing stock twice', async () => {
     const pending = await createPendingWebhookOrder(
       prisma,
       checkoutService,

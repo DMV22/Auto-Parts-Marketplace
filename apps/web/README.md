@@ -10,11 +10,11 @@ Next.js 16 App Router frontend for public catalog/fitment, Customer and Guest co
 - NestJS remains authoritative for roles, ownership, prices, stock, fitment, transitions and payment state.
 - TanStack Query owns server state; sign-in/sign-out clears all cached query data before the next identity is used.
 
-For the planned public demo, Vercel is the only browser-facing origin and
-`API_INTERNAL_URL` points server-side to the Render HTTPS API. Google callbacks
-and normal browser API requests continue through Vercel `/api/*`; Stripe
-sandbox webhooks call the signed Render endpoint directly. Do not expose the
-upstream as `NEXT_PUBLIC_*` or change browser requests to call Render directly.
+The public demo is available at <https://auto-parts-marketplace-web-bqbz.vercel.app>. Vercel is the only browser-facing origin and `API_INTERNAL_URL` points server-side to <https://auto-parts-marketplace-api.onrender.com>. Google callbacks and normal browser API requests continue through Vercel `/api/*`; Stripe sandbox webhooks call the signed Render endpoint directly. Do not expose the upstream as `NEXT_PUBLIC_*` or change browser requests to call Render directly.
+
+Render Free may cold-start after idle. The current UI keeps a recoverable loading state and resumes when the API wakes; this demo does not promise production-grade availability or latency.
+
+Google OAuth is supported only on the stable production Vercel domain. Preview deployments are not registered as Google callback origins. The consent screen is public, so a user who chooses Google sign-in creates a minimal identity record; do not enter real addresses or payment information in this portfolio demo. See [Google OAuth public-demo runbook](../../docs/GOOGLE-OAUTH-STAGING-RUNBOOK.md).
 
 ## Local development
 

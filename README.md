@@ -127,13 +127,21 @@ Playwright uses an installed Chrome/Edge channel and a guarded local test databa
 - [Supplier Cabinet API plan](docs/SUPPLIER-CABINET-API-PLAN.md)
 - [Internal Ops API plan](docs/INTERNAL-OPS-API-PLAN.md)
 
-## Next workstream: Production Foundation
+## Public demo and Production Foundation
 
-The approved public-demo topology is Vercel Hobby for Next.js, Render Free for
-NestJS and Neon Free for PostgreSQL. PF0 establishes the environment contract
-and a non-mutating repository lint gate; no hosting resource or deployment has
-been created yet. The future deployment branch is `main`, and the repository
-must remain private until its complete history passes a dedicated secret audit.
+The public demo runs on Vercel Hobby for Next.js, Render Free for NestJS and Neon Free for PostgreSQL:
+
+- Web: <https://auto-parts-marketplace-web-bqbz.vercel.app>
+- API health: <https://auto-parts-marketplace-api.onrender.com/api/v1/health/ready>
+
+PF0–PF5 establish the configuration/security/database/deployment foundation,
+the Vercel same-origin `/api/*` proxy and formal Google OAuth staging evidence.
+PF6 repository-side Stripe test-mode readiness is implemented with safe
+correlation diagnostics and a documented resend procedure; hosted payment-state
+evidence remains pending until approved synthetic catalog data exists. PF7–PF8
+still cover the final regression/observability and public-demo release gates.
+This remains portfolio/demo staging, not production for real transactional
+customer data or live payments.
 
 Use the non-mutating repository lint command for release/CI validation:
 
@@ -144,14 +152,16 @@ pnpm lint:check
 The existing `pnpm lint` remains the developer autofix workflow because the API
 package intentionally runs ESLint with `--fix`.
 
-Prerequisites:
+Remaining prerequisites:
 
-- complete the remaining manual/external evidence listed in F8;
-- choose hosting and managed PostgreSQL providers;
-- define environment ownership and secret rotation without adding secrets to Git;
+- complete PF6–PF8 and the remaining manual/external evidence listed in F8;
+- retain Stripe test mode and synthetic-only demo data;
+- document environment ownership and secret rotation without adding secrets to Git;
 - retain the measured Lighthouse baseline for post-deployment comparison.
 
 Read [Architecture](docs/ARCHITECTURE.md), [Current context](docs/CONTEXT.md), [F8](docs/FRONTEND-MILESTONES.md) and [U6](docs/UI-UX-REDESIGN-PLAN.md) before implementation. Do not change auth/session semantics, backend ownership/RBAC, Stripe webhook authority, inventory concurrency, DTO privacy or Prisma schema without a separately reviewed plan. Wishlist, reviews, promotions, VIN lookup, onboarding, shipping, payouts, email flows and analytics are separate product milestones.
 
 The complete staged implementation and approval gates are documented in the
-[Production Foundation plan](docs/PRODUCTION-FOUNDATION-PLAN.md).
+[Production Foundation plan](docs/PRODUCTION-FOUNDATION-PLAN.md). The hosted
+Stripe procedure is in the
+[Stripe webhook public-demo runbook](docs/STRIPE-WEBHOOK-STAGING-RUNBOOK.md).

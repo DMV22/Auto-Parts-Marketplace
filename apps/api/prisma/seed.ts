@@ -50,8 +50,7 @@ function optionalId(
   return key ? requireId(ids, key) : null;
 }
 
-async function seed(): Promise<void> {
-  const databaseUrl = getSeedDatabaseUrl();
+export async function runDemoSeed(databaseUrl: string): Promise<void> {
   const prisma = new PrismaClient({
     adapter: new PrismaPg({ connectionString: databaseUrl }),
   });
@@ -805,7 +804,9 @@ async function seed(): Promise<void> {
   }
 }
 
-void seed().catch((error: unknown) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+if (require.main === module) {
+  void runDemoSeed(getSeedDatabaseUrl()).catch((error: unknown) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
+}
