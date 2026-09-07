@@ -778,6 +778,13 @@ upserts only; no automatic or destructive reset is introduced.
   The dedicated rate-limit regression remains `PASS` (1 suite, 4 tests), while
   fixture-heavy integration/E2E runs use an explicit `NODE_ENV=test`-only
   bypass.
+- The second clean Ubuntu run exposed two platform/configuration assumptions:
+  Prisma generation required a `DATABASE_URL`, and the immutable migration hash
+  represented a Windows CRLF checkout instead of canonical repository bytes.
+  The generation step now receives a nonsecret step-only URL without connecting
+  to a database, and the migration guard normalizes line endings before hashing
+  the canonical LF content. Local clean-generation, scoped migration integration
+  (1 suite, 2 tests) and root lint checks pass; no migration SQL changed.
 - GitHub workflow jobs: `PENDING` until the fix revision is pushed and both
   clean Ubuntu jobs pass on GitHub.
 - Synthetic Neon bootstrap and hosted Stripe mutation smoke: `PENDING`; these
