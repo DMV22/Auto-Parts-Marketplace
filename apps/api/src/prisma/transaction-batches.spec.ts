@@ -13,7 +13,7 @@ describe('runInTransactionBatches', () => {
         await operation({});
         transactionSizes.push(currentTransactionSize);
       },
-      async () => {
+      () => {
         currentTransactionSize += 1;
       },
     );
@@ -32,7 +32,7 @@ describe('runInTransactionBatches', () => {
           transactionCount += 1;
           await operation({});
         },
-        async (_transaction, item) => {
+        (_transaction, item) => {
           if (item === 3) {
             throw new Error('write failed');
           }

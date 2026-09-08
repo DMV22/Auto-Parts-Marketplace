@@ -795,8 +795,13 @@ upserts only; no automatic or destructive reset is introduced.
   two consecutive guarded local seeds produced the complete expected summary,
   including 360 Listings, without creating auth Accounts, Sessions or
   Verifications.
-- Synthetic Neon bootstrap revalidation and hosted Stripe mutation smoke:
-  `PENDING`; these remain manual, separately authorized steps.
+- Synthetic Neon bootstrap revalidation: `PASS`; the complete manifest was
+  written to Neon after transaction batching, and the user confirmed that the
+  hosted database contains synthetic/demo data only.
+- Hosted Stripe test-mode mutation smoke and role-aware validation: `PASS`; the
+  user confirmed correct payment/webhook behavior, all four persisted roles and
+  no observed critical/high defect. The PF7 batching follow-up awaits a clean
+  GitHub static/unit/build job after its test-only lint correction.
 
 #### PF7 handoff to manual validation and PF8
 

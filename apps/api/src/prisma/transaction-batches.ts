@@ -4,7 +4,7 @@ export async function runInTransactionBatches<TItem, TTransaction>(
   runTransaction: (
     operation: (transaction: TTransaction) => Promise<void>,
   ) => Promise<void>,
-  writeItem: (transaction: TTransaction, item: TItem) => Promise<void>,
+  writeItem: (transaction: TTransaction, item: TItem) => Promise<void> | void,
 ): Promise<void> {
   if (!Number.isInteger(batchSize) || batchSize < 1) {
     throw new Error('Transaction batch size must be a positive integer');
