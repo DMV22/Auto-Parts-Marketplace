@@ -112,18 +112,18 @@ Record the deployed Git revision, public provider URLs, UTC timestamp and
 pass/fail only. Do not record environment values, headers, cookies, OAuth data,
 Stripe signatures/payloads or database contents.
 
-| Check                                       | Result  | Owner |
-| ------------------------------------------- | ------- | ----- |
-| PF6 local Stripe integration/e2e suites     | Pass    | User  |
-| PF7 seed authorization unit suites          | Pass    | Agent |
-| Bootstrap rejects missing confirmation      | Pass    | Agent |
-| Synthetic Neon bootstrap                    | Pending | User  |
-| GitHub `Static, unit and build` job         | Pending | User  |
-| GitHub `API PostgreSQL integration and E2E` | Pending | User  |
-| Vercel/Render revision deployed             | Pending | User  |
-| Read-only hosted smoke                      | Pass    | Agent |
-| Hosted Stripe runbook                       | Pending | User  |
-| Manual OAuth/accessibility/responsive smoke | Pending | User  |
+| Check                                       | Result | Owner |
+| ------------------------------------------- | ------ | ----- |
+| PF6 local Stripe integration/e2e suites     | Pass   | User  |
+| PF7 seed authorization unit suites          | Pass   | Agent |
+| Bootstrap rejects missing confirmation      | Pass   | Agent |
+| Synthetic Neon bootstrap                    | Pass   | User  |
+| GitHub `Static, unit and build` job         | Pass   | User  |
+| GitHub `API PostgreSQL integration and E2E` | Pass   | User  |
+| Vercel/Render revision deployed             | Pass   | User  |
+| Read-only hosted smoke                      | Pass   | Agent |
+| Hosted Stripe runbook                       | Pass   | User  |
+| Manual OAuth/accessibility/responsive smoke | Pass   | User  |
 
 Lighthouse is not a blocking GitHub check because free-tier cold starts make it
 non-deterministic. The manually measured Performance `75–78` remains the
@@ -150,5 +150,6 @@ perform an outage-producing rehearsal.
    manually update payment state. A schema correction requires a new reviewed
    forward migration.
 
-PF7 remains `Conditional` until the pending rows are completed. This status
-means public-demo foundation, never production readiness for real customers.
+PF7 is complete. The overall release decision is `Conditional — Ready for public demo` because the documented Render Free cold
+start and Lighthouse performance exception are accepted. This status means
+public-demo foundation, never production readiness for real customers.
