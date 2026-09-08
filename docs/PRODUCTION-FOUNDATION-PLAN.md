@@ -785,10 +785,23 @@ upserts only; no automatic or destructive reset is introduced.
   to a database, and the migration guard normalizes line endings before hashing
   the canonical LF content. Local clean-generation, scoped migration integration
   (1 suite, 2 tests) and root lint checks pass; no migration SQL changed.
-- GitHub workflow jobs: `PENDING` until the fix revision is pushed and both
-  clean Ubuntu jobs pass on GitHub.
-- Synthetic Neon bootstrap and hosted Stripe mutation smoke: `PENDING`; these
-  remain manual, separately authorized steps.
+- GitHub workflow jobs: `PASS`; both clean Ubuntu quality-gate jobs and the
+  canonical Vercel deployment passed on the PF7 regression-fix PR.
+- The first authorized synthetic Neon bootstrap reached the database but failed
+  safely with Prisma `P2028`: one transaction attempted roughly 1,410 sequential
+  upserts and exceeded its 120-second lifetime during Listing processing. Seed
+  orchestration now preserves dependency order while limiting each transaction
+  to 50 sequential writes. The batching contract unit test passes (2 tests), and
+  two consecutive guarded local seeds produced the complete expected summary,
+  including 360 Listings, without creating auth Accounts, Sessions or
+  Verifications.
+- Synthetic Neon bootstrap revalidation: `PASS`; the complete manifest was
+  written to Neon after transaction batching, and the user confirmed that the
+  hosted database contains synthetic/demo data only.
+- Hosted Stripe test-mode mutation smoke and role-aware validation: `PASS`; the
+  user confirmed correct payment/webhook behavior, all four persisted roles and
+  no observed critical/high defect. The PF7 batching follow-up awaits a clean
+  GitHub static/unit/build job after its test-only lint correction.
 
 #### PF7 handoff to manual validation and PF8
 
