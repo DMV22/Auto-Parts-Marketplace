@@ -4,7 +4,7 @@
 
 Auto Parts Marketplace is intended to let customers discover compatible automotive parts and suppliers manage marketplace inventory through a web application backed by a NestJS API and PostgreSQL.
 
-The repository currently implements the backend foundation, the F0–F7 web experience for discovery, owner-isolated commerce, Supplier Cabinet and Internal Ops, and UI redesign slices U0–U5. U6/F8 remain `Conditional` pending external/manual evidence. It does not implement supplier fulfillment, shipping, refunds or external operational integrations; do not invent those workflows without an accepted milestone.
+The repository currently implements the backend foundation, the F0–F8 web experience for discovery, owner-isolated commerce, Supplier Cabinet and Internal Ops, UI redesign slices U0–U6 and public-demo foundation PF0–PF8. U6/F8 readiness gates are complete under a formally approved Lighthouse exception. The public-demo release remains `Conditional` because Render Free cold starts and below-target performance are accepted limitations. It does not implement supplier fulfillment, shipping, refunds or external operational integrations; do not invent those workflows without an accepted milestone.
 
 The public-demo runtime is deployed as a Vercel Hobby Next.js origin, a Render Free NestJS service and a Neon Free PostgreSQL database. Browser requests remain first-party through the Vercel `/api/*` rewrite; the Render origin is server-only except for the signed Stripe test webhook endpoint.
 
@@ -62,12 +62,7 @@ Public queries return only `ACTIVE` Listings and explicit projections. PDP expos
 
 `PaymentsModule` is the public webhook boundary. It verifies Stripe's signature over exact raw bytes before domain lookup. One transaction stores the unique PaymentEvent, applies an allowed pending-state transition, appends OrderStatusEvent and releases stock when required. Browser redirects and Order GET routes are read-only and cannot set `PAID`.
 
-Webhook diagnostics expose only an application request ID, verified Stripe
-event ID/type, safe processing outcome/reason and duration. They never include
-the signature, request body, Checkout Session/Order identifiers, identity,
-cookies, payment details or exception contents. Render cold-start failures
-remain retryable through Stripe test-mode resend; availability never weakens
-webhook authority.
+Webhook diagnostics expose only an application request ID, verified Stripe event ID/type, safe processing outcome/reason and duration. They never include the signature, request body, Checkout Session/Order identifiers, identity, cookies, payment details or exception contents. Render cold-start failures remain retryable through Stripe test-mode resend; availability never weakens webhook authority.
 
 `OrdersModule` exposes owner-only history, immutable detail and reason-coded timeline projections. Responses exclude PaymentEvent payloads, Stripe identifiers, guest hashes and internal membership data. Collections use bounded deterministic opaque-cursor pagination.
 
@@ -115,7 +110,7 @@ Order/payment transitions are explicit application-service operations guarded by
 
 - supplier fulfillment and shipping workflows;
 - payouts, refunds and external CRM/notification integrations;
-- complete real-provider Stripe release smoke and full manual accessibility/responsive evidence; Google OAuth staging validation is complete, while measured Lighthouse baselines retain an accepted local simulated-performance exception;
+- production availability/performance guarantees beyond the accepted Render Free cold start and Lighthouse exceptions;
 - production-grade secret rotation, backups, monitoring, CI/CD and availability guarantees.
 
 These capabilities belong to later milestones and must build on the established persistence, auth and ownership boundaries.

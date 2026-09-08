@@ -3,9 +3,9 @@
 ## Status
 
 - Workstream: UI/UX redesign після функціональних Milestones F0–F8.
-- Поточний етап: U0–U5 завершено; U6 readiness gate виконано частково.
-- Implementation status: U0–U5 — complete; U6 — `Conditional` через невиконаний Lighthouse Performance/LCP budget і відкладені ручні/external checks.
-- F8 залишається `Conditional`: фінальні accessibility, responsive, Lighthouse та external integration checks виконуються після redesign.
+- Поточний етап: U0–U6 завершено.
+- Implementation status: U0–U6 — complete; U6 — `Ready` із формально погодженим Lighthouse Performance/LCP exception. Загальний public-demo release залишається `Conditional` через free-tier operational limits.
+- F8 — `Ready` із тим самим formally accepted Lighthouse exception; фінальні accessibility, responsive та external integration checks завершені під час Production Foundation validation.
 
 ## Summary
 
@@ -622,7 +622,7 @@ External provider можливий лише після approval, license review 
 
 ### U6 — Redesign readiness gate
 
-**Статус:** `Conditional`. Автоматизовані WCAG A/AA перевірки, production build, повна frontend unit/component regression і representative Lighthouse audit виконано. Користувач формально погодив виняток для локального simulated Lighthouse; повна ручна accessibility та external Google/Stripe validation залишається відкритою.
+**Статус:** `Ready` із формально погодженим Lighthouse Performance/LCP exception. Автоматизовані WCAG A/AA перевірки, production build, повна frontend unit/component regression, representative Lighthouse audit, manual accessibility/responsive і external Google/Stripe validation завершені без відомого critical/high defect.
 
 - [x] Додано role-aware automated Axe audit для public storefront, Customer, Supplier та Internal/Admin representative states.
 - [x] Додано локальний Lighthouse CI gate для Home, Catalog, PDP, Supplier Listings та Internal Orders без збереження session cookie у звітах.
@@ -630,9 +630,9 @@ External provider можливий лише після approval, license review 
 - [x] Виконано lint, typecheck, production build, automated accessibility regression та `git diff --check`.
 - [x] Виміряти Lighthouse Performance/LCP трьома запусками на маршрут і погодити documented local simulated-performance exception до Production Foundation profiling.
 - [x] Виконати повну frontend regression після redesign і погоджений selected backend contract gate.
-- [ ] Виконати ручні keyboard, screen-reader, 200% zoom, responsive device, contrast і reduced-motion checks.
-- [ ] Повторити unresolved F8 Google OAuth callback та Stripe webhook verification у відповідному local/staging environment.
-- [ ] Оновити F8 із `Conditional` на `Ready` лише після фактичного закриття зазначених пунктів.
+- [x] Виконати ручні keyboard, screen-reader, 200% zoom, responsive device, contrast і reduced-motion checks.
+- [x] Повторити F8 Google OAuth callback та Stripe webhook verification у відповідному local/staging environment.
+- [x] Оновити F8 із `Conditional` на `Ready` після фактичного закриття зазначених пунктів.
 
 #### U6 implementation log
 
@@ -643,6 +643,7 @@ External provider можливий лише після approval, license review 
 - Lighthouse gate виконує три запуски на маршрут і фіксує медіану. Turbopack build: Home — Performance `52`, LCP `5.46 с`; Catalog — `63`, `4.82 с`; PDP — `59`, `4.76 с`; Supplier Listings — `63`, `4.65 с`; Internal Orders — `66`, `3.76 с`. CLS для всіх маршрутів — `0`, Accessibility — `96–100`, Best Practices — `96–100`.
 - Контрольна webpack-збірка покращила Home median LCP приблизно на `14%`, з `5.46 с` до `4.70 с`, а Performance — з `52` до `55`; build strategy не змінено через недостатній вплив на gate.
 - Lighthouse trace показав, що основний simulated-mobile ризик — приблизно `1.8–2.6 с` JavaScript bootup/TBT у спільному Next/React runtime, а не server response або layout shift. Користувацький запуск Lighthouse у Chrome показав Performance `75–78`; користувач погодив не блокувати U6 локальним simulated score і перенести глибокий RSC/client-boundary та bundle profiling до Production Foundation.
+- Manual keyboard, screen-reader, 200% zoom, responsive, contrast and reduced-motion checks passed without an observed critical/high defect. Hosted Google OAuth and Stripe test-mode verification also passed; no sensitive evidence was recorded.
 
 #### U6 validation results
 
@@ -654,7 +655,7 @@ External provider можливий лише після approval, license review 
 - `pnpm --filter web test -- test/supplier/supplier-workspace-shell.spec.tsx test/internal-ops/internal-workspace-shell.spec.tsx` — passed, 2 files / 3 tests.
 - Трипрохідний Lighthouse виконав усі п'ять representative routes. Автоматичний Performance/LCP threshold не досягнуто; Accessibility/Best Practices/CLS budgets пройдено, а локальний simulated-performance exception погоджено користувачем.
 - `git diff --check` — passed; Windows LF → CRLF повідомлення є інформаційними.
-- Final redesign release status — `Conditional`.
+- Final redesign readiness status — `Ready` with the approved Lighthouse Performance/LCP exception. Public-demo operational status is tracked separately as `Conditional`.
 
 ## Validation strategy per implementation slice
 

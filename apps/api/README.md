@@ -14,14 +14,9 @@ Run commands from the repository root with Node.js `>=22.12.0 <23` and pnpm 9.
   canonical Vercel HTTPS origin, Stripe test-mode configuration, and no
   `TEST_DATABASE_URL`.
 
-API startup validates the complete required environment before NestJS begins
-listening. Errors contain variable names and safe validation reasons only; they
-must never contain configured values. Public-demo validation additionally
-requires HTTPS auth/Checkout URLs on one origin, `sslmode=require`, a Stripe
-test key and an endpoint-specific Stripe webhook secret.
+API startup validates the complete required environment before NestJS begins listening. Errors contain variable names and safe validation reasons only; they must never contain configured values. Public-demo validation additionally requires HTTPS auth/Checkout URLs on one origin, `sslmode=require`, a Stripe test key and an endpoint-specific Stripe webhook secret.
 
-`PORT` is optional locally and defaults to `3001`; Render supplies it at
-runtime. See `.env.example` for names and safe placeholders only.
+`PORT` is optional locally and defaults to `3001`; Render supplies it at runtime. See `.env.example` for names and safe placeholders only.
 
 ## Setup and migrations
 
@@ -69,11 +64,7 @@ For a local Stripe test-mode checkout:
 
 Generic `stripe trigger` fixtures do not carry this application's Order/session/amount metadata. A mismatched signed event intentionally receives a retryable error and performs no database mutation.
 
-For the hosted test-mode destination, subscribed events, safe Render log fields,
-Dashboard resend recovery and the manual evidence checklist, use the
-[Stripe webhook public-demo runbook](../../docs/STRIPE-WEBHOOK-STAGING-RUNBOOK.md).
-Hosted and local listener signing secrets are different and must never be
-interchanged.
+For the hosted test-mode destination, subscribed events, safe Render log fields,Dashboard resend recovery and the manual evidence checklist, use the [Stripe webhook public-demo runbook](../../docs/STRIPE-WEBHOOK-STAGING-RUNBOOK.md). Hosted and local listener signing secrets are different and must never be interchanged. The hosted test-mode Checkout/webhook lifecycle, including idempotent duplicate handling and recoverable delivery behavior, passed PF7 manual validation; live Stripe keys and real payments remain out of scope.
 
 ## Demo seed
 
@@ -82,6 +73,8 @@ pnpm --filter api prisma:seed
 ```
 
 The seed accepts only local `auto_parts_dev`, is safe to run repeatedly and creates synthetic catalog, taxonomy, supplier, user and commerce scenarios. It does not create login credentials, password Accounts, Sessions or Verification records. Tests do not use this seed.
+
+The public-demo database is populated only through the separately authorized, manual `prisma:demo:bootstrap` procedure documented in the [public-demo validation runbook](../../docs/PUBLIC-DEMO-VALIDATION-RUNBOOK.md). The guarded Neon run completed with the expected versioned manifest; it is not part of Render startup, CI or an automatic reset.
 
 ## Tests
 
@@ -107,9 +100,7 @@ pnpm build
 git diff --check
 ```
 
-`pnpm lint:check` never edits files. `pnpm --filter api lint` remains an
-explicit developer autofix command and must not be used as a CI validation
-gate.
+`pnpm lint:check` never edits files. `pnpm --filter api lint` remains an explicit developer autofix command and must not be used as a CI validation gate.
 
 ## Current API boundary
 
