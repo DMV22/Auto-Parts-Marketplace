@@ -2,7 +2,7 @@
 
 ## Product
 
-Auto Parts Marketplace is an early-stage marketplace for automotive parts. The repository currently provides a reproducible backend foundation and an integrated Next.js experience for public discovery, Customer/Guest commerce, Supplier Cabinet and Internal CRM/OMS workflows. Product milestones F0–F7 and redesign slices U0–U5 are implemented; U6/F8 remain `Conditional` while external/manual release evidence is completed. A public-demo staging topology is deployed, while production-scale operations and supplier fulfillment remain future work.
+Auto Parts Marketplace is an early-stage marketplace for automotive parts. The repository currently provides a reproducible backend foundation and an integrated Next.js experience for public discovery, Customer/Guest commerce, Supplier Cabinet and Internal CRM/OMS workflows. Product milestones F0–F8, redesign slices U0–U6 and Production Foundation PF0–PF8 are implemented. U6/F8 readiness is complete under a formally approved Lighthouse exception; the deployed public-demo release remains `Conditional` because free-tier cold-start and performance limits are accepted rather than production-grade.
 
 ## Current repository baseline
 
@@ -15,11 +15,11 @@ Auto Parts Marketplace is an early-stage marketplace for automotive parts. The r
 - database: PostgreSQL 16 through Docker Compose;
 - authentication: Better Auth `1.6.26`, session-based email/password and Google OAuth;
 - backend tests: Jest, PostgreSQL integration tests and Supertest e2e tests;
-- Production Foundation PF0–PF5: configuration/security/database/deployment
-  foundations, Vercel → Render → Neon hosted smoke and Google OAuth staging
-  validation passed. PF6 repository-side Stripe readiness is implemented;
-  hosted state-transition evidence awaits approved synthetic demo data, while
-  regression/observability and final gates remain.
+- Production Foundation PF0–PF8: configuration/security/database/deployment
+  foundations, Vercel → Render → Neon hosted smoke, guarded synthetic bootstrap,
+  Google OAuth, Stripe test-mode state transitions, role-aware/manual validation
+  and GitHub quality gates passed. No critical/high defect was reported during
+  final hosted acceptance.
 
 The active public-demo topology is Vercel Hobby for Next.js, Render Free for NestJS and Neon Free for PostgreSQL. Vercel remains the browser-facing origin and forwards relative `/api/*` requests to Render. The deployment branch is `main`; this environment is a portfolio demo, not production for real clients.
 
@@ -113,19 +113,11 @@ TanStack Query owns server state; local React state is limited to drafts and tra
 
 `AppModule` imports one global `PrismaModule` and one `AuthModule`. `PrismaService` is the only Nest application-wide Prisma provider and uses the PostgreSQL driver adapter. Better Auth uses that persistence boundary through its Prisma adapter and exposes email/password plus Google OAuth session flows.
 
-Secrets and OAuth credentials are environment-only. Demo seed users are domain records without password Accounts, Sessions or Verification records.
+Secrets and OAuth credentials are environment-only. Demo seed users are domain records without password Accounts, Sessions or Verification records. Private role-aware demo login accounts are managed separately from the versioned seed; their credentials are not shared or documented in the repository.
 
-Before the API begins listening, a centralized pure validator checks the
-required database, Better Auth, Google, Stripe and Checkout environment
-contract without including configured values in errors. In
-`NODE_ENV=production`, the current public-demo contract requires non-local TLS
-PostgreSQL, one HTTPS Vercel origin for Better Auth and Checkout redirects,
-Stripe test mode, and no `TEST_DATABASE_URL`.
+Before the API begins listening, a centralized pure validator checks the required database, Better Auth, Google, Stripe and Checkout environment contract without including configured values in errors. In `NODE_ENV=production`, the current public-demo contract requires non-local TLS PostgreSQL, one HTTPS Vercel origin for Better Auth and Checkout redirects, Stripe test mode, and no `TEST_DATABASE_URL`.
 
-Google OAuth is supported only on the canonical production Vercel domain; its
-consent screen is public. A user-initiated Google registration may persist the
-minimal identity fields required by Better Auth, but real addresses, payment
-data and live Stripe usage remain outside the demo policy.
+Google OAuth is supported only on the canonical production Vercel domain; its consent screen is public. A user-initiated Google registration may persist the minimal identity fields required by Better Auth, but real addresses, payment data and live Stripe usage remain outside the demo policy.
 
 ## Local workflow
 
@@ -155,7 +147,7 @@ pnpm --filter web test
 pnpm --filter web test:e2e
 ```
 
-Integration and e2e suites require local `TEST_DATABASE_URL` targeting only `auto_parts_test`. Shared setup validates the target and applies committed migrations. Each suite owns and cleans its fixtures; tests do not import or depend on demo seed. Playwright validates the platform shell, same-origin cookie transport, email/Google-auth initiation, role boundaries and deterministic critical mutations across Garage/PDP, Cart/Checkout recovery, Customer Returns, Supplier inventory and Internal Ops/moderation. Axe and three-run Lighthouse gates cover representative public and role-aware routes; real Google callback, Stripe webhook forwarding and manual assistive-technology evidence remain readiness follow-ups.
+Integration and e2e suites require local `TEST_DATABASE_URL` targeting only `auto_parts_test`. Shared setup validates the target and applies committed migrations. Each suite owns and cleans its fixtures; tests do not import or depend on demo seed. Playwright validates the platform shell, same-origin cookie transport, email/Google-auth initiation, role boundaries and deterministic critical mutations across Garage/PDP, Cart/Checkout recovery, Customer Returns, Supplier inventory and Internal Ops/moderation. Axe and three-run Lighthouse gates cover representative public and role-aware routes. Hosted Google callback, Stripe test-mode webhook forwarding and manual assistive-technology/responsive evidence passed PF7 acceptance; the measured performance exception remains explicit.
 
 `prisma:seed` is guarded separately and accepts only local `auto_parts_dev`. It is idempotent and contains synthetic data only.
 

@@ -37,7 +37,7 @@ Backend Milestones 6–10 сформували придатний для fronten
 
 | Frontend domain           | Backend endpoints/contracts                                                                                   | Status                                                                                             | Gaps / risks                                                                                                 | Frontend readiness                                                     |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------- |
-| Public auth               | Better Auth `/api/auth/*`: email sign-up/sign-in, Google sign-in, sign-out, get-session, change-password      | Реалізовано; same-origin rewrite і cookie/session flows мають E2E coverage                         | Forgot-password/email-verification та account linking не входять у F0–F8                                     | Ready; real Google callback залишається external F8 evidence           |
+| Public auth               | Better Auth `/api/auth/*`: email sign-up/sign-in, Google sign-in, sign-out, get-session, change-password      | Реалізовано; same-origin rewrite і cookie/session flows мають E2E та hosted Google coverage        | Forgot-password/email-verification не входять у F0–F8; linking explicit, Google-only password flow validated | Ready; real Google callback/session recovery passed                    |
 | Vehicle selector          | `GET /api/v1/vehicles/years`, `/makes`, `/models`, `/generations`, `/engines`                                 | Реалізовано й протестовано; hierarchy і query validation стабільні                                 | Cascading selectors мають обробляти empty/stale selections                                                   | Ready                                                                  |
 | Customer Garage           | `GET/POST /api/v1/garage/vehicles`, `PUT /:id/active`, `DELETE /:id`                                          | Реалізовано; Customer-only, owner-scoped                                                           | Не доступний Guest; це очікувана policy                                                                      | Ready                                                                  |
 | Public catalog            | `GET /api/v1/catalog/products` і `/filter-options` із search, filters, vehicle context, pagination та sorting | Реалізовано й протестовано; G3 закрито                                                             | Product media використовує погоджені локальні fallback assets                                                | Ready                                                                  |
@@ -964,7 +964,7 @@ pnpm --filter web build
 - [x] Провести route/DTO/error audit проти фактичних backend controllers і E2E tests.
 - [ ] Виконати exhaustive loading/empty/error/403/404/409/503 перевірку на кожному data screen.
 - [x] Перевірити agreed representative loading/empty/error і `401`/`403`/`404`/`409`/`503` matrix у contract-critical flows; exhaustive Cartesian coverage прийнято як непропорційну для цього gate.
-- [ ] Провести keyboard, screen-reader semantics, contrast і fitment status audit.
+- [x] Провести keyboard, screen-reader semantics, contrast і fitment status audit.
 - [x] Зафіксувати та виміряти Lighthouse/performance budgets, усунути підтверджені waterfalls/CLS і документувати погоджений local simulated-performance exception.
 - [x] Оновити README/architecture/context лише за фактичним станом.
 
@@ -1002,11 +1002,11 @@ git diff --check
 - Цільові значення Core Web Vitals на 75-му процентилі: LCP `<= 2.5 s`, INP `<= 200 ms`, CLS `<= 0.1`.
 - Публічні Catalog/PDP повинні зберігати обмежену серверну пагінацію, не фільтрувати весь каталог у браузері та не виконувати послідовно незалежні запити, які можна безпечно запускати паралельно.
 - Кожен екран із даними повинен мати семантичні орієнтири, повну клавіатурну навігацію, видимий фокус, підписані елементи керування, озвучення асинхронних результатів і підтримку `prefers-reduced-motion`.
-- Бюджети виміряні локальним трипрохідним Lighthouse gate. Simulated-mobile Performance/LCP не досягли цільових порогів; користувач погодив documented exception на підставі окремого Chrome-аудиту з Performance `75–78`. Для зміни статусу F8 на `Ready` ще потрібні ручна перевірка screen reader/responsive/contrast і завершені external Google OAuth та Stripe webhook checklists.
+- Бюджети виміряні локальним трипрохідним Lighthouse gate. Simulated-mobile Performance/LCP не досягли цільових порогів; користувач погодив documented exception на підставі окремого Chrome-аудиту з Performance `75–78`. Ручна screen-reader/responsive/contrast перевірка та external Google OAuth/Stripe webhook checklists завершені без виявленого critical/high defect, тому F8 закрито як `Ready` із формально прийнятим performance exception.
 
 ### Журнал реалізації
 
-- Поточний статус готовності: умовно готовий (`Conditional`).
+- Поточний статус frontend readiness: `Ready` із формально погодженим local simulated-performance exception. Загальний public-demo release окремо залишається `Conditional` через Render Free cold start і відсутність production-grade availability guarantees.
 - Перевірка чистого встановлення та збірки: `pnpm install --frozen-lockfile`, кореневі lint, typecheck і build завершилися успішно; `pnpm-lock.yaml` після встановлення не змінився.
 - Регресійна перевірка: повний набір Vitest для frontend, інтеграційні та E2E-тести API, а також Playwright-тести frontend успішно пройшли в захищеному локальному середовищі. Перший паралельний запуск Vitest отримав шість 5-секундних timeout через конкуренцію за ресурси; усі шість тестів пройшли послідовно, а повторний стандартний запуск завершився успішно без збільшення timeout або зміни кількості робочих процесів.
 - Виправлення F8: після успішного входу очищаються всі попередні дані TanStack Query до завантаження нової безпечної проєкції сесії; таблиця Supplier OrderItems отримала доступний `caption`; регресійні перевірки підтверджують очищення кешу, відсутність token у frontend-сесії та доступну назву таблиці.
@@ -1030,36 +1030,36 @@ git diff --check
 
 Результат слід позначити в колонці `Evidence` як `PASS` або `FAIL` із browser/viewport і коротким несекретним описом.
 
-| Route / роль                                        | Дія                                                              | Очікуваний результат                                                  | Evidence |
-| --------------------------------------------------- | ---------------------------------------------------------------- | --------------------------------------------------------------------- | -------- |
-| `/`, Anonymous                                      | Пройти header і skip-link лише клавіатурою                       | Видимий focus; skip-link переводить focus до `main`                   | Pending  |
-| `/catalog`, Guest, 375 px і 200% zoom               | Відкрити/змінити filters і sort                                  | Контроли не перекриваються; labels і результати читаються             | Pending  |
-| PDP, Customer                                       | Змінити vehicle context і прочитати fitment status screen reader | Status, причина та CTA озвучуються без залежності лише від кольору    | Pending  |
-| `/cart`, Guest                                      | Відкрити drawer, змінити quantity, закрити Escape                | Focus утримується в dialog і повертається до trigger                  | Pending  |
-| Supplier Listing create/detail, active SupplierUser | Викликати validation і пройти actions клавіатурою                | Error пов'язаний із field; pending/status повідомлення озвучуються    | Pending  |
-| `/internal/orders`, SupportManager                  | Пройти filters/table на mobile/tablet/desktop                    | Немає overlap; scroll region доступний клавіатурі й має назву         | Pending  |
-| `/admin/moderation`, Admin                          | Відкрити і скасувати destructive dialog                          | Initial focus безпечний; Escape працює; focus повертається до trigger | Pending  |
-| Усі representative routes                           | Увімкнути reduced motion і перевірити contrast/status badges     | Немає обов'язкової анімації; текст і status залишаються зрозумілими   | Pending  |
+| Route / роль                                        | Дія                                                              | Очікуваний результат                                                  | Evidence              |
+| --------------------------------------------------- | ---------------------------------------------------------------- | --------------------------------------------------------------------- | --------------------- |
+| `/`, Anonymous                                      | Пройти header і skip-link лише клавіатурою                       | Видимий focus; skip-link переводить focus до `main`                   | PASS — user-confirmed |
+| `/catalog`, Guest, 375 px і 200% zoom               | Відкрити/змінити filters і sort                                  | Контроли не перекриваються; labels і результати читаються             | PASS — user-confirmed |
+| PDP, Customer                                       | Змінити vehicle context і прочитати fitment status screen reader | Status, причина та CTA озвучуються без залежності лише від кольору    | PASS — user-confirmed |
+| `/cart`, Guest                                      | Відкрити drawer, змінити quantity, закрити Escape                | Focus утримується в dialog і повертається до trigger                  | PASS — user-confirmed |
+| Supplier Listing create/detail, active SupplierUser | Викликати validation і пройти actions клавіатурою                | Error пов'язаний із field; pending/status повідомлення озвучуються    | PASS — user-confirmed |
+| `/internal/orders`, SupportManager                  | Пройти filters/table на mobile/tablet/desktop                    | Немає overlap; scroll region доступний клавіатурі й має назву         | PASS — user-confirmed |
+| `/admin/moderation`, Admin                          | Відкрити і скасувати destructive dialog                          | Initial focus безпечний; Escape працює; focus повертається до trigger | PASS — user-confirmed |
+| Усі representative routes                           | Увімкнути reduced motion і перевірити contrast/status badges     | Немає обов'язкової анімації; текст і status залишаються зрозумілими   | PASS — user-confirmed |
 
 ##### Google OAuth checklist
 
-| Крок                                                         | Очікуваний результат                                               | Evidence |
-| ------------------------------------------------------------ | ------------------------------------------------------------------ | -------- |
-| Перевірити local/staging origin і точний Google redirect URI | URI збігається з environment; secret не потрапляє в browser bundle | Pending  |
-| Запустити реальний Google sign-in                            | Callback повертає користувача лише на safe `returnTo`              | Pending  |
-| Оновити сторінку після callback                              | Server-issued session відновлюється без browser-storage token      | Pending  |
-| Виконати sign-out і Back/refresh                             | Protected data більше не відображаються; cache очищений            | Pending  |
+| Крок                                                         | Очікуваний результат                                               | Evidence      |
+| ------------------------------------------------------------ | ------------------------------------------------------------------ | ------------- |
+| Перевірити local/staging origin і точний Google redirect URI | URI збігається з environment; secret не потрапляє в browser bundle | PASS — hosted |
+| Запустити реальний Google sign-in                            | Callback повертає користувача лише на safe `returnTo`              | PASS — hosted |
+| Оновити сторінку після callback                              | Server-issued session відновлюється без browser-storage token      | PASS — hosted |
+| Виконати sign-out і Back/refresh                             | Protected data більше не відображаються; cache очищений            | PASS — hosted |
 
 Не записувати й не передавати OAuth code, access token, cookie, client secret або повну callback URL із sensitive query.
 
 ##### Stripe CLI/webhook checklist
 
-| Крок                                                               | Очікуваний результат                                                                              | Evidence |
-| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- | -------- |
-| Користувач запускає Stripe CLI forwarding до local/staging webhook | API отримує signed test event; signing secret залишається лише в environment                      | Pending  |
-| Створити Checkout attempt і завершити sanctioned test payment      | До webhook Order залишається `PENDING_PAYMENT`                                                    | Pending  |
-| Дочекатися received/verified webhook і оновити success page        | Лише після webhook Order переходить у `PAID`                                                      | Pending  |
-| Повторити delayed event/retry і cancel flow                        | Polling дозволяє manual retry; duplicate event не дублює transition; cancel не підтверджує оплату | Pending  |
+| Крок                                                               | Очікуваний результат                                                                              | Evidence            |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- | ------------------- |
+| Користувач запускає Stripe CLI forwarding до local/staging webhook | API отримує signed test event; signing secret залишається лише в environment                      | PASS — local/hosted |
+| Створити Checkout attempt і завершити sanctioned test payment      | До webhook Order залишається `PENDING_PAYMENT`                                                    | PASS — hosted       |
+| Дочекатися received/verified webhook і оновити success page        | Лише після webhook Order переходить у `PAID`                                                      | PASS — hosted       |
+| Повторити delayed event/retry і cancel flow                        | Polling дозволяє manual retry; duplicate event не дублює transition; cancel не підтверджує оплату | PASS — hosted       |
 
 Не записувати й не передавати Stripe secret/signing keys, session URL із sensitive parameters, webhook payload або customer data.
 
@@ -1084,44 +1084,45 @@ git diff --check
 #### Відкладені E2E-сценарії
 
 - Детермінований Playwright slice тепер автоматизує критичні F2–F7 mutations і role/ownership boundaries. Checkout browser test перевіряє ephemeral `Idempotency-Key`, redirect тільки на server-shaped URL та owner-protected `PENDING_PAYMENT` recovery через локальний route fixture; він навмисно не підміняє реальну Stripe signature/webhook перевірку.
-- Google OAuth перевіряється лише до початку переходу на сторінку провайдера; callback, прив’язування акаунта і відновлення реальної сесії після повернення залишаються ручною перевіркою.
+- Автоматизований Google OAuth test перевіряє лише початок переходу до провайдера; callback, explicit linking і відновлення реальної сесії перевірені окремо вручну на hosted staging.
 - Реальна мережа Stripe навмисно не використовується в автоматичних тестах. API webhook-тести працюють із перевіреними синтетичними fixtures; сценарій через Stripe CLI у середовищі, наближеному до бойового, залишається ручним.
+- Відкладені Google OAuth і Stripe test-mode provider scenarios виконані вручну на public-demo staging у PF5–PF7; secrets, OAuth codes, cookies, webhook payloads і customer data не записувалися.
 
 #### Відомі обмеження
 
 - Simulated-mobile Lighthouse Performance `52–66` і LCP `3.76–5.46 с` нижчі за початкові цілі. Trace вказує на спільний Next/React JavaScript bootup/TBT; глибоку оптимізацію RSC/client boundaries і bundle profiling перенесено до Production Foundation за погодженим exception.
-- Перевірки адаптивності, клавіатурної навігації, screen reader і контрастності всіх role-aware робочих просторів залишаються ручними.
+- Перевірки адаптивності, клавіатурної навігації, screen reader і контрастності representative role-aware маршрутів виконані вручну без виявленого critical/high defect.
 - Маршрути Supplier/Internal використовують клієнтські оболонки перевірки доступу для UX і backend guards як єдину межу безпеки. Через це можливий послідовний ланцюжок завантаження session → membership → запит екрана; оптимізувати його слід лише після вимірювань і без послаблення backend authorization.
 
 #### Відкладена перевірка (Deferred validation)
 
-- Повний manual accessibility/responsive audit ще не зафіксовано; automated Axe не підміняє screen-reader, 200% zoom, real-device і contrast review.
-- Реальні Google OAuth callback/session recovery і Stripe CLI verified-webhook scenarios залишаються external checks. Синтетичні Playwright/Jest fixtures не видаються за перевірку провайдерів.
+- Manual accessibility/responsive audit зафіксовано як user-confirmed `PASS`; automated Axe залишається окремим від screen-reader, 200% zoom, device і contrast evidence.
+- Реальні Google OAuth callback/session recovery і Stripe test-mode verified-webhook scenarios зафіксовано як hosted `PASS`; синтетичні Playwright/Jest fixtures не видаються за перевірку провайдерів.
 
 #### Блокери релізу та відповідальні
 
-- QA/UX фронтенду: зафіксувати ручну accessibility/responsive перевірку для репрезентативних public, commerce, supplier та internal маршрутів. Відповідальний — користувач; доказ — route/role/browser/viewport і `PASS`/`FAIL` без sensitive data.
-- Platform/Auth: завершити Google callback, refresh, safe `returnTo` і sign-out checklist у local/staging. Відповідальний — користувач; не передавати OAuth code, token, cookie або secret.
-- Platform/Payments: завершити Stripe CLI Checkout/webhook/delay/cancel/retry checklist. Відповідальний — користувач; не передавати signing secret, secret key або customer data.
+- Release-blocking defects: none known. Manual accessibility/responsive, Google OAuth and Stripe test-mode evidence are complete.
+- Accepted exception: local Lighthouse Performance/LCP remains below the original target; owner — project owner; action — retain the measured baseline for any future performance work.
+- Public-demo operational limitation: Render Free cold start remains documented under PF8 and does not change frontend authorization or payment authority.
 
 #### Фінальний статус релізу (Final release status)
 
-- `Conditional`: build, lint, types, frontend/backend regression, role-aware Playwright, critical F2–F7 mutations, Axe, Lighthouse measurement і repository diff gate пройдені або формально переглянуті; local simulated-performance exception погоджено. До `Ready` бракує зафіксованих ручних accessibility/responsive та external Google/Stripe результатів.
+- `Ready`: build, lint, types, frontend/backend regression, role-aware Playwright, critical F2–F7 mutations, Axe, Lighthouse measurement, manual accessibility/responsive, Google OAuth, Stripe test-mode and repository diff gates passed or were formally reviewed. The local simulated-performance exception is explicitly approved. The broader public-demo release remains `Conditional` because free-tier availability/performance is not a real-production guarantee.
 
 ### План завершення Milestone F8
 
 1. [x] Розширити наявні guarded role-aware fixtures детермінованими domain records для критичних F2–F7 product lifecycle scenarios.
 2. [x] Автоматизувати критичні браузерні сценарії: Garage/PDP fitment, Cart/Checkout recovery, Customer Returns, Supplier Listing/inventory та Internal Ops/moderation mutations.
 3. [x] Доповнити наявні `401`/`403`/нерозкривальний `404`/cache-isolation перевірки representative inventory `409` і recoverable `503` coverage.
-4. Виконати ручну перевірку клавіатурної навігації, screen reader, контрастності й адаптивності для репрезентативних маршрутів кожного домену доступу та зафіксувати результати.
+4. [x] Виконати ручну перевірку клавіатурної навігації, screen reader, контрастності й адаптивності для репрезентативних маршрутів кожного домену доступу та зафіксувати результати.
 5. [x] Запустити трипрохідний Lighthouse для production build на Home, Catalog, PDP, Supplier Listings та Internal Orders, порівняти результати з бюджетами й зафіксувати погоджений exception.
-6. Провести ручний сценарій Google OAuth callback/прив’язування акаунта і Stripe CLI webhook flow без використання production credentials.
-7. Повторити повний набір перевірок F8, оновити фактичні результати, закрити решту Tasks/DoD і змінити статус із `Conditional` на `Ready` лише після усунення всіх блокерів.
+6. [x] Провести ручний сценарій Google OAuth callback/прив’язування акаунта і Stripe test-mode webhook flow без використання production credentials.
+7. [x] Переглянути фінальний набір F8 evidence, закрити Tasks/DoD і зафіксувати `Ready` із погодженим performance exception.
 
 ### Handoff до Production Foundation
 
-- Перший рекомендований ticket: визначити production topology та CI quality gate для окремих Next.js, NestJS і PostgreSQL runtime boundaries.
-- Передумови: завершити manual/external F8 evidence, обрати hosting і managed PostgreSQL, визначити ownership/rotation secrets та зберегти Lighthouse baseline для порівняння після deployment.
+- Production Foundation PF0–PF8 реалізовано для Vercel + Render + Neon public-demo topology; hosted/manual evidence і GitHub quality gate завершені.
+- Наступний workstream потребує окремого планування лише для real-production operations: paid availability, monitoring, backups, secret rotation automation and incident response. Він не входить до F8/PF8.
 - Прочитати: `docs/ARCHITECTURE.md`, `docs/CONTEXT.md`, F8 у цьому документі, U6 у `docs/UI-UX-REDESIGN-PLAN.md`, а також фактичні root/web/api package scripts.
 - Не змінювати без окремого плану: HttpOnly session/guest cookie semantics, backend RBAC/ownership, Stripe webhook authority, inventory concurrency, DTO privacy, Prisma schema/migrations та product lifecycle policies.
 - Не включати в Production Foundation ticket нові product features: wishlist, reviews, promotions, VIN lookup, onboarding, shipping, payouts, email flows або analytics.

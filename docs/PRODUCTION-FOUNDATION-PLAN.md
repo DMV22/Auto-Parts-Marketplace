@@ -2,22 +2,11 @@
 
 ## Status
 
-`In progress` — PF0–PF5 завершено. PF6 repository implementation та PF7
-repository automation/bootstrap foundation завершені, але hosted Stripe
-behavior smoke і provider-side quality evidence ще очікують виконання. 12
-committed migrations застосовано до
-Neon і підтверджено через `prisma:migrate:status`; Next.js розгорнуто на
-Vercel, NestJS — на Render, а same-origin `/api/*` proxy пройшов hosted smoke.
-Google OAuth production callback, explicit linking і Google-only password flow
-пройшли staging validation. Hosted PF6 acceptance, PF7–PF8 та підсумковий
-public-demo release gate ще не завершені.
+`Complete — Conditional public-demo release` — PF0–PF8 завершено. Twelve committed migrations and the guarded synthetic manifest are applied to Neon; Next.js runs on Vercel, NestJS runs on Render, and the same-origin `/api/*` proxy passed hosted smoke. Google OAuth, Stripe test-mode webhook behavior, all persisted roles, manual accessibility/responsive checks and required GitHub quality jobs passed. No critical/high defect is known. Render Free cold start and the approved Lighthouse Performance/LCP exception keep the release `Conditional`; this is not production readiness for real customers.
 
 ## Summary
 
-Цей workstream готує Auto Parts Marketplace до безпечного публічного
-portfolio/demo staging без live-платежів і реальних transactional customer
-data. Public Google OAuth може зберігати мінімальні user-initiated identity
-fields відповідно до зафіксованого PF5 policy exception.
+Цей workstream готує Auto Parts Marketplace до безпечного публічного portfolio/demo staging без live-платежів і реальних transactional customer data. Public Google OAuth може зберігати мінімальні user-initiated identity fields відповідно до зафіксованого PF5 policy exception.
 
 Погоджена безкоштовна topology:
 
@@ -38,10 +27,7 @@ Google OAuth
      -> same-origin rewrite to Render
 ```
 
-Vercel залишається єдиною browser-facing origin. Це зберігає чинну модель
-HttpOnly Better Auth session і Guest Cart cookies без залежності від
-third-party cookies. Render URL є server-side upstream для Next.js rewrite і
-окремим публічним endpoint для Stripe test webhook.
+Vercel залишається єдиною browser-facing origin. Це зберігає чинну модель HttpOnly Better Auth session і Guest Cart cookies без залежності від third-party cookies. Render URL є server-side upstream для Next.js rewrite і окремим публічним endpoint для Stripe test webhook.
 
 ## Goal
 
@@ -121,22 +107,16 @@ third-party cookies. Render URL є server-side upstream для Next.js rewrite �
 - The API listens on provider-supplied `PORT`.
 - Committed Prisma migrations and `prisma:migrate:deploy` exist.
 
-### Gaps to close
+### Remaining public-demo limitations
 
-- automated CI/CD does not exist; provider deployment currently uses the
-  reviewed manual public-demo procedure;
-- the current seed intentionally accepts only local `auto_parts_dev` and must
-  not be pointed at Neon;
-- Google OAuth PF5 acceptance is recorded; Stripe test-mode PF6 behavior still
-  requires end-to-end evidence;
-- provider observability, rollback evidence and synthetic hosted demo-data
-  policy remain PF7/PF8 work;
-- U6/F8 still contain unresolved external/manual evidence.
+- GitHub provides required quality jobs, while Vercel/Render retain provider-native deployment and rollback rather than a credentialed custom deployment workflow.
+- The ordinary seed remains local-only; Neon accepts only the separate manual,version-confirmed and idempotent PF7 bootstrap.
+- Provider-native logs and documented rollback are sufficient for this demo; production monitoring, backup/restore guarantees and incident automation are not implemented.
+- Render/Neon wake-up latency and the approved Lighthouse Performance/LCP exception remain accepted and keep the public-demo release `Conditional`.
 
 ## Environment contract
 
-Never place values from this table in Git, issues, screenshots, test reports or
-chat. Record only variable names and `configured/missing` status.
+Never place values from this table in Git, issues, screenshots, test reports or chat. Record only variable names and `configured/missing` status.
 
 ### Vercel web project
 
@@ -162,9 +142,7 @@ continues to call relative `/api/*`.
 | `STRIPE_CHECKOUT_SUCCESS_URL` | Configuration             | Vercel `/checkout/success` absolute HTTPS URL                          |
 | `STRIPE_CHECKOUT_CANCEL_URL`  | Configuration             | Vercel `/checkout/cancel` absolute HTTPS URL                           |
 
-Render supplies `PORT`; do not hard-code or override it unless provider
-configuration requires it. `TEST_DATABASE_URL` must not be configured in the
-public demo runtime.
+Render supplies `PORT`; do not hard-code or override it unless provider configuration requires it. `TEST_DATABASE_URL` must not be configured in the public demo runtime.
 
 ### Operator-only migration environment
 
@@ -197,8 +175,7 @@ public demo runtime.
 
 **Acceptance evidence**
 
-- Missing or malformed required configuration fails before the API accepts
-  traffic.
+- Missing or malformed required configuration fails before the API accepts traffic.
 - Validation logs contain variable names only, never secret values.
 - Local development and guarded test database workflows remain unchanged.
 
@@ -702,11 +679,11 @@ that evidence is recorded; redirects remain non-authoritative throughout.
 
 **User performs manually**
 
-- [ ] Run preflight and migration status with the direct Neon URL held only in
+- [x] Run preflight and migration status with the direct Neon URL held only in
       the current process environment.
-- [ ] Run the approved bootstrap once and retain only sanitized aggregate
+- [x] Run the approved bootstrap once and retain only sanitized aggregate
       evidence.
-- [ ] Clear the process environment and verify the public synthetic catalog.
+- [x] Clear the process environment and verify the public synthetic catalog.
 
 The manual procedure and current confirmation string are documented in
 `docs/PUBLIC-DEMO-VALIDATION-RUNBOOK.md`. The bootstrap performs idempotent
@@ -722,14 +699,14 @@ upserts only; no automatic or destructive reset is introduced.
       accept only local `auto_parts_test`.
 - [x] Add a post-deployment smoke script or checklist that performs read-only
       health/public checks before any mutation scenario.
-- [~] Re-run the smallest affected regression after each foundation slice, then
-  one final agreed gate.
+- [x] Re-run the smallest affected regression after each foundation slice, then
+      one final agreed gate.
 
 **User performs manually**
 
-- [ ] Approve provider deployments and secret/environment changes.
-- [ ] Perform OAuth, Stripe and manual accessibility/responsive staging smoke.
-- [ ] Confirm public-demo wording and shareable URL.
+- [x] Approve provider deployments and secret/environment changes.
+- [x] Perform OAuth, Stripe and manual accessibility/responsive staging smoke.
+- [x] Confirm public-demo wording and shareable URL.
 
 **Acceptance evidence**
 
@@ -785,33 +762,45 @@ upserts only; no automatic or destructive reset is introduced.
   to a database, and the migration guard normalizes line endings before hashing
   the canonical LF content. Local clean-generation, scoped migration integration
   (1 suite, 2 tests) and root lint checks pass; no migration SQL changed.
-- GitHub workflow jobs: `PENDING` until the fix revision is pushed and both
-  clean Ubuntu jobs pass on GitHub.
-- Synthetic Neon bootstrap and hosted Stripe mutation smoke: `PENDING`; these
-  remain manual, separately authorized steps.
+- GitHub workflow jobs: `PASS`; both clean Ubuntu quality-gate jobs and the
+  canonical Vercel deployment passed on the PF7 regression-fix PR.
+- The first authorized synthetic Neon bootstrap reached the database but failed
+  safely with Prisma `P2028`: one transaction attempted roughly 1,410 sequential
+  upserts and exceeded its 120-second lifetime during Listing processing. Seed
+  orchestration now preserves dependency order while limiting each transaction
+  to 50 sequential writes. The batching contract unit test passes (2 tests), and
+  two consecutive guarded local seeds produced the complete expected summary,
+  including 360 Listings, without creating auth Accounts, Sessions or
+  Verifications.
+- Synthetic Neon bootstrap revalidation: `PASS`; the complete manifest was
+  written to Neon after transaction batching, and the user confirmed that the
+  hosted database contains synthetic/demo data only.
+- Hosted Stripe test-mode mutation smoke and role-aware validation: `PASS`; the
+  user confirmed correct payment/webhook behavior, all four persisted roles and
+  no observed critical/high defect. The PF7 batching follow-up also passed the
+  GitHub static/unit/build job after its test-only lint correction.
 
 #### PF7 handoff to manual validation and PF8
 
-Run the guarded bootstrap exactly as documented, verify the synthetic catalog,
-push the revision, require both GitHub jobs, then complete the hosted Stripe and
-manual staging checklist. PF7 and the overall public-demo gate remain
-`Conditional` until that external evidence is recorded. PF8 may synchronize
-final documentation only after those results are known.
+PF7 is complete: guarded bootstrap, synthetic catalog, both GitHub jobs, hosted
+Stripe and manual staging evidence passed. PF8 synchronizes the final
+documentation and records the public-demo release decision without changing
+runtime behavior.
 
 ### PF8 — Documentation synchronization and release decision
 
 **Agent implements**
 
-- [ ] Update root/web/API README deployment sections from actual results.
-- [ ] Update `docs/CONTEXT.md` and `docs/ARCHITECTURE.md` with the deployed
+- [x] Update root/web/API README deployment sections from actual results.
+- [x] Update `docs/CONTEXT.md` and `docs/ARCHITECTURE.md` with the deployed
       topology.
-- [ ] Synchronize F8/U6 evidence without rewriting historical results.
-- [ ] Record limitations, incidents, accepted exceptions and final status.
+- [x] Synchronize F8/U6 evidence without rewriting historical results.
+- [x] Record limitations, incidents, accepted exceptions and final status.
 
 **User performs manually**
 
-- [ ] Confirm that the deployed environment contains synthetic demo data only.
-- [ ] Confirm whether the shareable demo is public continuously or started on
+- [x] Confirm that the deployed environment contains synthetic demo data only.
+- [x] Confirm whether the shareable demo is public continuously or started on
       demand because of free-tier limitations.
 
 **Release decision**
@@ -824,6 +813,24 @@ final documentation only after those results are known.
   handling or critical user flow is broken.
 
 This decision never means “production-ready for real customers.”
+
+#### PF8 implementation log and release decision
+
+- Root, web and API README files now present the deployed Vercel → Render → Neon
+  topology, canonical public URLs, synthetic-only data policy and completed
+  provider/manual validation without publishing credentials or personal data.
+- Context, architecture, F8 and U6 retain historical automated measurements while
+  recording the completed accessibility/responsive, Google OAuth, Stripe
+  test-mode and role-aware hosted evidence.
+- PF7 incidents remain documented: clean Ubuntu CI exposed generated-client,
+  environment and line-ending assumptions; the first Neon bootstrap exceeded a
+  monolithic transaction timeout. Scoped fixes, transaction batching, rerun and
+  required GitHub jobs passed.
+- **Release status: `Conditional — Ready for public demo`.** No critical/high
+  defect is known. Render Free cold start, the approved Lighthouse
+  Performance/LCP exception, provider subdomains and free-tier recovery limits
+  remain accepted. This is not production readiness for real customers, live
+  payments or personal data.
 
 ## Minimal command mapping
 
@@ -875,13 +882,13 @@ Do not repeat every suite after every small change.
 
 ### Automated
 
-- [ ] Frozen-lockfile install passes on supported Node/pnpm versions.
-- [ ] Web and API production builds pass.
-- [ ] Lint and typecheck are non-mutating and green.
-- [ ] Prisma schema validates and generated client is current.
-- [ ] Required regression suites pass for the deployed revision.
-- [ ] Health, security-header and rate-limit tests pass.
-- [ ] `git diff --check` passes.
+- [x] Frozen-lockfile install passes on supported Node/pnpm versions.
+- [x] Web and API production builds pass.
+- [x] Lint and typecheck are non-mutating and green.
+- [x] Prisma schema validates and generated client is current.
+- [x] Required regression suites pass for the validated release-candidate revision.
+- [x] Health, security-header and rate-limit tests pass.
+- [x] `git diff --check` passes.
 
 ### Hosted smoke
 
@@ -891,22 +898,23 @@ Do not repeat every suite after every small change.
 - [x] Neon connectivity and committed migration status are verified.
 - [x] Anonymous Catalog/PDP and error states work after cold start.
 - [x] Customer session refresh/sign-out and Guest Cart cookie persist correctly.
-- [ ] SupplierUser, SupportManager and Admin access boundaries remain enforced.
-- [ ] Google callback, explicit linking and Google-only password creation pass.
-- [ ] Stripe sandbox paid, duplicate, delayed and expired/cancel paths pass.
-- [ ] No session, guest identity, OAuth code or payment metadata appears in
+- [x] SupplierUser, SupportManager and Admin access boundaries remain enforced.
+- [x] Google callback, explicit linking and Google-only password creation pass.
+- [x] Stripe sandbox paid, duplicate, delayed and expired/cancel paths pass.
+- [x] No session, guest identity, OAuth code or payment metadata appears in
       browser storage, URLs, public caches or provider logs.
-- [ ] Manual keyboard, screen-reader, zoom and responsive smoke has no
+- [x] Manual keyboard, screen-reader, zoom and responsive smoke has no
       critical/high issue.
 
 ### Operational
 
-- [ ] Provider owners and recovery access are documented privately.
-- [ ] Secret rotation procedure names the owner without containing values.
-- [ ] Neon export/restore limitation is accepted for the free demo.
-- [ ] Render cold-start limitation is disclosed in project documentation.
-- [ ] Vercel and Render rollback steps identify a known-good revision.
-- [ ] Demo data is synthetic and recoverable from an approved source.
+- [x] Provider owners and recovery access are documented privately.
+- [x] Secret rotation procedure names the project owner without containing values.
+- [x] Neon export/restore limitation is accepted for the free demo.
+- [x] Render cold-start limitation is disclosed in project documentation.
+- [x] Vercel and Render rollback steps identify the last known-good provider
+      deployment; an outage-producing rehearsal is not required for this demo.
+- [x] Demo data is synthetic and recoverable from the approved guarded source.
 
 ## Rollback and recovery strategy
 
@@ -924,29 +932,27 @@ Do not repeat every suite after every small change.
 
 ## Known limitations and accepted risks
 
-| Risk                                             | Demo treatment                                             | Status                  |
-| ------------------------------------------------ | ---------------------------------------------------------- | ----------------------- |
-| Render sleeps after idle                         | Document cold start; retry recoverable UI requests         | Accepted for free demo  |
-| Stripe event reaches sleeping API                | Checkout normally warms API; rely on sandbox retry/resend  | Must validate           |
-| Neon compute wake-up                             | Bounded readiness and first-request latency measurement    | Accepted if recoverable |
-| Free database lacks production backup guarantees | Synthetic reproducible data; no real PII                   | Must document           |
-| Provider subdomains only                         | Canonical Vercel origin; no custom-domain promise          | Accepted                |
-| API upstream is publicly reachable               | Auth/RBAC retained; scoped rate/security baseline added    | Revalidate when hosted  |
-| Provider logs only                               | Runtime redaction audit passed; provider logs need smoke   | Revalidate in PF3/PF7   |
-| Lighthouse baseline below original target        | Preserve approved U6 exception and remeasure hosted routes | Conditional             |
+| Risk                                             | Demo treatment                                            | Status                 |
+| ------------------------------------------------ | --------------------------------------------------------- | ---------------------- |
+| Render sleeps after idle                         | Document cold start; retry recoverable UI requests        | Accepted for free demo |
+| Stripe event reaches sleeping API                | Checkout normally warms API; rely on sandbox retry/resend | Validated and accepted |
+| Neon compute wake-up                             | Bounded readiness and first-request latency measurement   | Accepted; recoverable  |
+| Free database lacks production backup guarantees | Synthetic reproducible data; no real PII                  | Accepted for demo      |
+| Provider subdomains only                         | Canonical Vercel origin; no custom-domain promise         | Accepted               |
+| API upstream is publicly reachable               | Auth/RBAC retained; scoped rate/security baseline added   | Hosted roles validated |
+| Provider logs only                               | Runtime redaction audit and hosted smoke passed           | Accepted for demo      |
+| Lighthouse baseline below original target        | Preserve approved U6 exception for future comparison      | Accepted; Conditional  |
 
 ## Open questions
 
-These decisions do not block creation of the plan but must be resolved before
-their corresponding implementation slice:
+Resolved for the public-demo scope:
 
-1. Has the complete Git history passed a secret audit so the repository may be
-   made public before connecting it to providers?
-2. Which separately reviewed implementation will populate Neon with synthetic
-   demo data after migrations? PF2 defines its safety contract but intentionally
-   does not add an executable hosted seed.
-3. Provider resources now exist. PF5/PF6 must record real Google OAuth and
-   Stripe test-mode behavior without exposing credentials, codes or payloads.
+1. The repository is public under the documented no-secret policy; it may become
+   private later without changing the runtime contract.
+2. Neon is populated through the manual, version-confirmed and idempotent PF7
+   bootstrap. It never runs in CI or Render startup.
+3. PF5–PF7 record Google OAuth and Stripe test-mode behavior without credentials,
+   codes, cookies or payloads.
 
 PF1 resolved the former rate-limit and logging-policy decisions: approved
 in-memory limits are `10/5/30` per 60 seconds, and provider-default retention is

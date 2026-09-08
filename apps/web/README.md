@@ -64,6 +64,11 @@ pnpm --filter web test:lighthouse --reuse-build --grep "on Supplier Listings$"
 pnpm --filter web test:lighthouse --reuse-build --grep "on Internal Orders$"
 ```
 
-Real Google callback, Stripe webhook forwarding and manual screen-reader/responsive checks remain external F8 release evidence. Never place OAuth codes, access tokens, cookies, Stripe secrets or customer data in reports.
+Hosted Google callback/session recovery, Stripe test-mode webhook forwarding,
+all four persisted role contexts and manual screen-reader/responsive checks were
+completed without an observed critical/high defect. The formally accepted
+Lighthouse exception and Render Free cold start keep the overall public-demo
+release `Conditional`. Never place OAuth codes, access tokens, cookies, Stripe
+secrets or customer data in reports.
 
 See [Frontend milestones](../../docs/FRONTEND-MILESTONES.md) and [Architecture](../../docs/ARCHITECTURE.md).

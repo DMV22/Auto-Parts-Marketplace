@@ -2,7 +2,7 @@
 
 Full-stack automotive marketplace that connects vehicle-aware product discovery, Customer and Guest commerce, Supplier inventory management, and internal marketplace operations in one role-secured platform.
 
-The project is implemented as a production-oriented pnpm/Turborepo monorepo. Its current release status is **Conditional**: product milestones F0–F7 and redesign slices U0–U5 are complete, automated regressions are green, and the remaining release evidence is documented under [F8](docs/FRONTEND-MILESTONES.md) and [U6](docs/UI-UX-REDESIGN-PLAN.md).
+The project is implemented as a production-oriented pnpm/Turborepo monorepo. Product milestones F0–F8 and redesign slices U0–U6 are complete. The platform is **ready for a public portfolio demo with a Conditional release status** because Render Free cold starts and the formally accepted Lighthouse performance exception do not meet production availability/performance guarantees.
 
 ## Product capabilities
 
@@ -70,7 +70,7 @@ docs/           Architecture, API plans, milestones and redesign evidence
 - Automated accessibility scores are `96–100`, Best Practices scores are `96–100`, and measured CLS is `0` on all representative routes.
 - A local Chrome audit reported Performance `75–78`; slower simulated-mobile measurements and the accepted readiness exception are recorded in the U6 log.
 
-Automated checks complement rather than replace real Google OAuth, Stripe webhook and manual assistive-technology validation. The project must not be described as production-deployed until the remaining F8 evidence and Production Foundation work are complete.
+Automated checks are complemented by completed hosted Google OAuth, Stripe test-mode webhook, role-aware and manual accessibility/responsive validation. No critical/high defect was observed. This evidence supports a public portfolio demo, not production use with real customers, personal data or live payments.
 
 ## Local setup
 
@@ -134,14 +134,13 @@ The public demo runs on Vercel Hobby for Next.js, Render Free for NestJS and Neo
 - Web: <https://auto-parts-marketplace-web-bqbz.vercel.app>
 - API health: <https://auto-parts-marketplace-api.onrender.com/api/v1/health/ready>
 
-PF0–PF5 establish the configuration/security/database/deployment foundation,
-the Vercel same-origin `/api/*` proxy and formal Google OAuth staging evidence.
-PF6 repository-side Stripe test-mode readiness is implemented with safe
-correlation diagnostics and a documented resend procedure; hosted payment-state
-evidence remains pending until approved synthetic catalog data exists. PF7–PF8
-still cover the final regression/observability and public-demo release gates.
-This remains portfolio/demo staging, not production for real transactional
-customer data or live payments.
+PF0–PF8 establish the configuration, security, database and deployment
+foundation; the Vercel same-origin `/api/*` proxy; guarded synthetic Neon
+bootstrap; Google OAuth staging; Stripe test-mode webhook authority; and the
+final GitHub quality/hosted validation gates. The deployed database contains
+synthetic/demo data only, while private role-aware accounts are managed
+separately and no shared passwords are published. This remains portfolio/demo
+staging, not production for real transactional customer data or live payments.
 
 Use the non-mutating repository lint command for release/CI validation:
 
@@ -152,12 +151,14 @@ pnpm lint:check
 The existing `pnpm lint` remains the developer autofix workflow because the API
 package intentionally runs ESLint with `--fix`.
 
-Remaining prerequisites:
+Accepted public-demo limitations:
 
-- complete PF6–PF8 and the remaining manual/external evidence listed in F8;
-- retain Stripe test mode and synthetic-only demo data;
-- document environment ownership and secret rotation without adding secrets to Git;
-- retain the measured Lighthouse baseline for post-deployment comparison.
+- Render Free may sleep after idle; the recoverable UI resumes after the API
+  wakes, but availability and latency are not production-grade;
+- the approved local Chrome Performance baseline is `75–78`, below the original
+  `>= 80` target, while automated Accessibility/Best Practices/CLS budgets pass;
+- Stripe remains in test mode and Neon contains synthetic/demo data only;
+- provider subdomains are used without a custom-domain availability promise.
 
 Read [Architecture](docs/ARCHITECTURE.md), [Current context](docs/CONTEXT.md), [F8](docs/FRONTEND-MILESTONES.md) and [U6](docs/UI-UX-REDESIGN-PLAN.md) before implementation. Do not change auth/session semantics, backend ownership/RBAC, Stripe webhook authority, inventory concurrency, DTO privacy or Prisma schema without a separately reviewed plan. Wishlist, reviews, promotions, VIN lookup, onboarding, shipping, payouts, email flows and analytics are separate product milestones.
 
